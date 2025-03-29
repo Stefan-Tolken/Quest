@@ -7,16 +7,12 @@ interface DraggableProps {
   component: ComponentData;
 }
 
-/**
- * Component for draggable items in the components list
- * Should only be used in the left panel list
- */
-const DraggableComponent: React.FC<DraggableProps> = ({ component }) => {
+export const DraggableComponent = ({ component }: DraggableProps) => {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: component.id,
     data: { 
-      type: component.type, 
-      isNew: true // Flag to identify new vs existing components
+      type: component.type,
+      isNew: true
     },
   });
 
@@ -25,11 +21,9 @@ const DraggableComponent: React.FC<DraggableProps> = ({ component }) => {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className="p-2 bg-gray-200 border rounded cursor-move mb-2"
+      className="p-2 bg-gray-100 border rounded cursor-move hover:bg-gray-200 transition-colors"
     >
       {component.type}
     </div>
   );
 };
-
-export default DraggableComponent;

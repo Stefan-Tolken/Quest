@@ -11,49 +11,41 @@ interface PageComponentProps {
   dragListeners?: any;
 }
 
-/**
- * Renders the actual component content with edit controls
- */
-const PageComponent: React.FC<PageComponentProps> = ({
+export const PageComponent = ({
   component,
   onDelete,
   onUpdate,
   dragAttributes,
   dragListeners,
-}) => {
+}: PageComponentProps) => {
   const [localContent, setLocalContent] = useState(component.content || "");
 
-  const handleUpdate = () => {
-    onUpdate(component.id, localContent);
-  };
+  const handleUpdate = () => onUpdate(component.id, localContent);
 
   return (
-    <div className="p-4 bg-white border rounded mb-2 hover:shadow-lg transition-shadow">
-      {/* Drag handle */}
-      <div 
-        className="absolute top-1 right-1 cursor-move text-gray-400 hover:text-gray-600"
-        {...dragAttributes}
-        {...dragListeners}
-      >
-        ⠿
+    <div className="group relative bg-white p-4 rounded-lg border shadow-sm hover:shadow-md transition-shadow">
+      <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button
+          className="text-red-500 hover:text-red-700"
+          onClick={() => onDelete(component.id)}
+        >
+          Delete
+        </button>
+        <div
+          className="cursor-grab text-gray-400 hover:text-gray-600"
+          {...dragAttributes}
+          {...dragListeners}
+        >
+          ⠿
+        </div>
       </div>
 
-      {/* Delete button */}
-      <button
-        className="absolute top-1 left-1 text-red-400 hover:text-red-600"
-        onClick={() => onDelete(component.id)}
-      >
-        ×
-      </button>
-
-      {/* Content display/edit */}
       {component.type === "heading" && (
         <input
-          type="text"
           value={localContent}
           onChange={(e) => setLocalContent(e.target.value)}
           onBlur={handleUpdate}
-          className="text-xl font-bold w-full border-b focus:outline-none"
+          className="text-2xl font-bold w-full border-b focus:outline-none"
           placeholder="Enter heading..."
         />
       )}
@@ -63,13 +55,13 @@ const PageComponent: React.FC<PageComponentProps> = ({
           value={localContent}
           onChange={(e) => setLocalContent(e.target.value)}
           onBlur={handleUpdate}
-          className="w-full h-24 p-2 border rounded focus:outline-none"
+          className="w-full h-32 p-2 border rounded focus:outline-none"
           placeholder="Enter paragraph..."
         />
       )}
 
       {component.type === "image" && (
-        <div className="relative">
+        <div className="border-dashed border-2 p-4 rounded">
           <input
             type="file"
             accept="image/*"
@@ -83,11 +75,10 @@ const PageComponent: React.FC<PageComponentProps> = ({
                 reader.readAsDataURL(file);
               }
             }}
+            className="w-full"
           />
         </div>
       )}
     </div>
   );
 };
-
-export default PageComponent;

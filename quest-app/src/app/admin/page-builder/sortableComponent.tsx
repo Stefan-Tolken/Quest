@@ -3,7 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSSProperties } from "react";
 import { ComponentData } from "./types";
-import PageComponent from "./pageComponent";
+import { PageComponent } from "./pageComponent";
 
 interface SortableProps {
   component: ComponentData;
@@ -11,21 +11,21 @@ interface SortableProps {
   onUpdate: (id: string, content: string) => void;
 }
 
-/**
- * Handles sorting logic for components in the drop zone
- */
-const SortableComponent: React.FC<SortableProps> = ({ 
+export const SortableComponent = ({ 
   component, 
   onDelete,
   onUpdate 
-}) => {
+}: SortableProps) => {
   const {
     attributes,
     listeners,
     setNodeRef,
     transform,
     transition,
-  } = useSortable({ id: component.id });
+  } = useSortable({ 
+    id: component.id,
+    data: { isNew: false }
+  });
 
   const style: CSSProperties = {
     transform: transform 
@@ -38,7 +38,6 @@ const SortableComponent: React.FC<SortableProps> = ({
     <div 
       ref={setNodeRef} 
       style={style}
-      className="relative group"
     >
       <PageComponent
         component={component}
@@ -50,5 +49,3 @@ const SortableComponent: React.FC<SortableProps> = ({
     </div>
   );
 };
-
-export default SortableComponent;
