@@ -1,15 +1,23 @@
+// app/admin/page-builder/draggableComponent.tsx
 "use client";
 import { useDraggable } from "@dnd-kit/core";
-import React from "react";
 import { ComponentData } from "./types";
 
 interface DraggableProps {
   component: ComponentData;
 }
 
+/**
+ * Component for draggable items in the components list
+ * Should only be used in the left panel list
+ */
 const DraggableComponent: React.FC<DraggableProps> = ({ component }) => {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+  const { attributes, listeners, setNodeRef } = useDraggable({
     id: component.id,
+    data: { 
+      type: component.type, 
+      isNew: true // Flag to identify new vs existing components
+    },
   });
 
   return (
@@ -17,16 +25,7 @@ const DraggableComponent: React.FC<DraggableProps> = ({ component }) => {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      style={{
-        transform: transform
-          ? `translate(${transform.x}px, ${transform.y}px)`
-          : undefined,
-        padding: "10px",
-        margin: "5px",
-        backgroundColor: "#e0e0e0",
-        cursor: "grab",
-        borderRadius: "5px",
-      }}
+      className="p-2 bg-gray-200 border rounded cursor-move mb-2"
     >
       {component.type}
     </div>
