@@ -1,0 +1,23 @@
+import { useAuth } from "react-oidc-context";
+
+export function useAuthState() {
+    const auth = useAuth();
+
+    const signOutRedirect = () => {
+        auth.removeUser();
+
+        const clientId = "3buk3745f26l9rkdel07b2k6p5";
+        const logoutUri = "http://localhost:3000";
+        const cognitoDomain = "https://us-east-1odkgpppbl.auth.us-east-1.amazoncognito.com";
+        window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
+    };
+
+    return {
+        isAuthenticated: auth.isAuthenticated,
+        isLoading: auth.isLoading,
+        user: auth.user,
+        error: auth.error,
+        signin: auth.signinRedirect,
+        signout: signOutRedirect,
+    };
+}
