@@ -6,6 +6,7 @@ import { ComponentList } from "./componentList";
 import { DropZone } from "./dropZone";
 import { ComponentData } from "./types";
 import { arrayMove } from "@dnd-kit/sortable";
+import AuthGaurd  from "@/components/authGuard";
 
 const PageBuilder = () => {
   const [components, setComponents] = useState<ComponentData[]>([]);
@@ -48,16 +49,18 @@ const PageBuilder = () => {
   };
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
-      <div className="flex h-screen bg-gray-50">
-        <ComponentList />
-        <DropZone
-          components={components}
-          onDelete={handleDelete}
-          onUpdate={handleUpdate}
-        />
-      </div>
-    </DndContext>
+    <AuthGaurd adminOnly={true}>
+      <DndContext onDragEnd={handleDragEnd}>
+        <div className="flex h-screen bg-gray-50">
+          <ComponentList />
+          <DropZone
+            components={components}
+            onDelete={handleDelete}
+            onUpdate={handleUpdate}
+          />
+        </div>
+      </DndContext>
+    </AuthGaurd>
   );
 };
 
