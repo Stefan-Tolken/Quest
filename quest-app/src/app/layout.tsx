@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link"; // Import Link from Next.js
 import "./globals.css";
+import RegisterSW from "./sw-register";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,8 +15,16 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Quest - Admin Panel",
-  description: "Page builder for creating artefact pages.",
+  title: "Your App Name",
+  description: "Your app description",
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: "#000000",
 };
 
 export default function RootLayout({
@@ -28,7 +37,6 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* Navigation Bar */}
         <nav className="p-4 bg-gray-200">
           <ul className="flex gap-4">
             <li>
@@ -48,7 +56,7 @@ export default function RootLayout({
         </nav>
 
         {/* Main Content */}
-        <main className="p-4">{children}</main>
+        <main className="p-4">{children}<RegisterSW /></main>
       </body>
     </html>
   );
