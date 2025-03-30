@@ -1,18 +1,19 @@
 // app/admin/page-builder/pageComponent.tsx
 "use client";
 import { ComponentData } from "./types";
-import { 
+import {
   HeadingComponent,
   ParagraphComponent,
-  ImageComponent
+  ImageComponent,
 } from "./components";
+import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
 interface PageComponentProps {
   component: ComponentData;
   onDelete: (id: string) => void;
   onUpdate: (id: string, content: string) => void;
-  dragAttributes?: any;
-  dragListeners?: any;
+  dragAttributes?: React.HTMLAttributes<HTMLDivElement>;
+  dragListeners?: SyntheticListenerMap;
 }
 
 export const PageComponent = ({
@@ -30,6 +31,7 @@ export const PageComponent = ({
         <button
           className="text-red-500 hover:text-red-700"
           onClick={() => onDelete(component.id)}
+          aria-label="Delete component"
         >
           Delete
         </button>
@@ -37,6 +39,7 @@ export const PageComponent = ({
           className="cursor-grab text-gray-400 hover:text-gray-600"
           {...dragAttributes}
           {...dragListeners}
+          aria-label="Drag handle"
         >
           ⠿
         </div>
@@ -56,9 +59,7 @@ export const PageComponent = ({
         />
       )}
 
-      {component.type === "image" && (
-        <ImageComponent onUpdate={handleUpdate} />
-      )}
+      {component.type === "image" && <ImageComponent onUpdate={handleUpdate} />}
     </div>
   );
 };

@@ -56,7 +56,10 @@ export default function RootLayout({
         </nav>
 
         {/* Main Content */}
-        <main className="p-4">{children}<RegisterSW /></main>
+        <main className="p-4">
+          {children}
+          <RegisterSW />
+        </main>
       </body>
     </html>
   );

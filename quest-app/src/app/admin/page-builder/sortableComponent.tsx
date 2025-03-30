@@ -11,34 +11,26 @@ interface SortableProps {
   onUpdate: (id: string, content: string) => void;
 }
 
-export const SortableComponent = ({ 
-  component, 
+export const SortableComponent = ({
+  component,
   onDelete,
-  onUpdate 
+  onUpdate,
 }: SortableProps) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ 
-    id: component.id,
-    data: { isNew: false }
-  });
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({
+      id: component.id,
+      data: { isNew: false },
+    });
 
   const style: CSSProperties = {
-    transform: transform 
+    transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
     transition,
   };
 
   return (
-    <div 
-      ref={setNodeRef} 
-      style={style}
-    >
+    <div ref={setNodeRef} style={style}>
       <PageComponent
         component={component}
         onDelete={onDelete}

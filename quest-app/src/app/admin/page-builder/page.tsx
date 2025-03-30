@@ -7,7 +7,7 @@ import { DropZone } from "./dropZone";
 import { ComponentData } from "./types";
 import { arrayMove } from "@dnd-kit/sortable";
 
-export const PageBuilder = () => {
+const PageBuilder = () => {
   const [components, setComponents] = useState<ComponentData[]>([]);
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -15,35 +15,35 @@ export const PageBuilder = () => {
 
     // Handle reordering
     if (over?.id && active.id !== over.id) {
-      const oldIndex = components.findIndex(c => c.id === active.id);
-      const newIndex = components.findIndex(c => c.id === over.id);
-      
+      const oldIndex = components.findIndex((c) => c.id === active.id);
+      const newIndex = components.findIndex((c) => c.id === over.id);
+
       if (oldIndex !== -1 && newIndex !== -1) {
-        setComponents(items => arrayMove(items, oldIndex, newIndex));
+        setComponents((items) => arrayMove(items, oldIndex, newIndex));
         return;
       }
     }
 
     // Handle new component addition
     if (over?.id === "dropzone" && active.data.current?.isNew) {
-      setComponents(items => [
+      setComponents((items) => [
         ...items,
         {
           id: crypto.randomUUID(),
           type: active.data.current?.type,
-          content: ""
-        }
+          content: "",
+        },
       ]);
     }
   };
 
   const handleDelete = (id: string) => {
-    setComponents(prev => prev.filter(c => c.id !== id));
+    setComponents((prev) => prev.filter((c) => c.id !== id));
   };
 
   const handleUpdate = (id: string, content: string) => {
-    setComponents(prev =>
-      prev.map(c => c.id === id ? { ...c, content } : c)
+    setComponents((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, content } : c))
     );
   };
 
