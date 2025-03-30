@@ -1,7 +1,11 @@
 // app/admin/page-builder/pageComponent.tsx
 "use client";
 import { ComponentData } from "./types";
-import { useState } from "react";
+import { 
+  HeadingComponent,
+  ParagraphComponent,
+  ImageComponent
+} from "./components";
 
 interface PageComponentProps {
   component: ComponentData;
@@ -18,9 +22,7 @@ export const PageComponent = ({
   dragAttributes,
   dragListeners,
 }: PageComponentProps) => {
-  const [localContent, setLocalContent] = useState(component.content || "");
-
-  const handleUpdate = () => onUpdate(component.id, localContent);
+  const handleUpdate = (content: string) => onUpdate(component.id, content);
 
   return (
     <div className="group relative bg-white p-4 rounded-lg border shadow-sm hover:shadow-md transition-shadow">
@@ -41,43 +43,21 @@ export const PageComponent = ({
       </div>
 
       {component.type === "heading" && (
-        <input
-          value={localContent}
-          onChange={(e) => setLocalContent(e.target.value)}
-          onBlur={handleUpdate}
-          className="text-2xl font-bold w-full border-b focus:outline-none"
-          placeholder="Enter heading..."
+        <HeadingComponent
+          content={component.content || ""}
+          onUpdate={handleUpdate}
         />
       )}
 
       {component.type === "paragraph" && (
-        <textarea
-          value={localContent}
-          onChange={(e) => setLocalContent(e.target.value)}
-          onBlur={handleUpdate}
-          className="w-full h-32 p-2 border rounded focus:outline-none"
-          placeholder="Enter paragraph..."
+        <ParagraphComponent
+          content={component.content || ""}
+          onUpdate={handleUpdate}
         />
       )}
 
       {component.type === "image" && (
-        <div className="border-dashed border-2 p-4 rounded">
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                  onUpdate(component.id, event.target?.result as string);
-                };
-                reader.readAsDataURL(file);
-              }
-            }}
-            className="w-full"
-          />
-        </div>
+        <ImageComponent onUpdate={handleUpdate} />
       )}
     </div>
   );
