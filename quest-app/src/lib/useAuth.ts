@@ -4,9 +4,11 @@ export function useAuthState() {
     const auth = useAuth();
 
     const signOutRedirect = () => {
+        auth.removeUser();
+        
         const clientId = "4bnj35a85lf87tg75aslkk6fre";
-        const logoutUri = "<logout uri>";
-        const cognitoDomain = "https://<user pool domain>";
+        const logoutUri = "http://localhost:3000";
+        const cognitoDomain = "https://eu-north-1mq3gfksbu.auth.eu-north-1.amazoncognito.com";
         window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
     };
 
