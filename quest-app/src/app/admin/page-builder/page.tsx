@@ -12,10 +12,11 @@ const PageBuilder = () => {
   const [components, setComponents] = useState<ComponentData[]>([]);
   const [artifactName, setArtifactName] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   const handleSubmit = async () => {
     if (!artifactName) {
-      alert("Please enter an artifact name");
+      setShowError(true);
       return;
     }
 
@@ -91,18 +92,23 @@ const PageBuilder = () => {
           <div className="p-4 border-b bg-white">
             <div className="max-w-3xl mx-auto space-y-4">
               <h1 className="text-2xl font-bold">Create New Artifact</h1>
+              <p className="text-red-500 text-sm" hidden={!showError}>
+                * Please enter a name for your artifact.
+              </p>
+              
               <input
                 type="text"
                 required
                 placeholder="Artifact Name *"
                 value={artifactName}
                 onChange={(e) => setArtifactName(e.target.value)}
+                onFocus={() => setShowError(false)}
                 className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
                 onClick={handleSubmit}
                 disabled={isSaving}
-                className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+                className="fixed bottom-4 right-4 bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
               >
                 {isSaving ? 'Saving...' : 'Save Artifact'}
               </button>
