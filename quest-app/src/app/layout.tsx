@@ -3,7 +3,6 @@
 import { AuthProvider } from "react-oidc-context";
 import { CognitoAuthConfig } from "@/lib/auth";
 import { Geist, Geist_Mono } from "next/font/google";
-import NavBar from "@/components/ui/navBar";
 import "./globals.css";
 import RegisterSW from "./sw-register";
 
@@ -29,10 +28,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          <NavBar />
 
           {/* Main Content */}
-          <main className="p-4">
+          <main>
             {children}
             <RegisterSW />
           </main>
