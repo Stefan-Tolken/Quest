@@ -9,10 +9,7 @@ export default function AuthButton() {
   if (isLoading) return <p>Loading...</p>;
 
   return isAuthenticated ? (
-    <div className="flex items-center gap-4">
-      <p>{user?.profile.email}</p>
-      <Button variant={"destructive"} onClick={() => signout()}>Sign out</Button>
-    </div>
+    <Button variant={"destructive"} onClick={() => signout()}>Sign out</Button>
   ) : (
     <Button variant={"default"} onClick={() => signin()}>Sign in</Button>
   );
