@@ -1,8 +1,9 @@
 import Link from "next/link";
+import AuthButton from "./authButton";
 
 const NavBar: React.FC = () => {
   return (
-    <nav className="p-4 bg-gray-200">            
+    <nav className="p-4 bg-gray-200 flex justify-between items-center">            
         <ul className="flex gap-4">
             <li>
                 <Link href="/" className="text-blue-600 hover:underline">
@@ -18,6 +19,7 @@ const NavBar: React.FC = () => {
                 </Link>
             </li>
         </ul>
+        <AuthButton />
     </nav>
   );
 }
