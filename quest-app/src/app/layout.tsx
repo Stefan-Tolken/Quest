@@ -30,10 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
 
           {/* Main Content */}
-          <main>
             {children}
             <RegisterSW />
-          </main>
         </body>
       </html>
     </AuthProvider>
