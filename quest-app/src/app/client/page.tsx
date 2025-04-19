@@ -38,7 +38,20 @@ const fadeVariants = {
 };
 
 export default function AppPage() {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
+  
+  const [currentIndex, setCurrentIndex] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('currentIndex');
+      return saved ? parseInt(saved) : 1;
+    }
+    return 1;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('currentIndex', currentIndex.toString());
+  }, [currentIndex]);
+
   const touchStartX = useRef<number | null>(null);
 
   const handleSwipe = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -65,6 +78,7 @@ export default function AppPage() {
   };
 
   const scrollToSection = (index: number) => {
+    setPreviousIndex(currentIndex); // Save current before changing
     setCurrentIndex(index);
   };
 
