@@ -7,6 +7,7 @@ import Quests from './_components/quests';
 import Scan from './_components/scan';
 import Artefacts from './_components/artefacts';
 import Profile from './_components/profile';
+import CameraBackground from '@/components/ui/cameraBackground';
 
 const pages = [<Quests />, <Scan />, <Artefacts />, <Profile />];
 
@@ -68,8 +69,9 @@ export default function AppPage() {
   };
 
   return (
-    <div className="relative h-screen overflow-hidden bg-white">
+    <div className="relative h-screen overflow-hidden bg-transparent">
       {/* Fade-switchable view */}
+      <CameraBackground />
       <div
         className="h-full w-full absolute top-0 left-0"
         onTouchStart={handleTouchStart}
