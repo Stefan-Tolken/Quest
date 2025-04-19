@@ -1,5 +1,7 @@
 // app/admin/page-builder/pageComponent.tsx
 "use client";
+
+import { ImageContent } from "./types";
 import { ComponentData } from "./types";
 import {
   HeadingComponent,
@@ -11,9 +13,10 @@ import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 interface PageComponentProps {
   component: ComponentData;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, content: string) => void;
+  onUpdate: (id: string, content: string | ImageContent) => void;
   dragAttributes?: React.HTMLAttributes<HTMLDivElement>;
   dragListeners?: SyntheticListenerMap;
+  onEditPoints: (component: ComponentData) => void;
 }
 
 export const PageComponent = ({
@@ -22,6 +25,7 @@ export const PageComponent = ({
   onUpdate,
   dragAttributes,
   dragListeners,
+  onEditPoints,
 }: PageComponentProps) => {
   const handleUpdate = (content: string) => onUpdate(component.id, content);
 
@@ -47,19 +51,31 @@ export const PageComponent = ({
 
       {component.type === "heading" && (
         <HeadingComponent
-          content={component.content || ""}
+          content={component.content as string}
           onUpdate={handleUpdate}
         />
       )}
 
       {component.type === "paragraph" && (
         <ParagraphComponent
-          content={component.content || ""}
+          content={component.content as string}
           onUpdate={handleUpdate}
         />
       )}
 
-      {component.type === "image" && <ImageComponent onUpdate={handleUpdate} />}
+      {component.type === "image" && (
+        <ImageComponent
+          content={
+            (component.content as ImageContent) || {
+              url: "",
+              points: [],
+              texts: [],
+            }
+          }
+          onUpdate={(content) => onUpdate(component.id, content)}
+          onEditPoints={() => onEditPoints(component)}
+        />
+      )}
     </div>
   );
 };

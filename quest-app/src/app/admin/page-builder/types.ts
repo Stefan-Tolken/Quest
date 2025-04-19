@@ -7,7 +7,20 @@ export type ComponentType = "heading" | "paragraph" | "image";
 export interface ComponentData {
   id: string;
   type: ComponentType;
-  content?: string;
+  content?: string | ImageContent;
   // Added editMode for inline editing
   editMode?: boolean;
+}
+
+export interface PointOfInterest {
+  id: string;
+  x: number; // Percentage-based coordinates
+  y: number;
+  text: string;
+}
+
+export interface ImageContent {
+  url: string;
+  points: Array<{ x: number; y: number }>;
+  texts: Array<string>;
 }
