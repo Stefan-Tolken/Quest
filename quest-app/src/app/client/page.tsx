@@ -53,6 +53,11 @@ export default function AppPage() {
   }, [currentIndex]);
 
   const touchStartX = useRef<number | null>(null);
+  const [isScannerActive, setIsScannerActive] = useState(false);
+
+  useEffect(() => {
+    setIsScannerActive(currentIndex === 1); // 1 is the index of Scan page
+  }, [currentIndex]);
 
   const handleSwipe = (e: React.TouchEvent<HTMLDivElement>) => {
     const startX = touchStartX.current;
