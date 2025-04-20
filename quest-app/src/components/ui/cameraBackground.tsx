@@ -1,39 +1,28 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { getCameraStream, releaseCameraStream } from '@/lib/cameraStreamManager';
 
 export default function CameraBackground() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    const getCamera = async () => {
+    let localStream: MediaStream;
+
+    const setupCamera = async () => {
       try {
-        const isSecure = window.isSecureContext;
-        const supported = !!navigator.mediaDevices?.getUserMedia;
-  
-        if (!isSecure || !supported) {
-          console.warn('Camera not supported or insecure context');
-          return;
-        }
-  
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment' },
-        });
-  
+        localStream = await getCameraStream();
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
+          videoRef.current.srcObject = localStream;
         }
       } catch (err) {
-        console.error('Camera access denied or failed:', err);
+        console.error('Camera setup failed:', err);
       }
     };
-  
-    getCamera();
-  
+
+    setupCamera();
+
     return () => {
-      videoRef.current?.srcObject &&
-        (videoRef.current.srcObject as MediaStream)
-          .getTracks()
-          .forEach((track) => track.stop());
+      releaseCameraStream();
     };
   }, []);
 

@@ -1,124 +1,85 @@
 'use client';
 
-import { 
-  Html5QrcodeScanner, 
-  Html5QrcodeScanType,
-  QrcodeErrorCallback 
-} from 'html5-qrcode';
-import { useEffect, useRef, useState } from 'react';
+import { Html5Qrcode, Html5QrcodeScannerState, Html5QrcodeCameraScanConfig } from 'html5-qrcode';
+import { useEffect, useRef } from 'react';
+import { getCameraStream, releaseCameraStream } from '@/lib/cameraStreamManager';
 
-type QrScannerProps = {
+interface QrScannerProps {
   onScanSuccess: (decodedText: string, decodedResult: any) => void;
-  onScanError?: (errorMessage: string) => void;
-  onScannerInit?: (isInitialized: boolean) => void;
+  onScanError: (errorMessage: string) => void;
+  onScannerInit: (success: boolean) => void;
+  isActive: boolean;
   fps?: number;
-  qrbox?: number | {width: number, height: number};
-  aspectRatio?: number;
-  disableFlip?: boolean;
-  verbose?: boolean;
-  preferredCamera?: 'environment' | 'user';
-  isActive?: boolean;
-  fullView?: boolean;
-};
+  qrbox?: number;
+  preferredCamera?: string; // e.g. "environment"
+  fullView?: boolean;       // if true, expands scanner to full width/height
+}
 
 export default function QrScanner({
   onScanSuccess,
-  onScanError = () => {},
-  onScannerInit = () => {},
+  onScanError,
+  onScannerInit,
+  isActive,
   fps = 10,
-  qrbox = 250,
-  aspectRatio = 1.0,
-  disableFlip = false,
-  verbose = false,
+  qrbox,
   preferredCamera = 'environment',
-  isActive = true,
   fullView = false,
 }: QrScannerProps) {
-  const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-  const scannerContainerRef = useRef<HTMLDivElement>(null);
-  const [cameraInitialized, setCameraInitialized] = useState(false);
-
-  const initializeScanner = async () => {
-    if (!isActive || !scannerContainerRef.current) return;
-
-    try {
-      // Test camera access first
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: preferredCamera,
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      });
-      stream.getTracks().forEach(track => track.stop());
-
-      const config = {
-        fps,
-        qrbox: fullView ? undefined : qrbox,
-        aspectRatio,
-        disableFlip,
-        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
-        rememberLastUsedCamera: true,
-        showTorchButtonIfSupported: true,
-      };
-
-      scannerRef.current = new Html5QrcodeScanner(
-        scannerContainerRef.current.id,
-        config,
-        verbose
-      );
-
-      const errorCallback: QrcodeErrorCallback = (errorMessage) => {
-        // Completely ignore "not found" errors
-        if (!errorMessage.toLowerCase().includes('no qr code found')) {
-          onScanError(errorMessage);
-        }
-      };
-
-      await scannerRef.current.render(onScanSuccess, errorCallback);
-      setCameraInitialized(true);
-      onScannerInit(true);
-    } catch (error) {
-      console.error('Scanner initialization error:', error);
-      setCameraInitialized(false);
-      onScannerInit(false);
-      if (error instanceof Error) {
-        onScanError(error.message);
-      }
-    }
-  };
+  const qrRef = useRef<HTMLDivElement>(null);
+  const scanner = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
-    initializeScanner();
+    if (!isActive || !qrRef.current) return;
+
+    const initScanner = async () => {
+      try {
+        await getCameraStream(); // Optional, handles permissions
+        scanner.current = new Html5Qrcode('qr-scanner');
+
+        const config: Html5QrcodeCameraScanConfig = {
+          fps,
+          qrbox: qrbox ?? undefined,
+        };
+
+        await scanner.current.start(
+          { facingMode: preferredCamera },
+          config,
+          onScanSuccess,
+          () => {} // Optional: decode failure callback
+        );
+
+        onScannerInit(true);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to initialize QR scanner';
+        console.error('QR Scanner init error:', err);
+        onScannerInit(false);
+        onScanError(errorMessage);
+      }
+    };
+
+    initScanner();
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.clear().catch(() => {});
-        scannerRef.current = null;
+      if (scanner.current) {
+        scanner.current
+          .stop()
+          .then(() => {
+            scanner.current?.clear();
+            releaseCameraStream();
+          })
+          .catch((e) => {
+            console.error('Error stopping scanner:', e);
+          });
       }
-      setCameraInitialized(false);
     };
-  }, [isActive, preferredCamera]);
+  }, [isActive, fps, qrbox, preferredCamera]);
 
   return (
-    <div className="relative w-full h-full">
-      <div
-        id="qr-scanner-container"
-        ref={scannerContainerRef}
-        className="w-full h-full"
-      />
-      
-      {!cameraInitialized && (
-        <div 
-          className="absolute inset-0 flex items-center justify-center bg-black/70 z-20"
-          onClick={() => initializeScanner()}
-        >
-          <div className="text-center p-4">
-            <p className="text-white font-medium">Tap to activate camera</p>
-            <p className="text-white text-sm mt-1">You may need to allow camera access</p>
-          </div>
-        </div>
-      )}
-    </div>
+    <div
+      id="qr-scanner"
+      ref={qrRef}
+      className={`relative ${fullView ? 'w-full h-full' : 'w-[300px] h-[300px]'} overflow-hidden`}
+    />
   );
 }

@@ -74,8 +74,8 @@ export default function Scan() {
 
         {scanResult && (
           <div className="mt-4 p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full">
-            <p className="text-white font-medium">Scanned content:</p>
-            <p className="text-white font-mono break-all mt-2">{scanResult}</p>
+            <p className="text-black font-medium">Scanned content:</p>
+            <p className="text-black font-mono break-all mt-2">{scanResult}</p>
           </div>
         )}
       </main>
