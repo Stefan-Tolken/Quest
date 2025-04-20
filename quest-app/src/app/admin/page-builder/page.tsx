@@ -55,13 +55,7 @@ const PageBuilder = () => {
 
   // Existing drag end handler remains the same
   const handleDragEnd = (event: DragEndEvent) => {
-    console.log("Drag ended", event); // Debug log
     const { active, over } = event;
-
-    if (!over) {
-      console.log("No drop target"); // Debug log
-      return;
-    }
 
     if (over?.id && active.id !== over.id) {
       const oldIndex = components.findIndex((c) => c.id === active.id);
@@ -80,10 +74,8 @@ const PageBuilder = () => {
           type: active.data.current?.type,
           content:
             active.data.current?.type === "image"
-              ? { url: "", points: [], texts: [] }
-              : active.data.current?.type === "heading"
-              ? "New Heading"
-              : "New Paragraph",
+              ? { url: "", points: [] }
+              : "New Content",
         },
       ]);
     }
@@ -148,13 +140,11 @@ const PageBuilder = () => {
                 <ImageEditor
                   imageUrl={(editingImage.content as ImageContent).url}
                   points={(editingImage.content as ImageContent).points || []}
-                  texts={(editingImage.content as ImageContent).texts || []}
-                  onSave={(points, texts) => {
+                  onSave={(points) => {
                     if (editingImage.type === "image") {
                       handleUpdate(editingImage.id, {
                         ...(editingImage.content as ImageContent),
                         points,
-                        texts,
                       });
                     }
                     setEditingImage(null);

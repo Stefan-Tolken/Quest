@@ -4,11 +4,9 @@ import Image from "next/image";
 
 interface ImageEditorProps {
   imageUrl: string;
-  points: Array<{ x: number; y: number }>;
-  texts: Array<string>;
+  points: Array<{ id: string; x: number; y: number; text: string }>;
   onSave: (
-    points: Array<{ x: number; y: number }>,
-    texts: Array<string>
+    points: Array<{ id: string; x: number; y: number; text: string }>
   ) => void;
   onClose: () => void;
 }
@@ -16,17 +14,13 @@ interface ImageEditorProps {
 export const ImageEditor = ({
   imageUrl,
   points,
-  texts,
   onSave,
   onClose,
 }: ImageEditorProps) => {
   const [currentPoints, setCurrentPoints] = useState([...points]);
-  const [currentTexts, setCurrentTexts] = useState([...texts]);
   const [isTextModalOpen, setIsTextModalOpen] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [currentText, setCurrentText] = useState("");
-  const [showPreview, setShowPreview] = useState(false);
-
   const modalRef = useRef<HTMLDivElement>(null);
 
   const handleImageClick = (e: React.MouseEvent<HTMLImageElement>) => {
@@ -34,13 +28,23 @@ export const ImageEditor = ({
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    const newIndex = currentPoints.length;
-    setCurrentPoints([...currentPoints, { x, y }]);
-    setCurrentTexts([...currentTexts, ""]);
-    setSelectedIndex(newIndex);
+    const newPoint = {
+      id: crypto.randomUUID(),
+      x,
+      y,
+      text: "",
+    };
+    setCurrentPoints([...currentPoints, newPoint]);
+    setSelectedIndex(currentPoints.length);
     setCurrentText("");
     setIsTextModalOpen(true);
   };
+
+  useEffect(() => {
+    if (selectedIndex !== null) {
+      setCurrentText(currentPoints[selectedIndex]?.text || "");
+    }
+  }, [selectedIndex, currentPoints]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setCurrentText(e.target.value);
@@ -49,30 +53,27 @@ export const ImageEditor = ({
   const handleSaveText = () => {
     if (selectedIndex === null) return;
 
-    const newTexts = [...currentTexts];
-    newTexts[selectedIndex] = currentText;
-    setCurrentTexts(newTexts);
+    const newPoints = [...currentPoints];
+    newPoints[selectedIndex].text = currentText;
 
-    // Remove point if text is empty
     if (!currentText.trim()) {
-      setCurrentPoints(currentPoints.filter((_, i) => i !== selectedIndex));
-      setCurrentTexts(currentTexts.filter((_, i) => i !== selectedIndex));
+      newPoints.splice(selectedIndex, 1);
     }
 
+    setCurrentPoints(newPoints);
     setIsTextModalOpen(false);
   };
 
   const handleCancelText = () => {
-    if (selectedIndex !== null && currentTexts[selectedIndex] === "") {
+    if (selectedIndex !== null && currentPoints[selectedIndex]?.text === "") {
       setCurrentPoints(currentPoints.filter((_, i) => i !== selectedIndex));
-      setCurrentTexts(currentTexts.filter((_, i) => i !== selectedIndex));
     }
     setIsTextModalOpen(false);
   };
 
   const handleEditText = (index: number) => {
     setSelectedIndex(index);
-    setCurrentText(currentTexts[index] || "");
+    setCurrentText(currentPoints[index]?.text || "");
     setIsTextModalOpen(true);
   };
 
@@ -147,16 +148,17 @@ export const ImageEditor = ({
             />
             {currentPoints.map((point, index) => (
               <div
-                key={index}
-                className="absolute w-5 h-5 bg-red-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-pointer"
+                key={point.id}
+                className="absolute w-5 h-5 bg-red-500 rounded-full -translate-x-1/2 -translate-y-1/2 cursor-pointer flex items-center justify-center text-white text-xs"
                 style={{ left: `${point.x}%`, top: `${point.y}%` }}
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedIndex(index);
-                  setCurrentText(currentTexts[index] || "");
-                  setShowPreview(false);
+                  setCurrentText(point.text);
                 }}
-              />
+              >
+                {index + 1}
+              </div>
             ))}
           </div>
 
@@ -164,7 +166,7 @@ export const ImageEditor = ({
             <div className="mt-4 p-4 border rounded">
               <h2 className="text-lg font-semibold mb-4">Point Preview</h2>
               <div className="p-4 border rounded bg-gray-50 min-h-[100px]">
-                {currentTexts[selectedIndex] || (
+                {currentPoints[selectedIndex]?.text || (
                   <p className="text-gray-400">No content to preview</p>
                 )}
               </div>
@@ -177,20 +179,21 @@ export const ImageEditor = ({
           <div className="border rounded divide-y max-h-[300px] overflow-y-auto">
             {currentPoints.map((point, index) => (
               <div
-                key={index}
+                key={point.id}
                 className={`p-3 flex items-center justify-between hover:cursor-pointer hover:bg-blue-100 ${
                   selectedIndex === index ? "bg-blue-100" : ""
                 }`}
                 onClick={() => {
                   setSelectedIndex(index);
-                  setCurrentText(currentTexts[index] || "");
+                  setCurrentText(currentPoints[index]?.text || "");
                 }}
               >
                 <div className="flex items-center">
                   <div className="w-4 h-4 bg-red-500 rounded-full mr-3"></div>
                   <span className="text-sm text-gray-600">
-                    Point {index + 1} - {currentTexts[index]?.substring(0, 50)}
-                    {currentTexts[index]?.length > 20 ? "..." : ""}
+                    Point {index + 1} -{" "}
+                    {currentPoints[index]?.text?.substring(0, 50)}
+                    {currentPoints[index]?.text?.length > 20 ? "..." : ""}
                   </span>
                 </div>
                 <button
@@ -219,7 +222,7 @@ export const ImageEditor = ({
         </button>
         <button
           className="bg-blue-500 text-white px-4 py-2 rounded"
-          onClick={() => onSave(currentPoints, currentTexts)}
+          onClick={() => onSave(currentPoints)}
         >
           Save Changes
         </button>
