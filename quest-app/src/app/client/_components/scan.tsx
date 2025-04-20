@@ -3,8 +3,14 @@
 import { useState, useEffect } from 'react';
 import QrScanner from '@/components/ui/QRScanner';
 import { isMobile } from 'react-device-detect';
+//Temp imports for demo purposes
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
 
 export default function Scan() {
+  //Temp code for demo purposes
+  const router = useRouter();
+  //Temp code for demo purposes
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -80,7 +86,13 @@ export default function Scan() {
         )}
       </main>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        {/* Footer content */}
+        {/* Temp button for demo purposes */}
+        <Button
+          onClick={() => router.push('/client/artefact/artefact-002')}
+          variant={'secondary'}
+        >
+          Scan Artefact
+        </Button>
       </footer>
     </div>
   );
