@@ -4,18 +4,18 @@ import { Html5Qrcode, Html5QrcodeScannerState, Html5QrcodeCameraScanConfig } fro
 import { useEffect, useRef } from 'react';
 import { getCameraStream, releaseCameraStream } from '@/lib/cameraStreamManager';
 
-interface QrScannerProps {
+interface QRScannerProps {
   onScanSuccess: (decodedText: string, decodedResult: any) => void;
   onScanError: (errorMessage: string) => void;
   onScannerInit: (success: boolean) => void;
   isActive: boolean;
   fps?: number;
   qrbox?: number;
-  preferredCamera?: string; // e.g. "environment"
-  fullView?: boolean;       // if true, expands scanner to full width/height
+  preferredCamera?: string;
+  fullView?: boolean;
 }
 
-export default function QrScanner({
+export default function QRScanner({
   onScanSuccess,
   onScanError,
   onScannerInit,
@@ -24,7 +24,7 @@ export default function QrScanner({
   qrbox,
   preferredCamera = 'environment',
   fullView = false,
-}: QrScannerProps) {
+}: QRScannerProps) {
   const qrRef = useRef<HTMLDivElement>(null);
   const scanner = useRef<Html5Qrcode | null>(null);
 

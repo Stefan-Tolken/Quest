@@ -40,17 +40,7 @@ const fadeVariants = {
 export default function AppPage() {
   const [previousIndex, setPreviousIndex] = useState<number | null>(null);
   
-  const [currentIndex, setCurrentIndex] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('currentIndex');
-      return saved ? parseInt(saved) : 1;
-    }
-    return 1;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('currentIndex', currentIndex.toString());
-  }, [currentIndex]);
+  const [currentIndex, setCurrentIndex] = useState(1);
 
   const touchStartX = useRef<number | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
@@ -83,7 +73,7 @@ export default function AppPage() {
   };
 
   const scrollToSection = (index: number) => {
-    setPreviousIndex(currentIndex); // Save current before changing
+    setPreviousIndex(currentIndex);
     setCurrentIndex(index);
   };
 
@@ -110,7 +100,7 @@ export default function AppPage() {
         </AnimatePresence>
       </div>
 
-      {/* NavBar stays fixed on top */}
+      {/* NavBar stays fixed on bottom */}
       <AppNavbar
         currentIndex={currentIndex}
         onNavSelect={scrollToSection}        

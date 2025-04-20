@@ -13,24 +13,9 @@ export default function ArtefactPage() {
   const { activeQuest, submitArtefact } = useQuest();
   const [submitted, setSubmitted] = useState<boolean | null>(null);
   const router = useRouter();
-  const [backIndex, setBackIndex] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('currentIndex');
-      if (saved) {
-        setBackIndex(parseInt(saved));
-      }
-    }
-  }, []);
 
   const handleBack = () => {
-    if (backIndex !== null) {
-      localStorage.setItem('currentIndex', backIndex.toString());
-      router.push('/client'); // Go back to main page, it’ll read saved index
-    } else {
-      router.push('/client'); // Fallback
-    }
+    router.push('/client');
   };
 
   if (!artefact) return <p>Artefact not found.</p>;

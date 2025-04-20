@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import QrScanner from '@/components/ui/QRScanner';
+import QRScanner from '@/components/ui/QRScanner';
 import { isMobile } from 'react-device-detect';
 {/* Temp code for demo */}
 import { useRouter } from 'next/navigation';
@@ -52,7 +52,7 @@ export default function Scan() {
         <h1 className="text-2xl font-bold text-white">Scan QR Code</h1>
         
         <div className="relative w-full aspect-square max-w-md rounded-2xl overflow-hidden">
-          <QrScanner
+          <QRScanner
             onScanSuccess={handleScanSuccess}
             onScanError={handleScanError}
             onScannerInit={handleScannerInit}
