@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { mockArtefacts } from "@/lib/mockData";
 import { Artefact } from "./artefact";
 import type { Artefact as ArtefactType } from "@/lib/mockData";
 
@@ -12,8 +11,14 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
   const [centerIndex, setCenterIndex] = useState(Math.floor(totalItems / 2));
   const containerRef = useRef<HTMLDivElement>(null);
   const [isScrolling, setIsScrolling] = useState(false);
-  const itemHeight = 100; // Height of each item including spacing
-
+  const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
+  const [previousVisibleIndices, setPreviousVisibleIndices] = useState<number[]>([]);
+  const [newItems, setNewItems] = useState<Record<number, boolean>>({});
+  
+  // Define fixed heights for centered and side items
+  const centerItemHeight = 300; // Height for centered item (larger)
+  const sideItemHeight = 80;   // Height for non-centered items (smaller)
+  
   useEffect(() => {
     setCenterIndex(Math.floor(totalItems / 2));
   }, [artefacts]);
@@ -37,7 +42,29 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
     return indexes;
   };
 
-  const visibleIndexes = getVisibleIndexes();
+  // Track visible indices changes to detect new items
+  useEffect(() => {
+    const currentVisibleIndices = getVisibleIndexes();
+    
+    // Find new items that weren't visible before
+    const newItemsObj: Record<number, boolean> = {};
+    currentVisibleIndices.forEach(index => {
+      if (!previousVisibleIndices.includes(index)) {
+        newItemsObj[index] = true;
+      }
+    });
+    
+    setNewItems(newItemsObj);
+    setVisibleIndices(currentVisibleIndices);
+    
+    // Clear new items status after animation
+    const timer = setTimeout(() => {
+      setNewItems({});
+      setPreviousVisibleIndices(currentVisibleIndices);
+    }, 10); // Slightly longer than the animation duration
+    
+    return () => clearTimeout(timer);
+  }, [centerIndex]);
 
   // Handle wheel events to update the center index
   const handleScroll = (direction: number) => {
@@ -95,42 +122,80 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
     };
   }, [totalItems]);
 
+  // Calculate vertical positions with fixed heights
+  const calculatePositions = () => {
+    const positions: Record<number, number> = {};
+    const height = 0;
+    
+    visibleIndices.forEach((index) => {
+      const position = index - centerIndex;
+      
+      if (position === 0) {
+        // Center item
+        positions[index] = 0;
+      } else if (position < 0) {
+        // Items above center
+        positions[index] = -(centerItemHeight/2 + sideItemHeight/2 + height);
+      } else {
+        // Items below center
+        positions[index] = (centerItemHeight/2 + sideItemHeight/2 + height);
+      }
+    });
+    
+    return positions;
+  };
+  
+  const verticalPositions = calculatePositions();
+
+  // Determine animation direction based on item position
+  const getAnimationStyle = (index: number) => {
+    if (!newItems[index]) return {};
+    
+    const position = index - centerIndex;
+    const isAbove = position > 0;
+    
+    // Initial transform based on spawn position (top or bottom)
+    return {
+      transform: `translateY(${verticalPositions[index]}px) scale(0.1)`,
+      opacity: 0,
+      transformOrigin: isAbove ? 'bottom center' : 'top center'
+    };
+  };
+
   return (
     <div 
       ref={containerRef}
       className="fixed top-0 left-0 right-0 h-screen flex items-center justify-center pointer-events-auto overflow-hidden"
     >
-      <div className="relative w-full max-w-3xl mx-auto h-[80vh] flex items-center">
-        <div className="list-none w-full h-full relative">
-          {visibleIndexes.map((index) => {
+      <div className="relative w-full max-w-5xl mx-auto h-[90vh] flex items-center justify-center">
+        <div className="list-none w-full h-full relative flex flex-col items-center justify-center">
+          {visibleIndices.map((index) => {
             const artefact = artefacts[index];
             const isCenter = index === centerIndex;
-            // Calculate position relative to center
-            const position = index - centerIndex;
-            // Configurable spacing between items (in pixels)
-            const itemSpacing = 30;
+            const centerScale = 1.2; // Slightly larger scale for center item
+            const sideScale = 0.9; // Smaller scale for side items
+            const isNew = newItems[index];
             
             return (
               <div 
                 key={`${artefact.id}-${index}`} 
-                className={`absolute left-0 right-0 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-                  isCenter ? 'opacity-100' : 'opacity-70'
+                className={`absolute transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  isCenter ? 'opacity-100' : 'opacity-60 hover:opacity-70'
                 }`}
                 style={{
-                  transform: isCenter 
-                    ? 'translateY(0) scale(1.1)' 
-                    : `translateY(${position * (itemHeight + itemSpacing)}px) scale(${1 - Math.abs(position) * 0.1})`,
-                  zIndex: isCenter ? 10 : 5 - Math.abs(position),
-                  top: '50%',
-                  marginTop: `-${itemHeight/2}px`,
-                  padding: '0 2rem',
+                  transform: `translateY(${verticalPositions[index]}px) scale(${isCenter ? centerScale : sideScale})`,
+                  zIndex: isCenter ? 20 : 10,
+                  width: isCenter ? '70%' : '60%',
+                  height: isCenter ? `${centerItemHeight}px` : `${sideItemHeight}px`,
+                  ...(isNew ? getAnimationStyle(index) : {}),
                 }}
               >
-                <div className='bg-gray-100 p-4 rounded flex items-center gap-6'>
+                <div className={`bg-white p-4 rounded-xl flex flex-col items-center w-full h-full shadow-lg overflow-hidden`}>
                   <Artefact
                     id={artefact.id}
                     name={artefact.name}
                     description={artefact.description}
+                    isCenter={isCenter}
                   />
                 </div>
               </div>
