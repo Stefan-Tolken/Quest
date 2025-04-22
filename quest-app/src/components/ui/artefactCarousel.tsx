@@ -40,7 +40,7 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
   // Calculate the indexes of the items to display
   const getVisibleIndexes = () => {
     if (totalItems === 0) return [];
-    
+
     const indexes = [];
     const halfToShow = Math.floor(itemsToShow / 2);
 
@@ -205,14 +205,12 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
                   ...(isNew ? getAnimationStyle(index) : {}),
                 }}
               >
-                <div className={`bg-white p-4 rounded-xl flex flex-col items-center w-full h-full shadow-lg overflow-hidden`}>
-                  <Artefact
-                    id={artefact.id}
-                    name={artefact.name}
-                    description={artefact.description}
-                    isCenter={isCenter}
-                  />
-                </div>
+                <Artefact
+                  id={artefact.id}
+                  name={artefact.name}
+                  description={artefact.description}
+                  isCenter={isCenter}
+                />
               </div>
             );
           })}
