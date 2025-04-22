@@ -15,6 +15,17 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
   const [previousVisibleIndices, setPreviousVisibleIndices] = useState<number[]>([]);
   const [newItems, setNewItems] = useState<Record<number, boolean>>({});
   
+  // In ArtefactCarousel component
+  useEffect(() => {
+    // Reset center index when artefacts array changes
+    if (artefacts.length > 0) {
+      setCenterIndex(Math.floor(artefacts.length / 2));
+    } else {
+      // Handle empty artefacts array
+      setVisibleIndices([]);
+    }
+  }, [artefacts]);
+
   // Define fixed heights for centered and side items
   const centerItemHeight = 300; // Height for centered item (larger)
   const sideItemHeight = 80;   // Height for non-centered items (smaller)
@@ -28,6 +39,8 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
 
   // Calculate the indexes of the items to display
   const getVisibleIndexes = () => {
+    if (totalItems === 0) return [];
+    
     const indexes = [];
     const halfToShow = Math.floor(itemsToShow / 2);
 
@@ -170,6 +183,8 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
       <div className="relative w-full max-w-5xl mx-auto h-[90vh] flex items-center justify-center">
         <div className="list-none w-full h-full relative flex flex-col items-center justify-center">
           {visibleIndices.map((index) => {
+            if (!artefacts[index]) return null;
+
             const artefact = artefacts[index];
             const isCenter = index === centerIndex;
             const centerScale = 1.2; // Slightly larger scale for center item

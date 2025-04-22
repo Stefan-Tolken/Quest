@@ -15,7 +15,13 @@ export default function Artefacts() {
   return (
     <div className="p-6">
       <SearchBar onSearch={handleSearch} artefacts={mockArtefacts} />
-      <ArtefactCarousel artefacts={filteredArtefacts} />
+      {filteredArtefacts.length > 0 ? (
+        <ArtefactCarousel artefacts={filteredArtefacts} />
+      ) : (
+        <div className="text-center py-12">
+          <p className="text-gray-500">No artefacts found matching your search.</p>
+        </div>
+      )}
     </div>
   );
 }
