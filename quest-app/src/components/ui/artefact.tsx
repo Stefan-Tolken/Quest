@@ -8,7 +8,7 @@ interface ArtefactProps {
 
 export const Artefact = ({ id, name, description }: ArtefactProps) => {
   return (
-    <li className="bg-gray-100 p-4 rounded">
+    <li className="">
       <Link href={`/client/artefact/${id}`}>
         <div>
           <h2 className="text-lg font-semibold">{name}</h2>
