@@ -1,42 +1,64 @@
 import { useState, useEffect, useRef } from 'react';
 import { mockArtefacts } from "@/lib/mockData";
 import { Artefact } from "./artefact";
+import type { Artefact as ArtefactType } from "@/lib/mockData";
 
-export default function ArtefactCarousel() {
-  const [centerIndex, setCenterIndex] = useState(0);
+interface ArtefactCarouselProps {
+  artefacts: ArtefactType[];
+}
+
+export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
+  const totalItems = artefacts.length;
+  const [centerIndex, setCenterIndex] = useState(Math.floor(totalItems / 2));
   const containerRef = useRef<HTMLDivElement>(null);
-  const totalItems = mockArtefacts.length;
   const [isScrolling, setIsScrolling] = useState(false);
+  const itemHeight = 100; // Height of each item including spacing
 
-  // Calculate the indexes of the 5 items to display (2 above, center, 2 below)
+  useEffect(() => {
+    setCenterIndex(Math.floor(totalItems / 2));
+  }, [artefacts]);
+
+  // Variable to determine how many items to display
+  const itemsToShow = 3; // Change this value to 3 or any other number as needed
+
+  // Calculate the indexes of the items to display
   const getVisibleIndexes = () => {
     const indexes = [];
-    for (let i = -2; i <= 2; i++) {
-      // Handle circular indexing
-      let index = (centerIndex + i + totalItems) % totalItems;
-      indexes.push(index);
+    const halfToShow = Math.floor(itemsToShow / 2);
+
+    // Show fewer items when near boundaries
+    for (let i = -halfToShow; i <= halfToShow; i++) {
+      const index = centerIndex + i;
+      if (index >= 0 && index < totalItems) {
+        indexes.push(index);
+      }
     }
+
     return indexes;
   };
 
   const visibleIndexes = getVisibleIndexes();
 
   // Handle wheel events to update the center index
+  const handleScroll = (direction: number) => {
+    if (isScrolling) return;
+    setIsScrolling(true);
+    
+    setCenterIndex(prev => {
+      let newIndex = prev + direction;
+      // Clamp to valid range
+      if (newIndex < 0) newIndex = 0;
+      if (newIndex >= totalItems) newIndex = totalItems - 1;
+      return newIndex;
+    });
+    
+    setTimeout(() => setIsScrolling(false), 100);
+  };
+
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      
-      if (isScrolling) return;
-      setIsScrolling(true);
-      
-      // Determine scroll direction
-      const delta = Math.sign(e.deltaY);
-      setCenterIndex(prev => {
-        const newIndex = (prev + delta + totalItems) % totalItems;
-        return newIndex;
-      });
-      
-      setTimeout(() => setIsScrolling(false), 100);
+      handleScroll(Math.sign(e.deltaY));
     };
 
     const container = containerRef.current;
@@ -60,11 +82,7 @@ export default function ArtefactCarousel() {
       const delta = touchEndY - touchStartY;
       
       if (Math.abs(delta) < 50) return; // Ignore small touches
-      
-      setCenterIndex(prev => {
-        const direction = delta > 0 ? -1 : 1;
-        return (prev + direction + totalItems) % totalItems;
-      });
+      handleScroll(delta > 0 ? -1 : 1);
     };
 
     const container = containerRef.current;
@@ -83,45 +101,42 @@ export default function ArtefactCarousel() {
       className="fixed top-0 left-0 right-0 h-screen flex items-center justify-center pointer-events-auto overflow-hidden"
     >
       <div className="relative w-full max-w-3xl mx-auto h-[80vh] flex items-center">
-        <ol className="list-none w-full h-full relative">
+        <div className="list-none w-full h-full relative">
           {visibleIndexes.map((index) => {
-            const artefact = mockArtefacts[index];
+            const artefact = artefacts[index];
             const isCenter = index === centerIndex;
-            const position = visibleIndexes.indexOf(index) - 2; // -2, -1, 0, 1, 2
-            const spacing = 120; // Increased spacing between items
+            // Calculate position relative to center
+            const position = index - centerIndex;
+            // Configurable spacing between items (in pixels)
+            const itemSpacing = 30;
             
             return (
               <div 
-                key={artefact.id} 
+                key={`${artefact.id}-${index}`} 
                 className={`absolute left-0 right-0 transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                   isCenter ? 'opacity-100' : 'opacity-70'
                 }`}
                 style={{
                   transform: isCenter 
                     ? 'translateY(0) scale(1.1)' 
-                    : `translateY(${position * spacing}px) scale(${1 - Math.abs(position) * 0.1})`,
+                    : `translateY(${position * (itemHeight + itemSpacing)}px) scale(${1 - Math.abs(position) * 0.1})`,
                   zIndex: isCenter ? 10 : 5 - Math.abs(position),
                   top: '50%',
-                  marginTop: '-60px', // Adjusted for better centering
-                  padding: '0 2rem', // Added horizontal padding to prevent cutting off
+                  marginTop: `-${itemHeight/2}px`,
+                  padding: '0 2rem',
                 }}
               >
                 <div className='bg-gray-100 p-4 rounded flex items-center gap-6'>
-                    <span className="text-2xl font-bold text-gray-400 w-10 text-center">
-                    {index + 1}
-                    </span>
-                    <div className="flex-1">
-                    <Artefact
-                        id={artefact.id}
-                        name={artefact.name}
-                        description={artefact.description}
-                    />
-                  </div>
+                  <Artefact
+                    id={artefact.id}
+                    name={artefact.name}
+                    description={artefact.description}
+                  />
                 </div>
               </div>
             );
           })}
-        </ol>
+        </div>
       </div>
     </div>
   );
