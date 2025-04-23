@@ -7,7 +7,15 @@ import { DraggableComponent } from "./draggableComponent";
 const availableComponents: ComponentData[] = [
   { id: "1", type: "heading", content: "Heading" },
   { id: "2", type: "paragraph", content: "Paragraph" },
-  { id: "3", type: "image", content: "Image" },
+  {
+    id: "3",
+    type: "image",
+    content: {
+      url: "",
+      points: [],
+      texts: [],
+    },
+  },
 ];
 
 export const ComponentList = () => {
