@@ -44,7 +44,7 @@ export default function AppPage() {
   const [isScannerActive, setIsScannerActive] = useState(false);
   const pages = [
     <Quests />,
-    <Scan />,
+    <Scan setSwipeEnabled={setSwipeEnabled} />,
     <Artefacts setSwipeEnabled={setSwipeEnabled} />,
     <Profile />,
   ];

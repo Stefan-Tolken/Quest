@@ -8,8 +8,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 {/* Temp code for demo */}
 import { useHasMounted } from '@/hooks/useHasMounted';
+import QRCodeGenerator from '@/components/QRGenerator';
+import ArtefactDetail from '@/components/ui/artefactDetails';
 
-export default function Scan() {
+export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: boolean) => void }) {
   const hasMounted = useHasMounted();
   {/* Temp code for demo */}
   const router = useRouter();
@@ -19,11 +21,14 @@ export default function Scan() {
   const [scanError, setScanError] = useState<string | null>(null);
 
   const handleScanSuccess = (decodedText: string) => {
-    setScanResult(decodedText);
-    if (navigator.vibrate) {
-      navigator.vibrate(200);
+    try {
+      const parsedData = JSON.parse(decodedText);
+      setScanResult(parsedData.artefactId);
+    } catch (error) {
+      console.error('Invalid QR code data:', error);
+      setScanError('Invalid QR code data. Please try again.');
+      setTimeout(() => setScanError(null), 3000);
     }
-    console.log('Scanned:', decodedText);
   };
 
   const handleScanError = (error: string) => {
@@ -37,6 +42,18 @@ export default function Scan() {
     if (!success && !scanError) {
       setScanError('Failed to initialize camera. Please try again.');
     }
+  };
+
+  const handleDetailClose = () => {
+    // Only update state - the animation handles the actual closing
+    setScanResult(null);
+  };
+
+  const detailPosition = {
+      top: '50%',
+      left: '50%',
+      width: 0,
+      height: 0
   };
 
   useEffect(() => {
@@ -76,20 +93,16 @@ export default function Scan() {
             </div>
           )}
         </div>
-
-        {scanResult && (
-          <div className="mt-4 p-4 bg-white/10 rounded-lg backdrop-blur-sm w-full">
-            <p className="text-black font-medium">Scanned content:</p>
-            <p className="text-black font-mono break-all mt-2">{scanResult}</p>
-          </div>
-        )}
         {/* Temp code for demo */}
-        <Button
-          onClick={() => router.push('/client/artefact/artefact-002')}
-          variant={'secondary'}
-        >
-          Scan Artefact
-        </Button>
+        <ArtefactDetail
+          artefactId={scanResult} // Extracting the ID from the scan result
+          isOpen={!!scanResult}
+          onClose={handleDetailClose}
+          startPosition={detailPosition}
+          onVisibilityChange={(visible) => {
+            setSwipeEnabled(!visible);
+          }}
+        />
         {/* Temp code for demo */}
       </main>
 

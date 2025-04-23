@@ -54,7 +54,7 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
       )}
       
       <ArtefactDetail
-        artefact={selectedArtefact}
+        artefactId={selectedArtefact?.id}
         isOpen={detailOpen}
         onClose={handleDetailClose}
         startPosition={detailPosition}

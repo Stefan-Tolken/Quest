@@ -1,209 +1,99 @@
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { gsap } from 'gsap';
 import { ArrowLeft } from 'lucide-react';
 import type { Artefact as ArtefactType } from '@/lib/mockData';
+import { mockArtefacts } from '@/lib/mockData';
 
 interface ArtefactDetailProps {
-  artefact: ArtefactType | null;
+  artefactId: string | null | undefined;
   isOpen: boolean;
   onClose: () => void;
   startPosition: {
-    top: number;
-    left: number;
+    top: number | string;
+    left: number | string;
     width: number;
     height: number;
   } | null;
   onVisibilityChange?: (isVisible: boolean) => void;
 }
 
-export default function ArtefactDetail({ artefact, isOpen, onClose, startPosition, onVisibilityChange }: ArtefactDetailProps) {
+export default function ArtefactDetail({ 
+  artefactId,
+  isOpen,
+  onClose,
+  startPosition, // Kept for future animation reimplementation
+  onVisibilityChange 
+}: ArtefactDetailProps) {
+  const [artefact, setArtefact] = useState<ArtefactType | null>(null);
+  
+  // Fetch artefact when ID changes
+  useEffect(() => {
+    if (!artefactId) return;
+    
+    // Replace with actual API call in production
+    const foundArtefact = mockArtefacts.find(a => a.id === artefactId);
+    setArtefact(foundArtefact || null);
+  }, [artefactId]);
+
   const detailRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-  // used for handling swipe gestures
+  
+  // IMPORTANT: isVisible state is used by parent components for swipe functionality
   const [isVisible, setIsVisible] = useState(false);
   
-  // Track visibility separately from isOpen to handle animation
+  // Update visibility based on isOpen prop (needed for parent swipe functionality)
   useEffect(() => {
     if (isOpen) {
+      // When opening, immediately set visible and notify parent
       setIsVisible(true);
       onVisibilityChange?.(true);
-    }
-    // Don't set isVisible to false here - we'll do that after animation completes
-  }, [isOpen]);
-
-  // Toggle body scroll
-  useEffect(() => {
-    const searchBar = document.querySelector('[class*="searchBar"]') as HTMLElement | null;
-    const navBar = document.querySelector('nav') as HTMLElement | null;
-  
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      
-      // Animate out the search bar and nav bar
-      if (searchBar) {
-        gsap.to(searchBar, {
-          opacity: 0,
-          y: -50,
-          duration: 0.3,
-          ease: 'power2.inOut',
-          onComplete: () => {
-            searchBar.style.pointerEvents = 'none';
-          }
-        });
-      }
-      
-      if (navBar) {
-        gsap.to(navBar, {
-          opacity: 0,
-          y: 50,
-          duration: 0.3,
-          ease: 'power2.inOut',
-          onComplete: () => {
-            navBar.style.pointerEvents = 'none';
-          }
-        });
-      }
     } else {
+      // When closing, immediately set not visible and notify parent
+      setIsVisible(false);
+      onVisibilityChange?.(false);
+    }
+  }, [isOpen, onVisibilityChange]);
+
+  // Basic body scroll blocking
+  useEffect(() => {
+    if (isOpen) {
+      //get navbar element and hide it
+      const navbar = document.querySelector('.navbar');
+      if (navbar) {
+        navbar.classList.add('hidden');
+      }
+      document.body.style.overflow = 'hidden';
+    } else {
+      //get navbar element and show it
+      const navbar = document.querySelector('.navbar');
+      if (navbar) {
+        navbar.classList.remove('hidden');
+      }
       document.body.style.overflow = '';
-      
-      // Animate in the search bar and nav bar
-      if (searchBar) {
-        searchBar.style.pointerEvents = 'auto';
-        gsap.to(searchBar, {
-          opacity: 1,
-          y: 0,
-          duration: 0.3,
-          ease: 'power1.inOut'
-        });
-      }
-      
-      if (navBar) {
-        navBar.style.pointerEvents = 'auto';
-        gsap.to(navBar, {
-          opacity: 1,
-          y: 0,
-          duration: 0.3,
-          ease: 'power1.inOut'
-        });
-      }
     }
     
     return () => {
       document.body.style.overflow = '';
-      
-      // Ensure elements are visible and interactive when unmounting
-      if (searchBar) {
-        searchBar.style.opacity = '1';
-        searchBar.style.transform = 'translateY(0)';
-        searchBar.style.pointerEvents = 'auto';
-      }
-      if (navBar) {
-        navBar.style.opacity = '1';
-        navBar.style.transform = 'translateY(0)';
-        navBar.style.pointerEvents = 'auto';
-      }
     };
   }, [isOpen]);
   
   const handleClose = () => {
-    if (isAnimating) return;
-    performCloseAnimation();
+    onClose();
   };
   
-  // Handle animations
-  useEffect(() => {
-    if (!detailRef.current || !startPosition || !artefact) return;
-    
-    if (isOpen) {
-      performOpenAnimation();
-    }
-  }, [isOpen, startPosition, artefact]);
-  
-  const performOpenAnimation = () => {
-    if (!detailRef.current || !startPosition || !contentRef.current) return;
-    
-    const detail = detailRef.current;
-    const content = contentRef.current;
-    
-    setIsAnimating(true);
-    
-    // Set initial state (invisible and positioned)
-    gsap.set(detail, {
-      top: startPosition.top,
-      left: startPosition.left,
-      width: startPosition.width,
-      height: startPosition.height,
-      borderRadius: '0.75rem',
-    });
-    
-    // Make visible and animate to full screen
-    gsap.to(detail, {
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      borderRadius: 0,
-      duration: 0.5,
-      ease: 'power2.inOut',
-      onComplete: () => setIsAnimating(false)
-    });
-    
-    // Fade in content separately
-    gsap.from(content, {
-      opacity: 0,
-      delay: 0.3,
-      duration: 0.3
-    });
-  };
-  
-  const performCloseAnimation = () => {
-    if (!detailRef.current || !startPosition || !contentRef.current) return;
-    
-    const detail = detailRef.current;
-    const content = contentRef.current;
-    
-    setIsAnimating(true);
-    
-    // Fade out content first
-    gsap.to(content, {
-      opacity: 0,
-      duration: 0.2
-    });
-    
-    // Then animate back to card size and fade out
-    gsap.to(detail, {
-      top: startPosition.top,
-      left: startPosition.left,
-      width: startPosition.width,
-      height: startPosition.height,
-      borderRadius: '0.75rem',
-      duration: 0.5,
-      ease: 'power2.inOut',
-      onComplete: () => {
-        setIsAnimating(false);
-        setIsVisible(false);
-        onVisibilityChange?.(false);
-        onClose();
-      },
-    });
-  };
-  
-  if (!artefact || !isOpen) return null;
+  if (!artefact || !isVisible) return null;
   
   return (
     <div 
       ref={detailRef}
-      className="fixed z-50 bg-white overflow-hidden" // Initially invisible
+      className="fixed top-0 left-0 z-50 bg-white w-full h-full overflow-hidden"
     >
       <div 
         ref={contentRef}
-        className="w-full h-full overflow-y-auto p-6" // Initially invisible
+        className="w-full h-full overflow-y-auto p-6"
       >
         <button
           onClick={handleClose}
-          disabled={isAnimating}
           className="fixed top-6 left-6 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-md hover:bg-gray-100 transition-colors"
           aria-label="Back"
         >

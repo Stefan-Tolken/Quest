@@ -2,6 +2,9 @@
 import { mockQuests } from '@/lib/mockData';
 import { useQuest } from '@/context/questContext';
 import { useRouter } from 'next/navigation';
+import QRCodeGenerator from '@/components/QRGenerator';
+
+const qrData = { artefactId: 'artefact-001' };
 
 export default function Quests() {
   const { activeQuest, acceptQuest } = useQuest();
@@ -10,7 +13,7 @@ export default function Quests() {
   const quest = mockQuests[0]; // Only one for now
 
   return (
-    <div className="p-6">
+    <div className="p-6 gap-6 flex flex-col">
       <h1 className="text-2xl font-bold mb-4">Current Quest</h1>
       <div className="bg-gray-100 p-4 rounded">
         <h2 className="text-xl font-semibold">{quest.title}</h2>
@@ -28,6 +31,11 @@ export default function Quests() {
         )}
         {activeQuest && <p className="mt-4 text-green-600">Quest already accepted!</p>}
       </div>
+        <QRCodeGenerator 
+          data={qrData} 
+          size={250}
+          includeDownload={true}
+        />
     </div>
   );
 }

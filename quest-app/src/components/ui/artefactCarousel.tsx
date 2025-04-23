@@ -76,7 +76,7 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
     const timer = setTimeout(() => {
       setNewItems({});
       setPreviousVisibleIndices(currentVisibleIndices);
-    }, 10); // Slightly longer than the animation duration
+    }, 50); // Slightly longer than the animation duration
     
     return () => clearTimeout(timer);
   }, [centerIndex]);
