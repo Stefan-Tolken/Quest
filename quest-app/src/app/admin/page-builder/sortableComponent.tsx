@@ -4,17 +4,20 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSSProperties } from "react";
 import { ComponentData } from "./types";
 import { PageComponent } from "./pageComponent";
+import { ImageContent } from "./types";
 
 interface SortableProps {
   component: ComponentData;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, content: string) => void;
+  onUpdate: (id: string, content: string | ImageContent) => void;
+  onEditPoints: (component: ComponentData) => void;
 }
 
 export const SortableComponent = ({
   component,
   onDelete,
   onUpdate,
+  onEditPoints,
 }: SortableProps) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
@@ -37,6 +40,7 @@ export const SortableComponent = ({
         onUpdate={onUpdate}
         dragAttributes={attributes}
         dragListeners={listeners}
+        onEditPoints={onEditPoints}
       />
     </div>
   );

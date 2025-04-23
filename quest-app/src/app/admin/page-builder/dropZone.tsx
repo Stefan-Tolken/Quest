@@ -1,20 +1,26 @@
 // app/admin/page-builder/dropZone.tsx
 "use client";
 import { useDroppable } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { ComponentData } from "./types";
 import { SortableComponent } from "./sortableComponent";
+import { ImageContent } from "./types";
 
 interface DropZoneProps {
   components: ComponentData[];
   onDelete: (id: string) => void;
-  onUpdate: (id: string, content: string) => void;
+  onUpdate: (id: string, content: string | ImageContent) => void;
+  onEditPoints: (component: ComponentData) => void;
 }
 
 export const DropZone = ({
   components,
   onDelete,
   onUpdate,
+  onEditPoints,
 }: DropZoneProps) => {
   const { setNodeRef, isOver } = useDroppable({ id: "dropzone" });
 
@@ -25,8 +31,8 @@ export const DropZone = ({
     >
       <div className="max-w-3xl mx-auto">
         <h3 className="text-lg font-bold mb-4">Page Builder</h3>
-        <SortableContext 
-          items={components} 
+        <SortableContext
+          items={components}
           strategy={verticalListSortingStrategy}
         >
           <div className="space-y-4">
@@ -36,6 +42,7 @@ export const DropZone = ({
                 component={component}
                 onDelete={onDelete}
                 onUpdate={onUpdate}
+                onEditPoints={onEditPoints}
               />
             ))}
           </div>

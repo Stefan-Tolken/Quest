@@ -12,7 +12,7 @@ interface AuthGuardProps {
 
 export default function AuthGuard({ children, adminOnly = false }: AuthGuardProps) {
   const router = useRouter();
-  const { isAuthenticated, isLoading, user } = useAuthState();
+  const { isAuthenticated, isLoading, user, error } = useAuthState();
 
   useEffect(() => {
     if (!isLoading) {
@@ -24,7 +24,7 @@ export default function AuthGuard({ children, adminOnly = false }: AuthGuardProp
         const isAdmin = Array.isArray(userGroups) && userGroups.includes('Admin');
         
         if (!isAdmin) {
-          router.push("/unauthorized");
+          router.push("/scan");
         }
       }
     }
@@ -33,6 +33,10 @@ export default function AuthGuard({ children, adminOnly = false }: AuthGuardProp
   // Show loading state or return children
   if (isLoading) {
     return <div>Loading...</div>;
+  }
+
+  if (error) {
+    return <div>Encountering error... {error.message}</div>;
   }
 
   if (!isAuthenticated) {
