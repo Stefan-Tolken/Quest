@@ -1,18 +1,116 @@
-import AuthButton from "@/components/ui/authButton";
-import AuthGuard from "@/components/authGuard";
+'use client';
 
-export default function Home() {
+import { useEffect, useState, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import AppNavbar from '@/components/ui/appNavbar';
+import Quests from './_components/quests';
+import Scan from './_components/scan';
+import Artefacts from './_components/artefacts';
+import Profile from './_components/profile';
+import CameraBackground from '@/components/ui/cameraBackground';
+
+const scrollNavToIndex = (index: number) => {
+  const nav = document.querySelector('nav');
+  const button = nav?.children[index] as HTMLButtonElement;
+  if (button && nav) {
+    const scrollOffset =
+    button.offsetLeft + button.offsetWidth / 2 - nav.clientWidth / 2;
+    nav.scrollTo({ left: scrollOffset, behavior: 'smooth' });
+  }
+};
+
+const fadeVariants = {
+  initial: { opacity: 0, filter: 'blur(8px)', scale: 0.98 },
+  animate: {
+    opacity: 1,
+    filter: 'blur(0px)',
+    scale: 1,
+    transition: { duration: 0.3 },
+  },
+  exit: {
+    opacity: 0,
+    filter: 'blur(8px)',
+    scale: 0.98,
+    transition: { duration: 0.2 },
+  },
+};
+
+export default function AppPage() {
+  const [previousIndex, setPreviousIndex] = useState<number | null>(null);
+  const [isSwipeEnabled, setSwipeEnabled] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(1);
+  
+  const touchStartX = useRef<number | null>(null);
+  const [isScannerActive, setIsScannerActive] = useState(false);
+  const pages = [
+    <Quests />,
+    <Scan setSwipeEnabled={setSwipeEnabled} />,
+    <Artefacts setSwipeEnabled={setSwipeEnabled} />,
+    <Profile />,
+  ];
+
+  useEffect(() => {
+    setIsScannerActive(currentIndex === 1); // 1 is the index of Scan page
+  }, [currentIndex]);
+
+  const handleSwipe = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isSwipeEnabled) return;
+
+    const startX = touchStartX.current;
+    const endX = e.changedTouches[0].clientX;
+
+    if (startX !== null) {
+      const delta = endX - startX;
+      if (Math.abs(delta) > 50) {
+        if (delta < 0 && currentIndex < pages.length - 1) {
+          scrollNavToIndex(currentIndex + 1);
+          setTimeout(() => setCurrentIndex(currentIndex + 1), 100);
+        } else if (delta > 0 && currentIndex > 0) {
+          scrollNavToIndex(currentIndex - 1);
+          setTimeout(() => setCurrentIndex(currentIndex - 1), 100);
+        }
+      }
+    }
+    touchStartX.current = null;
+  };
+
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const scrollToSection = (index: number) => {
+    setPreviousIndex(currentIndex);
+    setCurrentIndex(index);
+  };
+
   return (
-    <AuthGuard>
-        <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-        <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-            <h1>Normal User</h1>
-            <AuthButton />
-        </main>
-        <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-            
-        </footer>
-        </div>
-    </AuthGuard>
+    <div className="relative h-screen overflow-hidden bg-transparent">
+      {/* Fade-switchable view */}
+      <CameraBackground />
+      <div
+        className="h-full w-full absolute top-0 left-0"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleSwipe}
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            className="h-full w-full overflow-y-auto"
+            variants={fadeVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            {pages[currentIndex]}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* NavBar stays fixed on bottom */}
+      <AppNavbar
+        currentIndex={currentIndex}
+        onNavSelect={scrollToSection}        
+      />
+    </div>
   );
 }

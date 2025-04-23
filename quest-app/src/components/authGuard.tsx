@@ -24,7 +24,7 @@ export default function AuthGuard({ children, adminOnly = false }: AuthGuardProp
         const isAdmin = Array.isArray(userGroups) && userGroups.includes('Admin');
         
         if (!isAdmin) {
-          router.push("/unauthorized");
+          router.push("/scan");
         }
       }
     }
