@@ -158,19 +158,19 @@ export default function ArtefactDetail({ artefact, isOpen, onClose, startPositio
     
     // Then animate back to card size
     gsap.to(detail, {
-      top: startPosition.top,
-      left: startPosition.left,
-      width: startPosition.width,
-      height: startPosition.height,
-      borderRadius: '0.75rem',
-      duration: 0.5,
-      ease: 'power2.inOut',
-      onComplete: () => {
-        setIsAnimating(false);
-        setIsVisible(false); // Hide component only after animation completes
-        onVisibilityChange?.(false);
-        onClose(); // Notify parent component
-      }
+        top: startPosition.top,
+        left: startPosition.left,
+        width: startPosition.width,
+        height: startPosition.height,
+        borderRadius: '0.75rem',
+        duration: 0.5,
+        ease: 'power2.inOut',
+        onComplete: () => {
+          setIsAnimating(false);
+          setIsVisible(false);
+          onVisibilityChange?.(false);
+          onClose();
+        },
     });
   };
   

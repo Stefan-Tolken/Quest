@@ -6,7 +6,7 @@ import SearchBar from '@/components/ui/searchBar';
 import ArtefactDetail from '@/components/ui/artefactDetails';
 import type { Artefact } from '@/lib/mockData';
 
-export default function Artefacts() {
+export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabled: boolean) => void }) {
   const [filteredArtefacts, setFilteredArtefacts] = useState<Artefact[]>(mockArtefacts);
   const [selectedArtefact, setSelectedArtefact] = useState<Artefact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
@@ -58,6 +58,9 @@ export default function Artefacts() {
         isOpen={detailOpen}
         onClose={handleDetailClose}
         startPosition={detailPosition}
+        onVisibilityChange={(visible) => {
+          setSwipeEnabled(!visible);
+        }}
       />
     </div>
   );

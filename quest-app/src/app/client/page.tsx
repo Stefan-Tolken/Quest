@@ -9,14 +9,12 @@ import Artefacts from './_components/artefacts';
 import Profile from './_components/profile';
 import CameraBackground from '@/components/ui/cameraBackground';
 
-const pages = [<Quests />, <Scan />, <Artefacts />, <Profile />];
-
 const scrollNavToIndex = (index: number) => {
   const nav = document.querySelector('nav');
   const button = nav?.children[index] as HTMLButtonElement;
   if (button && nav) {
     const scrollOffset =
-      button.offsetLeft + button.offsetWidth / 2 - nav.clientWidth / 2;
+    button.offsetLeft + button.offsetWidth / 2 - nav.clientWidth / 2;
     nav.scrollTo({ left: scrollOffset, behavior: 'smooth' });
   }
 };
@@ -39,17 +37,25 @@ const fadeVariants = {
 
 export default function AppPage() {
   const [previousIndex, setPreviousIndex] = useState<number | null>(null);
-  
+  const [isSwipeEnabled, setSwipeEnabled] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(1);
-
+  
   const touchStartX = useRef<number | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
+  const pages = [
+    <Quests />,
+    <Scan />,
+    <Artefacts setSwipeEnabled={setSwipeEnabled} />,
+    <Profile />,
+  ];
 
   useEffect(() => {
     setIsScannerActive(currentIndex === 1); // 1 is the index of Scan page
   }, [currentIndex]);
 
   const handleSwipe = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isSwipeEnabled) return;
+
     const startX = touchStartX.current;
     const endX = e.changedTouches[0].clientX;
 
