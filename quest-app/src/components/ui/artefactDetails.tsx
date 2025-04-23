@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ArrowLeft } from 'lucide-react';
 import type { Artefact as ArtefactType } from '@/lib/mockData';
 import { mockArtefacts } from '@/lib/mockData';
+import QRCodeGenerator from '@/components/QRGenerator';
 
 interface ArtefactDetailProps {
   artefactId: string | null | undefined;
@@ -110,6 +111,11 @@ export default function ArtefactDetail({
               priority
             />
           </div>
+          <QRCodeGenerator 
+            data={{ artefactId: artefact.id }} 
+            size={250}
+            includeDownload={true}
+          />
           
           <h1 className="text-3xl font-bold mb-4">{artefact.name}</h1>
           

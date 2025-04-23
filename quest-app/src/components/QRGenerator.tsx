@@ -48,15 +48,6 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
           className="rounded"
         />
       </div>
-
-      {/* Data and Actions */}
-      <div className="w-full max-w-xs">
-        <div className="bg-gray-50 p-3 rounded-md mb-3">
-          <pre className="text-xs overflow-x-auto">
-            {qrData}
-          </pre>
-        </div>
-      </div>
     </div>
   );
 };
