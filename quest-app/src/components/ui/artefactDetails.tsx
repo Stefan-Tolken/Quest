@@ -21,6 +21,7 @@ export default function ArtefactDetail({ artefact, isOpen, onClose, startPositio
   const detailRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  // used for handling swipe gestures
   const [isVisible, setIsVisible] = useState(false);
   
   // Track visibility separately from isOpen to handle animation
@@ -31,73 +32,95 @@ export default function ArtefactDetail({ artefact, isOpen, onClose, startPositio
     }
     // Don't set isVisible to false here - we'll do that after animation completes
   }, [isOpen]);
-  
+
   // Toggle body scroll
   useEffect(() => {
+    const searchBar = document.querySelector('[class*="searchBar"]') as HTMLElement | null;
+    const navBar = document.querySelector('nav') as HTMLElement | null;
+  
     if (isOpen) {
       document.body.style.overflow = 'hidden';
       
-      // Hide search bar and nav bar
-      const searchBar = document.querySelector('[class*="searchBar"]');
-      const navBar = document.querySelector('nav');
-      
+      // Animate out the search bar and nav bar
       if (searchBar) {
-        (searchBar as HTMLElement).style.display = 'none';
+        gsap.to(searchBar, {
+          opacity: 0,
+          y: -50,
+          duration: 0.3,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            searchBar.style.pointerEvents = 'none';
+          }
+        });
       }
       
       if (navBar) {
-        (navBar as HTMLElement).style.display = 'none';
+        gsap.to(navBar, {
+          opacity: 0,
+          y: 50,
+          duration: 0.3,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            navBar.style.pointerEvents = 'none';
+          }
+        });
       }
     } else {
       document.body.style.overflow = '';
       
-      // Show search bar and nav bar when closed
-      const searchBar = document.querySelector('[class*="searchBar"]');
-      const navBar = document.querySelector('nav');
-      
+      // Animate in the search bar and nav bar
       if (searchBar) {
-        (searchBar as HTMLElement).style.display = '';
+        searchBar.style.pointerEvents = 'auto';
+        gsap.to(searchBar, {
+          opacity: 1,
+          y: 0,
+          duration: 0.3,
+          ease: 'power1.inOut'
+        });
       }
       
       if (navBar) {
-        (navBar as HTMLElement).style.display = '';
+        navBar.style.pointerEvents = 'auto';
+        gsap.to(navBar, {
+          opacity: 1,
+          y: 0,
+          duration: 0.3,
+          ease: 'power1.inOut'
+        });
       }
     }
     
     return () => {
       document.body.style.overflow = '';
       
-      // Ensure elements are visible on unmount
-      const searchBar = document.querySelector('[class*="searchBar"]');
-      const navBar = document.querySelector('nav');
-      
+      // Ensure elements are visible and interactive when unmounting
       if (searchBar) {
-        (searchBar as HTMLElement).style.display = '';
+        searchBar.style.opacity = '1';
+        searchBar.style.transform = 'translateY(0)';
+        searchBar.style.pointerEvents = 'auto';
       }
-      
       if (navBar) {
-        (navBar as HTMLElement).style.display = '';
+        navBar.style.opacity = '1';
+        navBar.style.transform = 'translateY(0)';
+        navBar.style.pointerEvents = 'auto';
       }
     };
   }, [isOpen]);
   
-  // Handle the close action
   const handleClose = () => {
     if (isAnimating) return;
     performCloseAnimation();
   };
   
-  // Animation for opening
+  // Handle animations
   useEffect(() => {
-    if (!detailRef.current || !startPosition || !isVisible || !artefact) return;
+    if (!detailRef.current || !startPosition || !artefact) return;
     
-    // Only run opening animation when component is visible and supposed to be open
     if (isOpen) {
       performOpenAnimation();
     }
-  }, [isOpen, isVisible, startPosition, artefact]);
+  }, [isOpen, startPosition, artefact]);
   
-  // Perform opening animation
   const performOpenAnimation = () => {
     if (!detailRef.current || !startPosition || !contentRef.current) return;
     
@@ -106,7 +129,7 @@ export default function ArtefactDetail({ artefact, isOpen, onClose, startPositio
     
     setIsAnimating(true);
     
-    // Set initial position to match the card
+    // Set initial state (invisible and positioned)
     gsap.set(detail, {
       top: startPosition.top,
       left: startPosition.left,
@@ -115,33 +138,26 @@ export default function ArtefactDetail({ artefact, isOpen, onClose, startPositio
       borderRadius: '0.75rem',
     });
     
-    // Hide content initially
-    gsap.set(content, { opacity: 0 });
-    
-    // Animate to full screen
+    // Make visible and animate to full screen
     gsap.to(detail, {
       top: 0,
       left: 0,
       width: '100%',
       height: '100%',
       borderRadius: 0,
-      backgroundColor: 'white',
       duration: 0.5,
       ease: 'power2.inOut',
-      onComplete: () => {
-        setIsAnimating(false);
-      }
+      onComplete: () => setIsAnimating(false)
     });
     
-    // Fade in content
-    gsap.to(content, {
-      opacity: 1,
+    // Fade in content separately
+    gsap.from(content, {
+      opacity: 0,
       delay: 0.3,
       duration: 0.3
     });
   };
   
-  // Perform closing animation
   const performCloseAnimation = () => {
     if (!detailRef.current || !startPosition || !contentRef.current) return;
     
@@ -156,34 +172,34 @@ export default function ArtefactDetail({ artefact, isOpen, onClose, startPositio
       duration: 0.2
     });
     
-    // Then animate back to card size
+    // Then animate back to card size and fade out
     gsap.to(detail, {
-        top: startPosition.top,
-        left: startPosition.left,
-        width: startPosition.width,
-        height: startPosition.height,
-        borderRadius: '0.75rem',
-        duration: 0.5,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          setIsAnimating(false);
-          setIsVisible(false);
-          onVisibilityChange?.(false);
-          onClose();
-        },
+      top: startPosition.top,
+      left: startPosition.left,
+      width: startPosition.width,
+      height: startPosition.height,
+      borderRadius: '0.75rem',
+      duration: 0.5,
+      ease: 'power2.inOut',
+      onComplete: () => {
+        setIsAnimating(false);
+        setIsVisible(false);
+        onVisibilityChange?.(false);
+        onClose();
+      },
     });
   };
   
-  if (!artefact || !isVisible) return null;
+  if (!artefact || !isOpen) return null;
   
   return (
     <div 
       ref={detailRef}
-      className="fixed z-50 bg-white overflow-hidden"
+      className="fixed z-50 bg-white overflow-hidden" // Initially invisible
     >
       <div 
         ref={contentRef}
-        className="w-full h-full overflow-y-auto p-6"
+        className="w-full h-full overflow-y-auto p-6" // Initially invisible
       >
         <button
           onClick={handleClose}

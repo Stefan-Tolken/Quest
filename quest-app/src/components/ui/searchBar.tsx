@@ -36,7 +36,7 @@ export default function SearchBar({ onSearch, artefacts }: SearchBarProps) {
   };
 
   return (
-    <div className="fixed top-4 left-0 right-0 z-50 px-6 mb-6">
+    <div className="searchBar fixed top-4 left-0 right-0 z-50 px-6 mb-6">
       <div className="relative w-full max-w-3xl mx-auto">
         <input
           type="text"
