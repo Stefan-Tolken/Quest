@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
-import { Artefact } from "./artefact";
+import { ArtefactCard } from "./artefactCard";
 import type { Artefact as ArtefactType } from "@/lib/mockData";
 
 interface ArtefactCarouselProps {
   artefacts: ArtefactType[];
+  onArtefactSelect?: (artefact: ArtefactType, elementRect: DOMRect) => void;
 }
 
-export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
+export default function ArtefactCarousel({ artefacts, onArtefactSelect }: ArtefactCarouselProps) {
   const totalItems = artefacts.length;
   const [centerIndex, setCenterIndex] = useState(Math.floor(totalItems / 2));
   const containerRef = useRef<HTMLDivElement>(null);
@@ -14,6 +15,7 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
   const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
   const [previousVisibleIndices, setPreviousVisibleIndices] = useState<number[]>([]);
   const [newItems, setNewItems] = useState<Record<number, boolean>>({});
+  const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   
   // In ArtefactCarousel component
   useEffect(() => {
@@ -175,6 +177,17 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
     };
   };
 
+  // Handle click on center item
+  const handleItemClick = (index: number, artefact: ArtefactType) => {
+    if (index === centerIndex && onArtefactSelect) {
+      const itemRef = itemRefs.current[`${artefact.id}-${index}`];
+      if (itemRef) {
+        const rect = itemRef.getBoundingClientRect();
+        onArtefactSelect(artefact, rect);
+      }
+    }
+  };
+
   return (
     <div 
       ref={containerRef}
@@ -194,9 +207,10 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
             return (
               <div 
                 key={`${artefact.id}-${index}`} 
+                ref={(el) => {itemRefs.current[`${artefact.id}-${index}`] = el}}
                 className={`absolute transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                   isCenter ? 'opacity-100' : 'opacity-60 hover:opacity-70'
-                }`}
+                } ${isCenter ? 'cursor-pointer' : ''}`}
                 style={{
                   transform: `translateY(${verticalPositions[index]}px) scale(${isCenter ? centerScale : sideScale})`,
                   zIndex: isCenter ? 20 : 10,
@@ -204,8 +218,9 @@ export default function ArtefactCarousel({ artefacts }: ArtefactCarouselProps) {
                   height: isCenter ? `${centerItemHeight}px` : `${sideItemHeight}px`,
                   ...(isNew ? getAnimationStyle(index) : {}),
                 }}
+                onClick={() => handleItemClick(index, artefact)}
               >
-                <Artefact
+                <ArtefactCard
                   id={artefact.id}
                   name={artefact.name}
                   description={artefact.description}
