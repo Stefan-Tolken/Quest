@@ -6,13 +6,10 @@ import SearchBar from '@/components/ui/searchBar';
 import ArtefactDetail from '@/components/ui/artefactDetails';
 import type { Artefact } from '@/lib/mockData';
 import ArtefactGrid from '@/components/ui/artefactGrid';
-import { Button } from '@/components/ui/button';
-import { Grid, Layers } from "lucide-react";
 
 export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabled: boolean) => void }) {
   // Initialize state from localStorage if available, otherwise default to false
   const [isGrid, setIsGrid] = useState<boolean>(() => {
-    // This function only runs once during initial render
     if (typeof window !== 'undefined') {
       const savedState = localStorage.getItem('artefactsViewIsGrid');
       return savedState === 'true';
@@ -40,35 +37,33 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
   };
 
   const handleArtefactSelect = (artefact: Artefact, elementRect: DOMRect) => {
-    // Store the position and dimensions of the clicked element
     setDetailPosition({
       top: elementRect.top,
       left: elementRect.left,
       width: elementRect.width,
       height: elementRect.height
     });
-    
     setSelectedArtefact(artefact);
     setDetailOpen(true);
   };
 
   const handleDetailClose = () => {
-    // Only update state - the animation handles the actual closing
     setDetailOpen(false);
   };
 
-  const handleSetIsGrid = () => {
+  const handleViewToggle = () => {
     setIsGrid(!isGrid);
   };
 
   return (
     <div className="p-6">
-      <div className='flex flex-row gap-4'>
-        <Button onClick={handleSetIsGrid} className="h-full z-50" variant={'secondary'}>
-          {isGrid ? <Layers size={18} /> : <Grid size={18} />}
-        </Button>
-        <SearchBar onSearch={handleSearch} artefacts={mockArtefacts} />
-      </div>
+      <SearchBar 
+        onSearch={handleSearch} 
+        artefacts={mockArtefacts}
+        isGrid={isGrid}
+        onViewToggle={handleViewToggle}
+      />
+      
       {filteredArtefacts.length > 0 ? (
         isGrid ? (
           <ArtefactGrid
