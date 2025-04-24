@@ -225,6 +225,7 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
                   name={artefact.name}
                   description={artefact.description}
                   isCenter={isCenter}
+                  isGrid={false} // No concept of grid in carousel layout
                 />
               </div>
             );

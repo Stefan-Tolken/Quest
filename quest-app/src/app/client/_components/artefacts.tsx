@@ -5,11 +5,15 @@ import ArtefactCarousel from '@/components/ui/artefactCarousel';
 import SearchBar from '@/components/ui/searchBar';
 import ArtefactDetail from '@/components/ui/artefactDetails';
 import type { Artefact } from '@/lib/mockData';
+import ArtefactGrid from '@/components/ui/artefactGrid';
+import { Button }from '@/components/ui/button';
+import { Grid, Layers } from "lucide-react";
 
 export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabled: boolean) => void }) {
   const [filteredArtefacts, setFilteredArtefacts] = useState<Artefact[]>(mockArtefacts);
   const [selectedArtefact, setSelectedArtefact] = useState<Artefact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [isGrid, setIsGrid] = useState(false);
   const [detailPosition, setDetailPosition] = useState<{
     top: number;
     left: number;
@@ -39,14 +43,30 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
     setDetailOpen(false);
   };
 
+  const handleSetIsGrid = () => {
+    setIsGrid(!isGrid);
+  };
+
   return (
     <div className="p-6">
-      <SearchBar onSearch={handleSearch} artefacts={mockArtefacts} />
+      <div className='flex flex-row gap-4'>
+        <Button onClick={handleSetIsGrid} className="z-50" variant={'secondary'}>
+          {isGrid ? <Layers size={18} /> : <Grid size={18} />}
+        </Button>
+        <SearchBar onSearch={handleSearch} artefacts={mockArtefacts} />
+      </div>
       {filteredArtefacts.length > 0 ? (
-        <ArtefactCarousel 
-          artefacts={filteredArtefacts} 
-          onArtefactSelect={handleArtefactSelect}
-        />
+        isGrid ? (
+          <ArtefactGrid
+            artefacts={filteredArtefacts}
+            onArtefactSelect={handleArtefactSelect}
+          />
+        ) : (
+          <ArtefactCarousel 
+            artefacts={filteredArtefacts} 
+            onArtefactSelect={handleArtefactSelect}
+          />
+        )
       ) : (
         <div className="text-center py-12">
           <p className="text-gray-500">No artefacts found matching your search.</p>

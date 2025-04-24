@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import Fuse from 'fuse.js';
 import { Artefact as ArtefactType } from '@/lib/mockData';
+import { Input } from '@/components/ui/input';
 
 interface SearchBarProps {
   onSearch: (results: ArtefactType[]) => void;
@@ -36,14 +37,14 @@ export default function SearchBar({ onSearch, artefacts }: SearchBarProps) {
   };
 
   return (
-    <div className="searchBar fixed top-4 left-0 right-0 z-50 px-6 mb-6">
+    <div className="searchBar top-4 flex-1 z-50">
       <div className="relative w-full max-w-3xl mx-auto">
-        <input
+        <Input
           type="text"
           placeholder="Search artefacts..."
           value={searchTerm}
           onChange={(e) => handleSearch(e.target.value)}
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-lg"
+          className="bg-white border-none"
         />
         {searchTerm && (
           <button
