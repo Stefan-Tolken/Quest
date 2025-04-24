@@ -6,20 +6,34 @@ import SearchBar from '@/components/ui/searchBar';
 import ArtefactDetail from '@/components/ui/artefactDetails';
 import type { Artefact } from '@/lib/mockData';
 import ArtefactGrid from '@/components/ui/artefactGrid';
-import { Button }from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { Grid, Layers } from "lucide-react";
 
 export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabled: boolean) => void }) {
+  // Initialize state from localStorage if available, otherwise default to false
+  const [isGrid, setIsGrid] = useState<boolean>(() => {
+    // This function only runs once during initial render
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('artefactsViewIsGrid');
+      return savedState === 'true';
+    }
+    return false;
+  });
+  
   const [filteredArtefacts, setFilteredArtefacts] = useState<Artefact[]>(mockArtefacts);
   const [selectedArtefact, setSelectedArtefact] = useState<Artefact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [isGrid, setIsGrid] = useState(false);
   const [detailPosition, setDetailPosition] = useState<{
     top: number;
     left: number;
     width: number;
     height: number;
   } | null>(null);
+
+  // Save to localStorage whenever isGrid changes
+  useEffect(() => {
+    localStorage.setItem('artefactsViewIsGrid', String(isGrid));
+  }, [isGrid]);
 
   const handleSearch = (results: Artefact[]) => {
     setFilteredArtefacts(results);
@@ -50,7 +64,7 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
   return (
     <div className="p-6">
       <div className='flex flex-row gap-4'>
-        <Button onClick={handleSetIsGrid} className="z-50" variant={'secondary'}>
+        <Button onClick={handleSetIsGrid} className="h-full z-50" variant={'secondary'}>
           {isGrid ? <Layers size={18} /> : <Grid size={18} />}
         </Button>
         <SearchBar onSearch={handleSearch} artefacts={mockArtefacts} />
