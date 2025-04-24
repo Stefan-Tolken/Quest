@@ -4,6 +4,8 @@ import { ArrowLeft } from 'lucide-react';
 import type { Artefact as ArtefactType } from '@/lib/mockData';
 import { mockArtefacts } from '@/lib/mockData';
 import QRCodeGenerator from '@/components/QRGenerator';
+import { useQuest } from '@/context/questContext';
+import { Button } from '@/components/ui/button';
 
 interface ArtefactDetailProps {
   artefactId: string | null | undefined;
@@ -26,7 +28,9 @@ export default function ArtefactDetail({
   onVisibilityChange 
 }: ArtefactDetailProps) {
   const [artefact, setArtefact] = useState<ArtefactType | null>(null);
-  
+  const { activeQuest, submitArtefact } = useQuest();
+  const [submitted, setSubmitted] = useState<boolean | null>(null);
+
   // Fetch artefact when ID changes
   useEffect(() => {
     if (!artefactId) return;
@@ -79,7 +83,13 @@ export default function ArtefactDetail({
   }, [isOpen]);
   
   const handleClose = () => {
+    setSubmitted(null);
     onClose();
+  };
+
+  const handleSubmit = () => {
+    const success = submitArtefact(artefactId);
+    setSubmitted(success);
   };
   
   if (!artefact || !isVisible) return null;
@@ -93,15 +103,33 @@ export default function ArtefactDetail({
         ref={contentRef}
         className="w-full h-full overflow-y-auto p-6"
       >
-        <button
-          onClick={handleClose}
-          className="fixed top-6 left-6 z-10 p-2 rounded-full bg-white/80 backdrop-blur-sm shadow-md hover:bg-gray-100 transition-colors"
-          aria-label="Back"
-        >
-          <ArrowLeft size={24} />
-        </button>
-        
-        <div className="max-w-4xl mx-auto pt-16">
+        <div className={"flex flex-row gap-6 w-full"}>
+          <Button
+            onClick={handleClose}
+            variant={"default"}
+            aria-label="Back"
+          >
+            <ArrowLeft size={24} />
+          </Button>
+          
+          {activeQuest && submitted === null && (
+            <Button
+              onClick={handleSubmit}
+              variant={"destructive"}
+              className={"flex-1"}
+            >
+              Submit for Quest
+            </Button>
+          )}
+
+          {submitted === true && (
+            <p className="my-auto text-green-600">Correct artefact submitted! 🎉</p>
+          )}
+          {submitted === false && (
+            <p className="my-auto text-red-600">This is not the correct artefact 😢</p>
+          )}
+        </div>
+        <div className="max-w-4xl mx-auto pt-6">
           <div className="relative w-full h-96 mb-8">
             <Image
               src={`https://picsum.photos/seed/${artefact.id}/1200/800`}
@@ -117,7 +145,7 @@ export default function ArtefactDetail({
             includeDownload={true}
           />
           
-          <h1 className="text-3xl font-bold mb-4">{artefact.name}</h1>
+          <h1 className="text-3xl font-bold mb-4 pt-6">{artefact.name}</h1>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             <div className="md:col-span-2">
