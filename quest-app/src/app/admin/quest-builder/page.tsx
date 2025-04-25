@@ -215,6 +215,15 @@ const QuestBuild = () => {
     }
   };
 
+  const reorderArtifacts = (newArtifactsOrder: Artifact[]) => {
+    setQuest((prev) => {
+      return {
+        ...prev,
+        artifacts: newArtifactsOrder,
+      };
+    });
+  };
+
   const toggleArtifactDetails = (index: number) => {
     setActiveArtifactIndex(activeArtifactIndex === index ? null : index);
     setCurrentHint({ description: "", displayAfterAttempts: 1 });
@@ -560,6 +569,7 @@ const QuestBuild = () => {
             onRemoveArtifact={removeArtifact}
             onMoveArtifact={moveArtifact}
             onToggleDetails={toggleArtifactDetails}
+            onReorderArtifacts={reorderArtifacts}
           >
             {activeArtifactIndex !== null && (
               <HintsSection
