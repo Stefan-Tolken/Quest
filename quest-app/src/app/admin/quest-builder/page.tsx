@@ -318,6 +318,25 @@ const QuestBuild = () => {
     });
   };
 
+  const reorderHints = (artifactIndex: number, newHintsOrder: any[]) => {
+    setQuest((prev) => {
+      const updatedArtifacts = [...prev.artifacts];
+
+      // Update display order
+      const reorderedHints = newHintsOrder.map((hint, i) => ({
+        ...hint,
+        displayAfterAttempts: i + 1,
+      }));
+
+      updatedArtifacts[artifactIndex] = {
+        ...updatedArtifacts[artifactIndex],
+        hints: reorderedHints,
+      };
+
+      return { ...prev, artifacts: updatedArtifacts };
+    });
+  };
+
   const setQuestType = (questType: QuestType) => {
     setQuest((prev) => ({ ...prev, questType }));
 
@@ -561,6 +580,9 @@ const QuestBuild = () => {
                 }
                 onCurrentHintChange={(value) =>
                   setCurrentHint({ ...currentHint, description: value })
+                }
+                onReorderHints={(newOrder) =>
+                  reorderHints(activeArtifactIndex, newOrder)
                 }
               />
             )}
