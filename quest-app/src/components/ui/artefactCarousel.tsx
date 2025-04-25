@@ -29,7 +29,7 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
   }, [artefacts]);
 
   // Define fixed heights for centered and side items
-  const centerItemHeight = 300; // Height for centered item (larger)
+  const centerItemHeight = 275; // Height for centered item (larger)
   const sideItemHeight = 80;   // Height for non-centered items (smaller)
   
   useEffect(() => {
@@ -225,6 +225,7 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
                   name={artefact.name}
                   description={artefact.description}
                   isCenter={isCenter}
+                  isGrid={false} // No concept of grid in carousel layout
                 />
               </div>
             );

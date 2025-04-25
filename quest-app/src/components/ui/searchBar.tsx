@@ -1,15 +1,35 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Fuse from 'fuse.js';
 import { Artefact as ArtefactType } from '@/lib/mockData';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdownMenu';
+import { Filter, Grid, Layers } from 'lucide-react';
 
 interface SearchBarProps {
   onSearch: (results: ArtefactType[]) => void;
   artefacts: ArtefactType[];
+  isGrid: boolean;
+  onViewToggle: () => void;
 }
 
-export default function SearchBar({ onSearch, artefacts }: SearchBarProps) {
+export default function SearchBar({ 
+  onSearch, 
+  artefacts, 
+  isGrid,
+  onViewToggle 
+}: SearchBarProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
+
+  // Get unique groups from artefacts
+  const groups = Array.from(new Set(artefacts.map(artefact => artefact.group)));
 
   // Initialize Fuse instance with our artefacts
   const fuse = new Fuse(artefacts, {
@@ -18,53 +38,118 @@ export default function SearchBar({ onSearch, artefacts }: SearchBarProps) {
     includeScore: true
   });
 
-  const handleSearch = useCallback((value: string) => {
-    setSearchTerm(value);
+  // This effect runs whenever searchTerm or selectedGroup changes
+  useEffect(() => {
+    updateResults();
+  }, [searchTerm, selectedGroup]);
+
+  const updateResults = useCallback(() => {
+    let results: ArtefactType[] = [];
     
-    if (!value) {
-      onSearch(artefacts); // Show all artefacts when search is empty
-      return;
+    // Apply search if there's a search term
+    if (searchTerm) {
+      const fuseResults = fuse.search(searchTerm);
+      results = fuseResults.map(result => result.item);
+    } else {
+      results = [...artefacts]; // Show all artefacts when search is empty
     }
 
-    const results = fuse.search(value);
-    const filteredArtefacts = results.map(result => result.item);
-    onSearch(filteredArtefacts);
-  }, [artefacts, fuse, onSearch]);
+    // Apply group filter if selected
+    if (selectedGroup) {
+      results = results.filter(artefact => artefact.group === selectedGroup);
+    }
+
+    onSearch(results);
+  }, [artefacts, fuse, onSearch, searchTerm, selectedGroup]);
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+  };
 
   const handleClear = () => {
-    handleSearch('');
+    setSearchTerm('');
+  };
+
+  const handleGroupFilter = (group: string | null) => {
+    setSelectedGroup(group);
   };
 
   return (
-    <div className="searchBar fixed top-4 left-0 right-0 z-50 px-6 mb-6">
-      <div className="relative w-full max-w-3xl mx-auto">
-        <input
-          type="text"
-          placeholder="Search artefacts..."
-          value={searchTerm}
-          onChange={(e) => handleSearch(e.target.value)}
-          className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-lg"
-        />
-        {searchTerm && (
-          <button
-            onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-            aria-label="Clear search"
+    <div className="searchBar top-4 flex-1 z-50">
+      <div className="relative w-full max-w-3xl mx-auto flex flex-col gap-2 z-50">
+        <div className='flex items-center gap-2'>
+        {/* View Toggle Button */}
+          <Button 
+            onClick={onViewToggle} 
+            variant="secondary" 
+            className="flex gap-2"
+            aria-label={isGrid ? "Switch to list view" : "Switch to grid view"}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-        )}
+            {isGrid ? <Layers size={18} /> : <Grid size={18} />}
+          </Button>
+
+          {/* Search Input */}
+          <div className="relative flex-1">
+            <Input
+              type="text"
+              placeholder="Search artefacts..."
+              value={searchTerm}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="bg-secondary border-none"
+            />
+            {searchTerm && (
+              <button
+                onClick={handleClear}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                aria-label="Clear search"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+          
+          {/* Filter Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="secondary" className="flex gap-2">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => handleGroupFilter(null)}>
+                All Groups
+              </DropdownMenuItem>
+              {groups.map(group => (
+                <DropdownMenuItem 
+                  key={group} 
+                  onClick={() => handleGroupFilter(group)}
+                  className={selectedGroup === group ? 'bg-accent' : ''}
+                >
+                  {group}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      {selectedGroup && (
+        <Button 
+          onClick={() => handleGroupFilter(null)}
+          className='w-full'
+        >
+          Clear {selectedGroup} Filter
+        </Button>
+      )}
       </div>
     </div>
   );
