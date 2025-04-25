@@ -7,11 +7,12 @@ import { ArtifactList } from "./components/ArtifactList";
 import { ArtifactSearch } from "./components/ArtifactSearch";
 import { HintsSection } from "./components/HintSection";
 import { PrizeSection } from "./components/PrizeSection";
+import { DateRange } from "react-day-picker";
 
 // Type definitions
 type Hint = {
   description: string;
-  displayAfterAttempts: number; // Now represents the order of hints rather than attempts
+  displayAfterAttempts: number;
 };
 
 type HintDisplayMode = "sequential" | "random";
@@ -31,6 +32,7 @@ type Quest = {
   description: string;
   artifacts: Artifact[];
   questType: QuestType;
+  dateRange?: DateRange;
   prize?: {
     title: string;
     description: string;
@@ -77,6 +79,7 @@ const QuestBuild = () => {
     description: "",
     artifacts: [],
     questType: "sequential",
+    dateRange: undefined,
     prize: { title: "", description: "", image: null },
   });
 
@@ -139,6 +142,23 @@ const QuestBuild = () => {
 
       return newErrors;
     });
+  };
+
+  const handleDateRangeChange = (dateRange: DateRange | undefined) => {
+    setQuest((prev) => ({ ...prev, dateRange }));
+    validateDateRange(dateRange);
+  };
+
+  const validateDateRange = (dateRange?: DateRange) => {
+    setValidationErrors((prev) => ({
+      ...prev,
+      dateRange:
+        !dateRange?.from || !dateRange?.to
+          ? "Date range is required"
+          : dateRange.from > dateRange.to
+          ? "End date must be after start date"
+          : "",
+    }));
   };
 
   const addArtifact = (artifact: (typeof mockArtifacts)[0]) => {
@@ -439,7 +459,7 @@ const QuestBuild = () => {
     }
   };
 
-  const handleSaveQuest = () => {
+  const handleSaveQuest = async () => {
     // Validate required fields
     const errors: Record<string, string> = {};
 
@@ -448,6 +468,11 @@ const QuestBuild = () => {
       errors.description = "Description is required";
     if (quest.artifacts.length < 1)
       errors.artifacts = "At least one artifact is required";
+    if (!quest.dateRange?.from || !quest.dateRange?.to) {
+      errors.dateRange = "Date range is required";
+    } else if (quest.dateRange.from > quest.dateRange.to) {
+      errors.dateRange = "End date must be after start date";
+    }
 
     if (quest.questType === "concurrent" && quest.artifacts.length < 3) {
       errors.questType = "Concurrent quests require at least 3 artifacts";
@@ -458,24 +483,89 @@ const QuestBuild = () => {
       return;
     }
 
-    // Here you would typically send the quest data to your API
-    console.log("Saving quest:", quest);
-    alert("Quest saved successfully!");
+    try {
+      // First, upload image if present
+      let imageUrl = undefined;
+      if (quest.prize?.image) {
+        // In a real app, you would upload to S3 or similar
+        // For this example, we'll just pretend it's uploaded
+        imageUrl = `https://your-bucket.s3.amazonaws.com/quest-images/${Date.now()}-${
+          quest.prize.image.name
+        }`;
 
-    // Reset form (optional)
-    if (quest.prize?.imagePreview) {
-      URL.revokeObjectURL(quest.prize.imagePreview);
+        // In a real implementation:
+        // const uploadResponse = await uploadImageToS3(quest.prize.image);
+        // imageUrl = uploadResponse.url;
+      }
+
+      // Prepare quest data for submission
+      const questData = {
+        title: quest.title,
+        description: quest.description,
+        artifacts: quest.artifacts,
+        questType: quest.questType,
+        dateRange: quest.dateRange
+          ? {
+              from: quest.dateRange.from
+                ? quest.dateRange.from.toISOString()
+                : undefined,
+              to: quest.dateRange.from
+                ? quest.dateRange.from.toISOString()
+                : undefined,
+            }
+          : undefined,
+        prize: quest.prize
+          ? {
+              title: quest.prize.title,
+              description: quest.prize.description,
+              imageUrl: imageUrl,
+            }
+          : undefined,
+      };
+
+      // Send quest data to API
+      const response = await fetch("/api/save-quest", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(questData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save quest");
+      }
+
+      const result = await response.json();
+      console.log("Quest saved successfully:", result);
+
+      // Show success message
+      alert("Quest saved successfully!");
+
+      // Reset form
+      if (quest.prize?.imagePreview) {
+        URL.revokeObjectURL(quest.prize.imagePreview);
+      }
+
+      setQuest({
+        title: "",
+        description: "",
+        artifacts: [],
+        questType: "sequential",
+        dateRange: undefined,
+        prize: { title: "", description: "", image: null },
+      });
+      setShowPrize(false);
+      setValidationErrors({});
+    } catch (error) {
+      console.error("Error saving quest:", error);
+      alert(
+        `Failed to save quest: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
-
-    setQuest({
-      title: "",
-      description: "",
-      artifacts: [],
-      questType: "sequential",
-      prize: { title: "", description: "", image: null },
-    });
-    setShowPrize(false);
-    setValidationErrors({});
   };
 
   return (
@@ -488,9 +578,11 @@ const QuestBuild = () => {
         <QuestInfo
           title={quest.title}
           description={quest.description}
+          dateRange={quest.dateRange}
           validationErrors={validationErrors}
           onTitleChange={handleSetTitle}
           onDescriptionChange={handleSetDescription}
+          onDateRangeChange={handleDateRangeChange}
         />
 
         {/* Artifacts Section */}
