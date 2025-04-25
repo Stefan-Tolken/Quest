@@ -53,10 +53,10 @@ export default function RootLayout({
               </li>
               <li>
                 <Link
-                  href="/admin/challenge-maker"
+                  href="/admin/quest-builder"
                   className="text-blue-600 hover:underline"
                 >
-                  Challenge Maker
+                  Quest Builder
                 </Link>
               </li>
             </ul>

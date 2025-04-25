@@ -13,7 +13,6 @@ const availableComponents: ComponentData[] = [
     content: {
       url: "",
       points: [],
-      texts: [],
     },
   },
 ];
