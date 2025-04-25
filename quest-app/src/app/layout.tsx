@@ -17,24 +17,18 @@ const geistMono = Geist_Mono({
 });
 
 // Move viewport logic into a client-side effect
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider {...CognitoAuthConfig}>
       <html lang="en">
         <head>
-          <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1, maximum-scale=1"
-          />
+          <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
           <meta name="theme-color" content="#000000" />
         </head>
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
+
           {/* Main Content */}
             {children}
             <RegisterSW />

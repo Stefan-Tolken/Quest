@@ -21,10 +21,6 @@ export interface PointOfInterest {
 
 export interface ImageContent {
   url: string;
-  points: Array<{
-    id: string;
-    x: number;
-    y: number;
-    text: string;
-  }>;
+  points: Array<{ x: number; y: number }>;
+  texts: Array<string>;
 }
