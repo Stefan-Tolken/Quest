@@ -484,18 +484,10 @@ const QuestBuild = () => {
     }
 
     try {
-      // First, upload image if present
-      let imageUrl = undefined;
+      // Convert image to base64 if present
+      let imageBase64 = undefined;
       if (quest.prize?.image) {
-        // In a real app, you would upload to S3 or similar
-        // For this example, we'll just pretend it's uploaded
-        imageUrl = `https://your-bucket.s3.amazonaws.com/quest-images/${Date.now()}-${
-          quest.prize.image.name
-        }`;
-
-        // In a real implementation:
-        // const uploadResponse = await uploadImageToS3(quest.prize.image);
-        // imageUrl = uploadResponse.url;
+        imageBase64 = await convertFileToBase64(quest.prize.image);
       }
 
       // Prepare quest data for submission
@@ -506,10 +498,10 @@ const QuestBuild = () => {
         questType: quest.questType,
         dateRange: quest.dateRange
           ? {
-              from: quest.dateRange.from
+              from: quest.dateRange?.from
                 ? quest.dateRange.from.toISOString()
                 : undefined,
-              to: quest.dateRange.from
+              to: quest.dateRange?.from
                 ? quest.dateRange.from.toISOString()
                 : undefined,
             }
@@ -518,7 +510,7 @@ const QuestBuild = () => {
           ? {
               title: quest.prize.title,
               description: quest.prize.description,
-              imageUrl: imageUrl,
+              imageBase64: imageBase64,
             }
           : undefined,
       };
@@ -566,6 +558,16 @@ const QuestBuild = () => {
         }`
       );
     }
+  };
+
+  // Helper function to convert File to base64 string
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
   };
 
   return (
