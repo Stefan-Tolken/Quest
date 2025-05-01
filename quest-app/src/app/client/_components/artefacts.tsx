@@ -1,14 +1,15 @@
+// components/ui/artefacts.tsx
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { mockArtefacts } from '@/lib/mockData';
+import { useData } from '@/context/dataContext';
 import ArtefactCarousel from '@/components/ui/artefactCarousel';
 import SearchBar from '@/components/ui/searchBar';
 import ArtefactDetail from '@/components/ui/artefactDetails';
-import type { Artefact } from '@/lib/mockData';
+import type { Artefact } from '@/lib/types';
 import ArtefactGrid from '@/components/ui/artefactGrid';
 
 export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabled: boolean) => void }) {
-  // Initialize state from localStorage if available, otherwise default to false
+  const { artefacts, loading, error } = useData();
   const [isGrid, setIsGrid] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const savedState = localStorage.getItem('artefactsViewIsGrid');
@@ -17,7 +18,7 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
     return false;
   });
   
-  const [filteredArtefacts, setFilteredArtefacts] = useState<Artefact[]>(mockArtefacts);
+  const [filteredArtefacts, setFilteredArtefacts] = useState<Artefact[]>(artefacts);
   const [selectedArtefact, setSelectedArtefact] = useState<Artefact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPosition, setDetailPosition] = useState<{
@@ -26,6 +27,11 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
     width: number;
     height: number;
   } | null>(null);
+
+  // Update filtered artefacts when the main artefacts data changes
+  useEffect(() => {
+    setFilteredArtefacts(artefacts);
+  }, [artefacts]);
 
   // Save to localStorage whenever isGrid changes
   useEffect(() => {
@@ -55,11 +61,19 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
     setIsGrid(!isGrid);
   };
 
+  if (loading) {
+    return <div className="p-6">Loading artefacts...</div>;
+  }
+
+  if (error) {
+    return <div className="p-6 text-red-500">Error: {error}</div>;
+  }
+
   return (
     <div className="p-6">
       <SearchBar 
         onSearch={handleSearch} 
-        artefacts={mockArtefacts}
+        artefacts={artefacts}
         isGrid={isGrid}
         onViewToggle={handleViewToggle}
       />
@@ -86,7 +100,6 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
         artefactId={selectedArtefact?.id}
         isOpen={detailOpen}
         onClose={handleDetailClose}
-        startPosition={detailPosition}
         onVisibilityChange={(visible) => {
           setSwipeEnabled(!visible);
         }}

@@ -1,89 +1,136 @@
+// components/ui/quests.tsx
 'use client';
-import { useEffect, useState } from 'react';
+import { useData } from '@/context/dataContext';
 import { useQuest } from '@/context/questContext';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-
-interface Quest {
-  quest_id: string;
-  title: string;
-  description: string;
-  artifacts: Array<{
-    id: string;
-    hints: Array<{
-      description: string;
-      displayAfterAttempts: number;
-    }>;
-    hintDisplayMode: 'sequential' | 'random';
-  }>;
-  questType: 'sequential' | 'concurrent';
-  dateRange?: {
-    from: string;
-    to: string;
-  };
-  prize?: {
-    title: string;
-    description: string;
-    imageBase64?: string;
-  };
-  createdAt: string;
-}
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { CalendarDays, Trophy, MapPin, ScanEye } from 'lucide-react';
 
 export default function Quests() {
+  const { quests, loading, error } = useData();
   const { activeQuest, acceptQuest, cancelQuest } = useQuest();
-  const [quests, setQuests] = useState<Quest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
-  useEffect(() => {
-    const fetchQuests = async () => {
-      try {
-        const res = await fetch('/api/get-quests');
-        const data = await res.json();
-        setQuests(data.quests || []);
-      } catch (err) {
-        console.error('Failed to fetch quests:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (loading) {
+    return (
+      <div className="p-6 space-y-6">
+        <h1 className="text-2xl font-bold">Quests</h1>
+        <div className="grid gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="border rounded-lg p-6 space-y-4">
+              <div className="h-6 w-3/4 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-4 w-full bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-4 w-2/3 bg-gray-200 animate-pulse rounded"></div>
+              <div className="h-10 w-32 bg-gray-200 animate-pulse rounded"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-    fetchQuests();
-  }, []);
+  if (error) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Quests</h1>
+        <div className="text-red-500">Error loading quests: {error}</div>
+      </div>
+    );
+  }
 
-  if (loading) return <div className="p-6">Loading quests...</div>;
-  if (!quests.length) return <div className="p-6">No quests available.</div>;
+  if (!quests.length) {
+    return (
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Quests</h1>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <p className="text-muted-foreground">No quests available at this time</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-6 gap-6 flex flex-col">
-      <h1 className="text-2xl font-bold mb-4">Quests</h1>
-      {quests.map((quest) => (
-        <div
-          key={quest.quest_id}
-          className="bg-gray-100 p-4 rounded shadow-sm flex flex-col gap-2"
-        >
-          <h2 className="text-xl font-semibold">{quest.title}</h2>
-          <p className="text-gray-700">{quest.description}</p>
+    <div className="pb-20 p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Quests</h1>
+      
+      <div className="grid gap-6">
+        {quests.map((quest) => {
+          const isActive = activeQuest?.quest_id === quest.quest_id;
+          const hasActiveQuest = activeQuest && !isActive;
 
-          {activeQuest?.quest_id === quest.quest_id ? (
-            <Button 
-              onClick={() => cancelQuest()}
-              variant={"destructive"}
-            >
-              Cancel Quest
-            </Button>
-          ) : activeQuest ? (
-            <></>
-          ) : (
-            <Button
-              onClick={() => acceptQuest(quest)}
-              variant={"default"}
-            >
-              Accept Quest
-            </Button>
-          )}
-        </div>
-      ))}
+          // Hide other quests when one is active
+          if (activeQuest && !isActive) return null;
+
+          // Only show quest if the scheduled date has been reached
+          if (quest.dateRange && new Date(quest.dateRange.from) > new Date()) return null;
+
+          return (
+            <Card key={quest.quest_id} className={isActive ? 'border-blue-200 bg-blue-50' : ''}>
+              <CardHeader>
+                <CardTitle>{quest.title}</CardTitle>
+                <CardDescription>{quest.description}</CardDescription>
+              </CardHeader>
+              
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                {quest.dateRange && (
+                  <div className="flex items-start gap-3">
+                    <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Available Until</p>
+                      <p className="text-muted-foreground">
+                        {new Date(quest.dateRange.to).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                  <div>
+                    <p className="font-medium">Artefacts</p>
+                    <p className="text-muted-foreground">
+                      {quest.artifacts.length} to discover
+                    </p>
+                  </div>
+                </div>
+
+                {quest.prize && (
+                  <div className="flex items-start gap-3">
+                    <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Prize</p>
+                      <p className="text-muted-foreground">
+                        {quest.prize.title}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+
+              <CardFooter>
+                {isActive ? (
+                  <Button 
+                    onClick={cancelQuest}
+                    variant="destructive"
+                    className="w-full sm:w-auto"
+                  >
+                    Cancel Quest
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={() => acceptQuest(quest)}
+                    variant="default"
+                    className="w-full sm:w-auto"
+                  >
+                    Accept Quest
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
