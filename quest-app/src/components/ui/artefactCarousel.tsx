@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { ArtefactCard } from "./artefactCard";
-import type { Artefact as ArtefactType } from "@/lib/mockData";
+import type { Artefact as ArtefactType } from "@/lib/types";
 
 interface ArtefactCarouselProps {
   artefacts: ArtefactType[];
@@ -223,7 +223,7 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
                 <ArtefactCard
                   id={artefact.id}
                   name={artefact.name}
-                  description={artefact.description}
+                  description={artefact.name} // Placeholder for description
                   isCenter={isCenter}
                   isGrid={false} // No concept of grid in carousel layout
                 />

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { ArtefactCard } from "./artefactCard";
-import type { Artefact as ArtefactType } from "@/lib/mockData";
+import type { Artefact as ArtefactType } from "@/lib/types";
 
 interface ArtefactGridProps {
   artefacts: ArtefactType[];
@@ -35,7 +35,8 @@ export default function ArtefactGrid({ artefacts, onArtefactSelect }: ArtefactGr
               <ArtefactCard
                 id={artefact.id}
                 name={artefact.name}
-                description={artefact.description}
+                // Ask james to add descriptions
+                description={artefact.name}
                 isCenter={false}
                 isGrid={true}
               />
