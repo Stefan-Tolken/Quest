@@ -3,6 +3,7 @@
 import Link from "next/link";
 import AuthButton from "./authButton";
 import { useAuthState } from "@/lib/useAuth";
+import { Button } from "./button";
 
 const NavBarAdmin: React.FC = () => {
     const { isAuthenticated } = useAuthState();
@@ -11,34 +12,29 @@ const NavBarAdmin: React.FC = () => {
     <nav className="p-4 bg-gray-200 flex justify-between items-center">
         { isAuthenticated ? (
             <>
-                <ul className="flex gap-4">
-                    <>
-                        <li>
-                            <Link
-                            href="/admin"
-                            className="text-blue-600 hover:underline"
-                            >
+                <div className="flex gap-4">
+                    <Button 
+                        variant={"link"}
+                    >
+                        <Link href="/admin">
                                 Home
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                            href="/admin/page-builder"
-                            className="text-blue-600 hover:underline"
-                            >
+                        </Link>
+                    </Button>
+                    <Button 
+                        variant={"link"}
+                    >
+                        <Link href="/admin/page-builder">
                                 Page Builder
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                            href="/admin/quest-builder"
-                            className="text-blue-600 hover:underline"
-                            >
+                        </Link>
+                    </Button>
+                    <Button 
+                        variant={"link"}
+                    >
+                        <Link href="/admin/quest-builder">
                                 Quest Builder
-                            </Link>
-                        </li>
-                    </>
-                </ul>
+                        </Link>
+                    </Button>
+                </div>
                 <AuthButton />
             </>
         ) : (
