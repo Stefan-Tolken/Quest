@@ -107,6 +107,30 @@ const SortableArtifact = ({
               >
                 <GripVertical size={18} />
               </div>
+              {questType === "sequential" && (
+                <div className="flex flex-col items-center">
+                  <button
+                    className={`text-gray-500 hover:text-indigo-600 ${
+                      index === 0 ? "opacity-50 cursor-not-allowed" : ""
+                    }`}
+                    onClick={() => onMoveArtifact(index, "up")}
+                    disabled={index === 0}
+                  >
+                    <ArrowUp size={15} />
+                  </button>
+                  <button
+                    className={`text-gray-500 hover:text-indigo-600 ${
+                      index === artifactsLength - 1
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                    onClick={() => onMoveArtifact(index, "down")}
+                    disabled={index === artifactsLength - 1}
+                  >
+                    <ArrowDown size={15} />
+                  </button>
+                </div>
+              )}
               <span className="text-gray-500">#{index + 1}</span>
             </>
           )}
@@ -118,30 +142,6 @@ const SortableArtifact = ({
           </h3>
         </div>
         <div className="flex items-center gap-2">
-          {questType === "sequential" && (
-            <div className="flex items-center mr-2">
-              <button
-                className={`text-gray-500 hover:text-indigo-600 ${
-                  index === 0 ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                onClick={() => onMoveArtifact(index, "up")}
-                disabled={index === 0}
-              >
-                <ArrowUp size={18} />
-              </button>
-              <button
-                className={`text-gray-500 hover:text-indigo-600 ${
-                  index === artifactsLength - 1
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
-                onClick={() => onMoveArtifact(index, "down")}
-                disabled={index === artifactsLength - 1}
-              >
-                <ArrowDown size={18} />
-              </button>
-            </div>
-          )}
           <span className="text-sm text-gray-600">
             {artifact.hints.length}{" "}
             {artifact.hints.length === 1 ? "hint" : "hints"}
