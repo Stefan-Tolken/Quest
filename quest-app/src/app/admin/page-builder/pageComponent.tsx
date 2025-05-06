@@ -1,8 +1,8 @@
 // app/admin/page-builder/pageComponent.tsx
 "use client";
 
-import { ImageContent } from "./types";
-import { ComponentData } from "./types";
+import { ImageContent } from "@/lib/types";
+import { ComponentData } from "@/lib/types";
 import {
   HeadingComponent,
   ParagraphComponent,

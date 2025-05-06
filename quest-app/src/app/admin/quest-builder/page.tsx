@@ -3,91 +3,42 @@
 import { useState, useEffect, useRef } from "react";
 import { Plus, CheckCircle } from "lucide-react";
 import { QuestInfo } from "./components/QuestInfo";
-import { ArtifactList } from "./components/ArtifactList";
-import { ArtifactSearch } from "./components/ArtifactSearch";
+import { ArtefactList } from "./components/ArtefactList";
+import { ArtefactSearch } from "./components/ArtefactSearch";
 import { HintsSection } from "./components/HintSection";
 import { PrizeSection } from "./components/PrizeSection";
 import { DateRange } from "react-day-picker";
-
-// Type definitions
-type Hint = {
-  description: string;
-  displayAfterAttempts: number;
-};
-
-type HintDisplayMode = "sequential" | "random";
-
-type Artifact = {
-  id: string;
-  name: string;
-  description?: string;
-  hints: Hint[];
-  hintDisplayMode: HintDisplayMode;
-};
-
-type QuestType = "sequential" | "concurrent";
-
-type Quest = {
-  title: string;
-  description: string;
-  artifacts: Artifact[];
-  questType: QuestType;
-  dateRange?: DateRange;
-  prize?: {
-    title: string;
-    description: string;
-    image?: File | null;
-    imagePreview?: string;
-  };
-};
+import type { QuestArtefact, Quest } from "@/lib/types";
 
 // Mock data for demonstration
-const mockArtifacts = [
+const mockArtefacts = [
   {
     id: "art1",
     name: "Ancient Sword",
     description: "A mysterious sword from a forgotten era",
   },
-  {
-    id: "art2",
-    name: "Crystal Orb",
-    description: "A magical orb that shows visions of the past",
-  },
-  {
-    id: "art3",
-    name: "Dragon Scale",
-    description: "A scale from the legendary dragon Fafnir",
-  },
-  {
-    id: "art4",
-    name: "Enchanted Amulet",
-    description: "Amulet with protective powers",
-  },
-  { id: "art5", name: "Golden Key", description: "Opens ancient doors" },
-  {
-    id: "art6",
-    name: "Magic Scroll",
-    description: "Contains forgotten spells",
-  },
-  { id: "art7", name: "Mystic Ring", description: "Grants the wearer wisdom" },
-  // Add more mock artifacts as needed
 ];
 
 const QuestBuild = () => {
   const [quest, setQuest] = useState<Quest>({
+    quest_id: "",
     title: "",
     description: "",
-    artifacts: [],
+    artefacts: [],
     questType: "sequential",
     dateRange: undefined,
-    prize: { title: "", description: "", image: null },
+    prize: { title: "", description: "", image: "" },
+    createdAt: new Date().toISOString(),
   });
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<typeof mockArtifacts>([]);
+  const [searchResults, setSearchResults] = useState<typeof mockArtefacts>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [showPrize, setShowPrize] = useState(false);
-  const [activeArtifactIndex, setActiveArtifactIndex] = useState<number | null>(
+  const [activeArtefactIndex, setActiveArtefactIndex] = useState<number | null>(
     null
   );
   const [currentHint, setCurrentHint] = useState({
@@ -99,18 +50,18 @@ const QuestBuild = () => {
   >({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Search artifacts whenever search query changes
+  // Search artefacts whenever search query changes
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setSearchResults([]);
       return;
     }
 
-    const filteredResults = mockArtifacts.filter(
-      (artifact) =>
-        artifact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (artifact.description &&
-          artifact.description
+    const filteredResults = mockArtefacts.filter(
+      (artefact) =>
+        artefact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (artefact.description &&
+          artefact.description
             .toLowerCase()
             .includes(searchQuery.toLowerCase()))
     );
@@ -145,7 +96,15 @@ const QuestBuild = () => {
   };
 
   const handleDateRangeChange = (dateRange: DateRange | undefined) => {
-    setQuest((prev) => ({ ...prev, dateRange }));
+    setQuest((prev) => ({
+      ...prev,
+      dateRange: dateRange
+        ? {
+            from: dateRange.from || undefined,
+            to: dateRange.to || undefined,
+          }
+        : undefined,
+    }));
     validateDateRange(dateRange);
   };
 
@@ -161,136 +120,134 @@ const QuestBuild = () => {
     }));
   };
 
-  const addArtifact = (artifact: (typeof mockArtifacts)[0]) => {
-    if (quest.artifacts.some((a) => a.id === artifact.id)) {
+  const addArtefact = (artefact: (typeof mockArtefacts)[0]) => {
+    if (quest.artefacts.some((a) => a.artefactId === artefact.id)) {
       return; // Prevent adding duplicates
     }
 
-    const newArtifact: Artifact = {
-      ...artifact,
+    const newArtefact: QuestArtefact = {
+      artefactId: artefact.id,
       hints: [],
-      hintDisplayMode: "sequential", // Default to sequential hints
+      hintDisplayMode: "sequential",
     };
 
     setQuest((prev) => ({
       ...prev,
-      artifacts: [...prev.artifacts, newArtifact],
+      artifacts: [...prev.artefacts, newArtefact],
     }));
 
     setShowSearch(false);
     setSearchQuery("");
     setSearchResults([]);
 
-    // Validate artifacts count
-    validateArtifactsCount([...quest.artifacts, newArtifact]);
+    // Validate artefacts count
+    validateArtefactsCount([...quest.artefacts, newArtefact]);
   };
 
-  const validateArtifactsCount = (artifacts: Artifact[]) => {
+  const validateArtefactsCount = (artefacts: QuestArtefact[]) => {
     setValidationErrors((prev) => {
       const newErrors = { ...prev };
 
-      if (artifacts.length < 1) {
-        newErrors.artifacts = "At least one artifact is required";
+      if (artefacts.length < 1) {
+        newErrors.artefacts = "At least one artefact is required";
       } else {
-        delete newErrors.artifacts;
+        delete newErrors.artefacts;
       }
 
       return newErrors;
     });
   };
 
-  const removeArtifact = (index: number) => {
-    const updatedArtifacts = quest.artifacts.filter((_, i) => i !== index);
-    setQuest((prev) => ({ ...prev, artifacts: updatedArtifacts }));
-    validateArtifactsCount(updatedArtifacts);
+  const removeArtefact = (index: number) => {
+    const updatedArtefacts = quest.artefacts.filter((_, i) => i !== index);
+    setQuest((prev) => ({ ...prev, artefacts: updatedArtefacts }));
+    validateArtefactsCount(updatedArtefacts);
 
-    if (activeArtifactIndex === index) {
-      setActiveArtifactIndex(null);
-    } else if (activeArtifactIndex !== null && activeArtifactIndex > index) {
+    if (activeArtefactIndex === index) {
+      setActiveArtefactIndex(null);
+    } else if (activeArtefactIndex !== null && activeArtefactIndex > index) {
       // Adjust active index after deletion
-      setActiveArtifactIndex(activeArtifactIndex - 1);
+      setActiveArtefactIndex(activeArtefactIndex - 1);
     }
   };
 
-  const moveArtifact = (index: number, direction: "up" | "down") => {
+  const moveArtefact = (index: number, direction: "up" | "down") => {
     if (quest.questType !== "sequential") return;
 
     const newIndex = direction === "up" ? index - 1 : index + 1;
 
-    if (newIndex < 0 || newIndex >= quest.artifacts.length) return;
+    if (newIndex < 0 || newIndex >= quest.artefacts.length) return;
 
     setQuest((prev) => {
-      const newArtifacts = [...prev.artifacts];
-      const temp = newArtifacts[index];
-      newArtifacts[index] = newArtifacts[newIndex];
-      newArtifacts[newIndex] = temp;
-      return { ...prev, artifacts: newArtifacts };
+      const newArtefacts = [...prev.artefacts];
+      const temp = newArtefacts[index];
+      newArtefacts[index] = newArtefacts[newIndex];
+      newArtefacts[newIndex] = temp;
+      return { ...prev, artefacts: newArtefacts };
     });
 
-    // Update active artifact index if it was moved
-    if (activeArtifactIndex === index) {
-      setActiveArtifactIndex(newIndex);
-    } else if (activeArtifactIndex === newIndex) {
-      setActiveArtifactIndex(index);
+    // Update active artefact index if it was moved
+    if (activeArtefactIndex === index) {
+      setActiveArtefactIndex(newIndex);
+    } else if (activeArtefactIndex === newIndex) {
+      setActiveArtefactIndex(index);
     }
   };
 
-  const reorderArtifacts = (newArtifactsOrder: Artifact[]) => {
-    setQuest((prev) => {
-      return {
-        ...prev,
-        artifacts: newArtifactsOrder,
-      };
-    });
+  const reorderArtefacts = (newArtefactsOrder: QuestArtefact[]) => {
+    setQuest((prev) => ({
+      ...prev,
+      artefacts: newArtefactsOrder,
+    }));
   };
 
-  const toggleArtifactDetails = (index: number) => {
-    setActiveArtifactIndex(activeArtifactIndex === index ? null : index);
+  const toggleArtefactDetails = (index: number) => {
+    setActiveArtefactIndex(activeArtefactIndex === index ? null : index);
     setCurrentHint({ description: "", displayAfterAttempts: 1 });
   };
 
-  const toggleHintDisplayMode = (artifactIndex: number) => {
+  const toggleHintDisplayMode = (artefactIndex: number) => {
     setQuest((prev) => {
-      const updatedArtifacts = [...prev.artifacts];
-      const currentMode = updatedArtifacts[artifactIndex].hintDisplayMode;
-      updatedArtifacts[artifactIndex] = {
-        ...updatedArtifacts[artifactIndex],
+      const updatedArtefacts = [...prev.artefacts];
+      const currentMode = updatedArtefacts[artefactIndex].hintDisplayMode;
+      updatedArtefacts[artefactIndex] = {
+        ...updatedArtefacts[artefactIndex],
         hintDisplayMode: currentMode === "sequential" ? "random" : "sequential",
       };
-      return { ...prev, artifacts: updatedArtifacts };
+      return { ...prev, artefacts: updatedArtefacts };
     });
   };
 
-  const handleAddHint = (artifactIndex: number) => {
+  const handleAddHint = (artefactIndex: number) => {
     if (!currentHint.description.trim()) return;
 
     setQuest((prev) => {
-      const updatedArtifacts = [...prev.artifacts];
-      // Create a new copy of the artifact and its hints array
-      const updatedArtifact = {
-        ...updatedArtifacts[artifactIndex],
+      const updatedArtefacts = [...prev.artefacts];
+      // Create a new copy of the artefact and its hints array
+      const updatedArtefact = {
+        ...updatedArtefacts[artefactIndex],
         hints: [
-          ...updatedArtifacts[artifactIndex].hints,
+          ...updatedArtefacts[artefactIndex].hints,
           {
             ...currentHint,
             displayAfterAttempts:
-              updatedArtifacts[artifactIndex].hints.length + 1,
+              updatedArtefacts[artefactIndex].hints.length + 1,
           },
         ],
       };
 
-      updatedArtifacts[artifactIndex] = updatedArtifact;
-      return { ...prev, artifacts: updatedArtifacts };
+      updatedArtefacts[artefactIndex] = updatedArtefact;
+      return { ...prev, artefacts: updatedArtefacts };
     });
 
     setCurrentHint({ description: "", displayAfterAttempts: 1 });
   };
 
-  const removeHint = (artifactIndex: number, hintIndex: number) => {
+  const removeHint = (artefactIndex: number, hintIndex: number) => {
     setQuest((prev) => {
-      const updatedArtifacts = [...prev.artifacts];
+      const updatedArtefacts = [...prev.artefacts];
       // Remove the hint
-      const newHints = updatedArtifacts[artifactIndex].hints.filter(
+      const newHints = updatedArtefacts[artefactIndex].hints.filter(
         (_, i) => i !== hintIndex
       );
 
@@ -300,17 +257,17 @@ const QuestBuild = () => {
         displayAfterAttempts: i + 1,
       }));
 
-      updatedArtifacts[artifactIndex] = {
-        ...updatedArtifacts[artifactIndex],
+      updatedArtefacts[artefactIndex] = {
+        ...updatedArtefacts[artefactIndex],
         hints: reorderedHints,
       };
 
-      return { ...prev, artifacts: updatedArtifacts };
+      return { ...prev, artefacts: updatedArtefacts };
     });
   };
 
   const moveHint = (
-    artifactIndex: number,
+    artefactIndex: number,
     hintIndex: number,
     direction: "up" | "down"
   ) => {
@@ -318,14 +275,14 @@ const QuestBuild = () => {
 
     if (
       newHintIndex < 0 ||
-      newHintIndex >= quest.artifacts[artifactIndex].hints.length
+      newHintIndex >= quest.artefacts[artefactIndex].hints.length
     ) {
       return;
     }
 
     setQuest((prev) => {
-      const updatedArtifacts = [...prev.artifacts];
-      const hints = [...updatedArtifacts[artifactIndex].hints];
+      const updatedArtefacts = [...prev.artefacts];
+      const hints = [...updatedArtefacts[artefactIndex].hints];
 
       // Swap the hints
       const temp = hints[hintIndex];
@@ -338,18 +295,18 @@ const QuestBuild = () => {
         displayAfterAttempts: i + 1,
       }));
 
-      updatedArtifacts[artifactIndex] = {
-        ...updatedArtifacts[artifactIndex],
+      updatedArtefacts[artefactIndex] = {
+        ...updatedArtefacts[artefactIndex],
         hints: reorderedHints,
       };
 
-      return { ...prev, artifacts: updatedArtifacts };
+      return { ...prev, artefacts: updatedArtefacts };
     });
   };
 
-  const reorderHints = (artifactIndex: number, newHintsOrder: any[]) => {
+  const reorderHints = (artefactIndex: number, newHintsOrder: any[]) => {
     setQuest((prev) => {
-      const updatedArtifacts = [...prev.artifacts];
+      const updatedArtefacts = [...prev.artefacts];
 
       // Update display order
       const reorderedHints = newHintsOrder.map((hint, i) => ({
@@ -357,23 +314,23 @@ const QuestBuild = () => {
         displayAfterAttempts: i + 1,
       }));
 
-      updatedArtifacts[artifactIndex] = {
-        ...updatedArtifacts[artifactIndex],
+      updatedArtefacts[artefactIndex] = {
+        ...updatedArtefacts[artefactIndex],
         hints: reorderedHints,
       };
 
-      return { ...prev, artifacts: updatedArtifacts };
+      return { ...prev, artefacts: updatedArtefacts };
     });
   };
 
-  const setQuestType = (questType: QuestType) => {
+  const setQuestType = (questType: "sequential" | "concurrent") => {
     setQuest((prev) => ({ ...prev, questType }));
 
     // Validate based on new quest type
-    if (questType === "concurrent" && quest.artifacts.length < 3) {
+    if (questType === "concurrent" && quest.artefacts.length < 3) {
       setValidationErrors((prev) => ({
         ...prev,
-        questType: "Concurrent quests require at least 3 artifacts",
+        questType: "Concurrent quests require at least 3 artefacts",
       }));
     } else {
       setValidationErrors((prev) => {
@@ -395,36 +352,18 @@ const QuestBuild = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Generate preview URL
-    const imageUrl = URL.createObjectURL(file);
-
-    setQuest((prev) => ({
-      ...prev,
-      prize: {
-        ...prev.prize!,
-        image: file,
-        imagePreview: imageUrl,
-      },
-    }));
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const removeImage = () => {
-    if (quest.prize?.imagePreview) {
-      URL.revokeObjectURL(quest.prize.imagePreview);
-    }
-
+    setImageFile(null);
+    setImagePreview("");
+    URL.revokeObjectURL(imagePreview);
     setQuest((prev) => ({
       ...prev,
-      prize: {
-        ...prev.prize!,
-        image: null,
-        imagePreview: undefined,
-      },
+      prize: { ...prev.prize!, image: "" },
     }));
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -434,29 +373,11 @@ const QuestBuild = () => {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    e.stopPropagation();
+    const file = e.dataTransfer.files?.[0];
+    if (!file?.type.match("image.*")) return;
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-
-      // Check if it's an image
-      if (!file.type.match("image.*")) {
-        alert("Please upload an image file");
-        return;
-      }
-
-      // Generate preview URL
-      const imageUrl = URL.createObjectURL(file);
-
-      setQuest((prev) => ({
-        ...prev,
-        prize: {
-          ...prev.prize!,
-          image: file,
-          imagePreview: imageUrl,
-        },
-      }));
-    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
   };
 
   const handleSaveQuest = async () => {
@@ -466,16 +387,16 @@ const QuestBuild = () => {
     if (!quest.title.trim()) errors.title = "Title is required";
     if (!quest.description.trim())
       errors.description = "Description is required";
-    if (quest.artifacts.length < 1)
-      errors.artifacts = "At least one artifact is required";
+    if (quest.artefacts.length < 1)
+      errors.artefacts = "At least one artefact is required";
     if (!quest.dateRange?.from || !quest.dateRange?.to) {
       errors.dateRange = "Date range is required";
     } else if (quest.dateRange.from > quest.dateRange.to) {
       errors.dateRange = "End date must be after start date";
     }
 
-    if (quest.questType === "concurrent" && quest.artifacts.length < 3) {
-      errors.questType = "Concurrent quests require at least 3 artifacts";
+    if (quest.questType === "concurrent" && quest.artefacts.length < 3) {
+      errors.questType = "Concurrent quests require at least 3 artefacts";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -485,32 +406,30 @@ const QuestBuild = () => {
 
     try {
       // Convert image to base64 if present
-      let imageBase64 = undefined;
-      if (quest.prize?.image) {
-        imageBase64 = await convertFileToBase64(quest.prize.image);
+      let imageUrl = quest.prize?.image || "";
+
+      if (imageFile) {
+        const formData = new FormData();
+        formData.append("file", imageFile);
+
+        const uploadResponse = await fetch("/api/upload-image", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) throw new Error("Image upload failed");
+
+        const { imageUrl: uploadedUrl } = await uploadResponse.json();
+        imageUrl = uploadedUrl;
       }
 
       // Prepare quest data for submission
       const questData = {
-        title: quest.title,
-        description: quest.description,
-        artifacts: quest.artifacts,
-        questType: quest.questType,
-        dateRange: quest.dateRange
-          ? {
-              from: quest.dateRange?.from
-                ? quest.dateRange.from.toISOString()
-                : undefined,
-              to: quest.dateRange?.from
-                ? quest.dateRange.from.toISOString()
-                : undefined,
-            }
-          : undefined,
+        ...quest,
         prize: quest.prize
           ? {
-              title: quest.prize.title,
-              description: quest.prize.description,
-              imageBase64: imageBase64,
+              ...quest.prize,
+              image: imageUrl,
             }
           : undefined,
       };
@@ -518,9 +437,7 @@ const QuestBuild = () => {
       // Send quest data to API
       const response = await fetch("/api/save-quest", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(questData),
       });
 
@@ -536,18 +453,23 @@ const QuestBuild = () => {
       alert("Quest saved successfully!");
 
       // Reset form
-      if (quest.prize?.imagePreview) {
-        URL.revokeObjectURL(quest.prize.imagePreview);
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
       }
+      setImageFile(null);
+      setImagePreview("");
 
       setQuest({
+        quest_id: "",
         title: "",
         description: "",
-        artifacts: [],
+        artefacts: [],
         questType: "sequential",
         dateRange: undefined,
-        prize: { title: "", description: "", image: null },
+        prize: { title: "", description: "", image: "" },
+        createdAt: new Date().toISOString(),
       });
+
       setShowPrize(false);
       setValidationErrors({});
     } catch (error) {
@@ -558,16 +480,6 @@ const QuestBuild = () => {
         }`
       );
     }
-  };
-
-  // Helper function to convert File to base64 string
-  const convertFileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
   };
 
   return (
@@ -587,32 +499,32 @@ const QuestBuild = () => {
           onDateRangeChange={handleDateRangeChange}
         />
 
-        {/* Artifacts Section */}
+        {/* Artefacts Section */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold text-gray-800">
-              Artifacts to Collect
+              Artefacts to Collect
             </h2>
             <button
               className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
               onClick={() => setShowSearch(!showSearch)}
             >
               <Plus size={18} />
-              Add Artifact
+              Add Artefact
             </button>
           </div>
 
           {showSearch && (
-            <ArtifactSearch
+            <ArtefactSearch
               searchQuery={searchQuery}
               searchResults={searchResults}
               onSearchChange={setSearchQuery}
-              onAddArtifact={addArtifact}
+              onAddArtifact={addArtefact}
             />
           )}
 
           {/* Quest Type Selection */}
-          {quest.artifacts.length > 0 && (
+          {quest.artefacts.length > 0 && (
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Quest Type
@@ -629,7 +541,7 @@ const QuestBuild = () => {
                 </label>
                 <label
                   className={`flex items-center cursor-pointer ${
-                    quest.artifacts.length < 3 ? "opacity-50" : ""
+                    quest.artefacts.length < 3 ? "opacity-50" : ""
                   }`}
                 >
                   <input
@@ -637,12 +549,12 @@ const QuestBuild = () => {
                     className="h-4 w-4 text-indigo-600"
                     checked={quest.questType === "concurrent"}
                     onChange={() => setQuestType("concurrent")}
-                    disabled={quest.artifacts.length < 3}
+                    disabled={quest.artefacts.length < 3}
                   />
                   <span className="ml-2">Concurrent (Any order)</span>
-                  {quest.artifacts.length < 3 && (
+                  {quest.artefacts.length < 3 && (
                     <span className="ml-2 text-xs text-gray-500">
-                      (Requires 3+ artifacts)
+                      (Requires 3+ artefacts)
                     </span>
                   )}
                 </label>
@@ -655,42 +567,42 @@ const QuestBuild = () => {
             </div>
           )}
 
-          <ArtifactList
-            artifacts={quest.artifacts}
+          <ArtefactList
+            artifacts={quest.artefacts}
             questType={quest.questType}
-            activeArtifactIndex={activeArtifactIndex}
+            activeArtifactIndex={activeArtefactIndex}
             validationErrors={validationErrors}
-            onRemoveArtifact={removeArtifact}
-            onMoveArtifact={moveArtifact}
-            onToggleDetails={toggleArtifactDetails}
-            onReorderArtifacts={reorderArtifacts}
+            onRemoveArtifact={removeArtefact}
+            onMoveArtifact={moveArtefact}
+            onToggleDetails={toggleArtefactDetails}
+            onReorderArtifacts={reorderArtefacts}
           >
-            {activeArtifactIndex !== null && (
+            {activeArtefactIndex !== null && (
               <HintsSection
-                hints={quest.artifacts[activeArtifactIndex].hints}
+                hints={quest.artefacts[activeArtefactIndex].hints}
                 hintDisplayMode={
-                  quest.artifacts[activeArtifactIndex].hintDisplayMode
+                  quest.artefacts[activeArtefactIndex].hintDisplayMode
                 }
                 currentHint={currentHint}
                 onToggleDisplayMode={() =>
-                  toggleHintDisplayMode(activeArtifactIndex)
+                  toggleHintDisplayMode(activeArtefactIndex)
                 }
-                onAddHint={() => handleAddHint(activeArtifactIndex)}
+                onAddHint={() => handleAddHint(activeArtefactIndex)}
                 onRemoveHint={(hintIndex) =>
-                  removeHint(activeArtifactIndex, hintIndex)
+                  removeHint(activeArtefactIndex, hintIndex)
                 }
                 onMoveHint={(hintIndex, direction) =>
-                  moveHint(activeArtifactIndex, hintIndex, direction)
+                  moveHint(activeArtefactIndex, hintIndex, direction)
                 }
                 onCurrentHintChange={(value) =>
                   setCurrentHint({ ...currentHint, description: value })
                 }
                 onReorderHints={(newOrder) =>
-                  reorderHints(activeArtifactIndex, newOrder)
+                  reorderHints(activeArtefactIndex, newOrder)
                 }
               />
             )}
-          </ArtifactList>
+          </ArtefactList>
         </div>
 
         <PrizeSection

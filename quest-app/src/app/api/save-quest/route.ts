@@ -1,6 +1,7 @@
 // app/api/save-quest/route.ts
 import { NextResponse } from "next/server";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 
 // Configure AWS SDK
@@ -12,13 +13,21 @@ const dynamoDB = new DynamoDBClient({
   },
 });
 
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
 // Define TypeScript interface for quest data
 interface Quest {
-  quest_id: string; // Changed from id to quest_id to match DynamoDB table
+  quest_id: string;
   title: string;
   description: string;
-  artifacts: Array<{
-    id: string;
+  artefacts: Array<{
+    artefactId: string;
     hints: Array<{
       description: string;
       displayAfterAttempts: number;
@@ -33,7 +42,7 @@ interface Quest {
   prize?: {
     title: string;
     description: string;
-    imageBase64?: string; // Base64 encoded image
+    image?: string; // URL to image or base64
   };
   createdAt: string;
 }
@@ -48,7 +57,7 @@ export async function POST(request: Request) {
     if (
       !questData.title ||
       !questData.description ||
-      questData.artifacts.length === 0
+      questData.artefacts.length === 0
     ) {
       return NextResponse.json(
         { error: "Missing required fields" },
@@ -56,26 +65,81 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate unique ID and timestamp if not provided
+    // Generate unique ID and timestamp
     const questId = uuidv4();
     const timestamp = new Date().toISOString();
 
-    // Prepare complete quest object
+    // Handle prize image if present
+    let updatedPrize = questData.prize;
+
+    if (
+      questData.prize?.image &&
+      questData.prize.image.startsWith("data:image/")
+    ) {
+      try {
+        // Extract the MIME type and base64 data correctly
+        const matches = questData.prize.image.match(
+          /^data:([A-Za-z-+\/]+);base64,(.+)$/
+        );
+
+        if (!matches || matches.length !== 3) {
+          console.warn("Invalid base64 image data for prize");
+        } else {
+          const contentType = matches[1];
+          const base64Data = matches[2];
+          const buffer = Buffer.from(base64Data, "base64");
+
+          // Generate a unique image key with timestamp
+          const timestamp = Date.now();
+          const imageKey = `quests/${questId}/prize-image-${timestamp}.jpg`;
+
+          console.log(`Uploading prize image to S3: ${imageKey}`);
+
+          // Upload to S3 with proper content type
+          await s3.send(
+            new PutObjectCommand({
+              Bucket: process.env.AWS_BUCKET_NAME!,
+              Key: imageKey,
+              Body: buffer,
+              ContentType: contentType,
+              // No ACL setting as the bucket doesn't support it
+            })
+          );
+
+          // Store the relative path to use with our API endpoint
+          const imageUrl = `/api/get-image?key=${encodeURIComponent(imageKey)}`;
+          console.log(
+            `Prize image uploaded successfully with key: ${imageKey}`
+          );
+
+          // Update the prize object with the new image URL
+          updatedPrize = {
+            ...questData.prize,
+            image: imageUrl,
+          };
+        }
+      } catch (err) {
+        console.error("S3 upload failed for prize image:", err);
+        // Keep the original prize object if upload fails
+      }
+    }
+
+    // Prepare complete quest object with possible updated prize
     const quest: Quest = {
-      quest_id: questId, // Use quest_id as primary key
+      quest_id: questId,
       ...questData,
+      prize: updatedPrize,
       createdAt: timestamp,
     };
 
     // Prepare DynamoDB item
-    // Note: We convert the complex objects to strings for storage
     const params = {
-      TableName: "quests", // Make sure this is the correct table name
+      TableName: "quests",
       Item: {
-        quest_id: { S: quest.quest_id }, // Changed from id to quest_id
+        quest_id: { S: quest.quest_id },
         title: { S: quest.title },
         description: { S: quest.description },
-        artifacts: { S: JSON.stringify(quest.artifacts) },
+        artefacts: { S: JSON.stringify(quest.artefacts) },
         questType: { S: quest.questType },
         dateRange: quest.dateRange
           ? { S: JSON.stringify(quest.dateRange) }

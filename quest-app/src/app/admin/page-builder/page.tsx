@@ -4,10 +4,10 @@ import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useState } from "react";
 import { ComponentList } from "./componentList";
 import { DropZone } from "./dropZone";
-import { ComponentData } from "./types";
+import { ComponentData } from "@/lib/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import AuthGuard from "@/components/authGuard";
-import { ImageContent } from "./types";
+import { ImageContent } from "@/lib/types";
 import { ImageEditor } from "./components/imageEditor";
 
 const PageBuilder = () => {

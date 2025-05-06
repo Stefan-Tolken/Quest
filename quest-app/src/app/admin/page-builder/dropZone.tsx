@@ -5,9 +5,9 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { ComponentData } from "./types";
+import { ComponentData } from "@/lib/types";
 import { SortableComponent } from "./sortableComponent";
-import { ImageContent } from "./types";
+import { ImageContent } from "@/lib/types";
 
 interface DropZoneProps {
   components: ComponentData[];

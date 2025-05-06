@@ -2,9 +2,9 @@
 "use client";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSSProperties } from "react";
-import { ComponentData } from "./types";
+import { ComponentData } from "@/lib/types";
 import { PageComponent } from "./pageComponent";
-import { ImageContent } from "./types";
+import { ImageContent } from "@/lib/types";
 
 interface SortableProps {
   component: ComponentData;

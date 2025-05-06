@@ -1,7 +1,7 @@
 // app/admin/page-builder/componentList.tsx
 "use client";
 import React from "react";
-import { ComponentData } from "./types";
+import { ComponentData } from "@/lib/types";
 import { DraggableComponent } from "./draggableComponent";
 
 const availableComponents: ComponentData[] = [

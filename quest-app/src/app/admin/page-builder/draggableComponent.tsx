@@ -1,7 +1,7 @@
 // app/admin/page-builder/draggableComponent.tsx
 "use client";
 import { useDraggable } from "@dnd-kit/core";
-import { ComponentData } from "./types";
+import { ComponentData } from "@/lib/types";
 
 interface DraggableProps {
   component: ComponentData;
@@ -10,9 +10,9 @@ interface DraggableProps {
 export const DraggableComponent = ({ component }: DraggableProps) => {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: component.id,
-    data: { 
+    data: {
       type: component.type,
-      isNew: true
+      isNew: true,
     },
   });
 

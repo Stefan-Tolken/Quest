@@ -2,19 +2,19 @@
 
 import { Search, Plus } from "lucide-react";
 
-type ArtifactSearchProps = {
+type ArtefactSearchProps = {
   searchQuery: string;
   searchResults: Array<any>;
   onSearchChange: (value: string) => void;
   onAddArtifact: (artifact: any) => void;
 };
 
-export const ArtifactSearch = ({
+export const ArtefactSearch = ({
   searchQuery,
   searchResults,
   onSearchChange,
   onAddArtifact,
-}: ArtifactSearchProps) => (
+}: ArtefactSearchProps) => (
   <div className="mb-6 p-4 border border-gray-200 rounded-lg">
     <div className="relative">
       <input
