@@ -29,6 +29,14 @@ const NavBarAdmin: React.FC = () => {
                                 Page Builder
                             </Link>
                         </li>
+                        <li>
+                            <Link
+                            href="/admin/quest-builder"
+                            className="text-blue-600 hover:underline"
+                            >
+                                Quest Builder
+                            </Link>
+                        </li>
                     </>
                 </ul>
                 <AuthButton />
