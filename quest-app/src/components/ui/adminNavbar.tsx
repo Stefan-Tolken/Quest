@@ -9,7 +9,7 @@ const NavBarAdmin: React.FC = () => {
     const { isAuthenticated } = useAuthState();
 
   return (
-    <nav className="p-4 bg-gray-200 flex justify-between items-center">
+    <nav className="p-4 bg-gray-200 flex justify-between items-center fixed top-0 left-0 right-0 z-10">
         { isAuthenticated ? (
             <>
                 <div className="flex gap-4">

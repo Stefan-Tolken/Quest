@@ -10,7 +10,7 @@ export type Artefact = {
 };
 
 export type Quest = {
-    quest_id: string;
+    id: string;
     title: string;
     description: string;
     artifacts: string[];
