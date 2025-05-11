@@ -2,14 +2,13 @@
 "use client";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSSProperties } from "react";
-import { ComponentData } from "@/lib/types";
+import { ComponentData, ImageContent, RestorationContent } from "@/lib/types";
 import { PageComponent } from "./pageComponent";
-import { ImageContent } from "@/lib/types";
 
 interface SortableProps {
   component: ComponentData;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, content: string | ImageContent) => void;
+  onUpdate: (id: string, content: string | ImageContent | RestorationContent) => void;
   onEditPoints: (component: ComponentData) => void;
 }
 

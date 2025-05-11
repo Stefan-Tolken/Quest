@@ -42,10 +42,11 @@ export async function POST(request: Request) {
 
     const updatedComponents = await Promise.all(
       artifactData.components.map(async (component, index) => {
+        // Handle image component
         if (
           component.type === "image" &&
           typeof component.content === "object" &&
-          component.content?.url &&
+          "url" in component.content &&
           component.content.url.startsWith("data:image/")
         ) {
           try {
@@ -66,9 +67,6 @@ export async function POST(request: Request) {
             const timestamp = Date.now();
             const imageKey = `artifacts/${artifactData.id}/component-${index}-${timestamp}.jpg`;
 
-            // Log the upload attempt
-            console.log(`Uploading image to S3: ${imageKey}`);
-
             // Upload to S3 with proper content type
             await s3.send(
               new PutObjectCommand({
@@ -76,31 +74,76 @@ export async function POST(request: Request) {
                 Key: imageKey,
                 Body: buffer,
                 ContentType: contentType,
-                // ACL removed as the bucket doesn't support ACLs
               })
             );
-
-            // Store the S3 key path rather than a direct URL
-            // You'll need to implement a separate method to access these images
-            const imageUrl = `/api/get-image?key=${encodeURIComponent(
-              imageKey
-            )}`;
-            console.log(`Image uploaded successfully with key: ${imageKey}`);
 
             // Return component with updated image URL
             return {
               ...component,
               content: {
                 ...component.content,
-                url: imageUrl,
+                url: `/api/get-image?key=${encodeURIComponent(imageKey)}`,
               },
             };
           } catch (err) {
             console.error("S3 upload failed:", err);
-            // Return original component but log the error clearly
-            console.error(
-              "Could not upload image to S3, falling back to base64 storage"
+            return component;
+          }
+        }
+
+        // Handle restoration component
+        if (
+          component.type === "restoration" &&
+          typeof component.content === "object" &&
+          "restorations" in component.content
+        ) {
+          try {
+            const updatedRestorations = await Promise.all(
+              component.content.restorations.map(async (restoration, rIndex) => {
+                if (restoration.imageUrl && restoration.imageUrl.startsWith("data:image/")) {
+                  const matches = restoration.imageUrl.match(
+                    /^data:([A-Za-z-+\/]+);base64,(.+)$/
+                  );
+
+                  if (!matches || matches.length !== 3) {
+                    throw new Error("Invalid base64 image data");
+                  }
+
+                  const contentType = matches[1];
+                  const base64Data = matches[2];
+                  const buffer = Buffer.from(base64Data, "base64");
+
+                  // Generate a unique image key for each restoration
+                  const timestamp = Date.now();
+                  const imageKey = `artifacts/${artifactData.id}/restoration-${index}-${rIndex}-${timestamp}.jpg`;
+
+                  await s3.send(
+                    new PutObjectCommand({
+                      Bucket: process.env.AWS_BUCKET_NAME!,
+                      Key: imageKey,
+                      Body: buffer,
+                      ContentType: contentType,
+                    })
+                  );
+
+                  // Update the restoration with the new image URL
+                  return {
+                    ...restoration,
+                    imageUrl: `/api/get-image?key=${encodeURIComponent(imageKey)}`,
+                  };
+                }
+                return restoration;
+              })
             );
+
+            return {
+              ...component,
+              content: {
+                restorations: updatedRestorations,
+              },
+            };
+          } catch (err) {
+            console.error("Failed to process restoration images:", err);
             return component;
           }
         }

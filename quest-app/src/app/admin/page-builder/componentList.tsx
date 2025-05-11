@@ -15,6 +15,13 @@ const availableComponents: ComponentData[] = [
       points: [],
     },
   },
+  {
+    id: "4",
+    type: "restoration",
+    content: {
+      restorations: [],
+    },
+  },
 ];
 
 export const ComponentList = () => {

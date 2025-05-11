@@ -1,19 +1,20 @@
 // app/admin/page-builder/pageComponent.tsx
 "use client";
 
-import { ImageContent } from "@/lib/types";
+import { ImageContent, RestorationContent } from "@/lib/types";
 import { ComponentData } from "@/lib/types";
 import {
   HeadingComponent,
   ParagraphComponent,
   ImageComponent,
+  RestorationComponent,
 } from "./components";
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 
 interface PageComponentProps {
   component: ComponentData;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, content: string | ImageContent) => void;
+  onUpdate: (id: string, content: string | ImageContent | RestorationContent) => void;
   dragAttributes?: React.HTMLAttributes<HTMLDivElement>;
   dragListeners?: SyntheticListenerMap;
   onEditPoints: (component: ComponentData) => void;
@@ -27,7 +28,12 @@ export const PageComponent = ({
   dragListeners,
   onEditPoints,
 }: PageComponentProps) => {
-  const handleUpdate = (content: string) => onUpdate(component.id, content);
+  console.log('PageComponent rendered with:', component);
+  
+  const handleUpdate = (content: string | ImageContent | RestorationContent) => {
+    console.log('handleUpdate called with:', content);
+    onUpdate(component.id, content);
+  };
 
   return (
     <div className="group relative bg-white p-4 rounded-lg border shadow-sm hover:shadow-md transition-shadow">
@@ -72,8 +78,19 @@ export const PageComponent = ({
               texts: [],
             }
           }
-          onUpdate={(content) => onUpdate(component.id, content)}
+          onUpdate={handleUpdate}
           onEditPoints={() => onEditPoints(component)}
+        />
+      )}
+
+      {component.type === "restoration" && (
+        <RestorationComponent
+          content={
+            (component.content as RestorationContent) || {
+              restorations: []
+            }
+          }
+          onUpdate={handleUpdate}
         />
       )}
     </div>

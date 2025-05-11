@@ -10,8 +10,8 @@ export type HintDisplayMode = "sequential" | "random";
 
 export type ComponentData = {
   id: string;
-  type: "heading" | "paragraph" | "image";
-  content: string | ImageContent;
+  type: "heading" | "paragraph" | "image" | "restoration";
+  content: string | ImageContent | RestorationContent;
   imageBase64?: string;
   image?: string;
 };
@@ -23,6 +23,17 @@ export type ImageContent = {
     x: number;
     y: number;
     text: string;
+  }>;
+};
+
+export type RestorationContent = {
+  restorations: Array<{
+    id: string;
+    name: string;
+    date: string | "unknown";
+    description: string;
+    imageUrl: string;
+    organization?: string;
   }>;
 };
 
