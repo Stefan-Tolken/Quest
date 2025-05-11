@@ -6,6 +6,7 @@ import { mockArtefacts } from '@/lib/mockData';
 import QRCodeGenerator from '@/components/QRGenerator';
 import { useQuest } from '@/context/questContext';
 import { Button } from '@/components/ui/button';
+import { Model } from '@/components/3dModel/3dModel';
 
 interface ArtefactDetailProps {
   artefactId: string | null | undefined;
@@ -131,13 +132,7 @@ export default function ArtefactDetail({
         </div>
         <div className="max-w-4xl mx-auto pt-6">
           <div className="relative w-full h-96 mb-8">
-            <Image
-              src={`https://picsum.photos/seed/${artefact.id}/1200/800`}
-              alt={artefact.name}
-              fill
-              className="object-cover rounded-lg"
-              priority
-            />
+            <Model />
           </div>
           <QRCodeGenerator 
             data={{ artefactId: artefact.id }} 
