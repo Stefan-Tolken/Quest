@@ -5,9 +5,10 @@ import { ComponentData } from "@/lib/types";
 
 interface DraggableProps {
   component: ComponentData;
+  displayName?: string;
 }
 
-export const DraggableComponent = ({ component }: DraggableProps) => {
+export const DraggableComponent = ({ component, displayName }: DraggableProps) => {
   const { attributes, listeners, setNodeRef } = useDraggable({
     id: component.id,
     data: {
@@ -23,7 +24,11 @@ export const DraggableComponent = ({ component }: DraggableProps) => {
       {...attributes}
       className="p-2 bg-gray-100 border rounded cursor-move hover:bg-gray-200 transition-colors"
     >
-      {component.type}
+      {displayName || capitalize(component.type)}
     </div>
   );
 };
+
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}

@@ -51,6 +51,7 @@ export type Artefact = {
 
 export type QuestArtefact = {
   artefactId: string;
+  name?: string;
   hints: Hint[];
   hintDisplayMode: HintDisplayMode;
 };

@@ -2,12 +2,29 @@ import AuthButton from "@/components/ui/authButton";
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <h1>Landing page</h1>
-        <AuthButton/>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <main className="flex flex-col items-center gap-8 max-w-xl w-full">
+        <img
+          src="/icons/icon-512x512.png"
+          alt="Quest App Logo"
+          className="w-64 h-64 mb-2 drop-shadow-lg"
+        />
+        <h1 className="text-4xl font-extrabold text-indigo-700 text-center">
+          Welcome to Quest
+        </h1>
+        <p className="text-lg text-gray-700 text-center">
+          Quest is your gateway to interactive scavenger hunt quests in the museum!
+          <br />
+          Explore exhibits, solve clues, and compete with fellow students for exciting
+          prizes.
+          <br />
+          Ready to start your adventure?
+        </p>
+        <AuthButton />
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center"></footer>
+      <footer className="w-full absolute bottom-0 left-0 py-4 text-gray-400 text-sm text-center bg-transparent">
+        &copy; {new Date().getFullYear()} Quest &mdash; Museum Scavenger Hunt
+      </footer>
     </div>
   );
 }

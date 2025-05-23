@@ -45,7 +45,7 @@ export default function AdminHome() {
               <h2 className="text-xl font-semibold mb-4">Quests</h2>
               <Button
                 variant="default"
-                onClick={() => router.push("/admin/page-builder")}
+                onClick={() => router.push("/admin/quest-builder")}
               >
                 Create New Quest
               </Button>
@@ -56,7 +56,9 @@ export default function AdminHome() {
                   key={quest.quest_id}
                   variant="outline"
                   className="w-full justify-between px-4 py-6 text-left hover:border-indigo-500 group"
-                  onClick={() => {}}
+                  onClick={() =>
+                    router.push(`/admin/quest-builder?edit=${quest.quest_id}`)
+                  }
                 >
                   <div>
                     <h3 className="font-medium text-base group-hover:text-indigo-600">
@@ -88,7 +90,9 @@ export default function AdminHome() {
                   key={artefact.id}
                   variant="outline"
                   className="w-full justify-between px-4 py-6 text-left hover:border-indigo-500 group"
-                  onClick={() => {}}
+                  onClick={() =>
+                    router.push(`/admin/page-builder?edit=${artefact.id}`)
+                  }
                 >
                   <div>
                     <h3 className="font-medium text-base group-hover:text-indigo-600">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Plus, CheckCircle } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { QuestInfo } from "./components/QuestInfo";
 import { ArtefactList } from "./components/ArtefactList";
 import { ArtefactSearch } from "./components/ArtefactSearch";
@@ -9,17 +10,14 @@ import { HintsSection } from "./components/HintSection";
 import { PrizeSection } from "./components/PrizeSection";
 import { DateRange } from "react-day-picker";
 import type { QuestArtefact, Quest } from "@/lib/types";
-
-// Mock data for demonstration
-const mockArtefacts = [
-  {
-    id: "art1",
-    name: "Ancient Sword",
-    description: "A mysterious sword from a forgotten era",
-  },
-];
+import type { Artefact } from "@/lib/types";
 
 const QuestBuild = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+  const isEditMode = !!editId;
+
   const [quest, setQuest] = useState<Quest>({
     quest_id: "",
     title: "",
@@ -35,20 +33,87 @@ const QuestBuild = () => {
   const [imagePreview, setImagePreview] = useState<string>("");
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<typeof mockArtefacts>([]);
+  const [searchResults, setSearchResults] = useState<Artefact[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [showPrize, setShowPrize] = useState(false);
-  const [activeArtefactIndex, setActiveArtefactIndex] = useState<number | null>(
-    null
-  );
+  const [activeArtefactIndex, setActiveArtefactIndex] = useState<number | null>(null);
   const [currentHint, setCurrentHint] = useState({
     description: "",
     displayAfterAttempts: 1,
   });
-  const [validationErrors, setValidationErrors] = useState<
-    Record<string, string>
-  >({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load quest data when in edit mode
+  useEffect(() => {
+    const loadQuestData = async () => {
+      if (!editId) return;
+      
+      try {
+        console.log('Fetching quest data for ID:', editId);
+        const response = await fetch(`/api/get-quests?id=${editId}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch quest');
+        }
+        
+        const data = await response.json();
+        console.log('Received quest data:', data);
+        
+        if (!data.quests || data.quests.length === 0) {
+          throw new Error('No quest found with this ID');
+        }
+
+        const questToEdit = data.quests[0];
+        console.log('Quest to edit:', questToEdit);
+
+        // Fetch artefact details for each artefact in the quest
+        const artefactsWithDetails = await Promise.all(
+          questToEdit.artefacts.map(async (artefact: QuestArtefact) => {
+            try {
+              console.log('Fetching artefact details for:', artefact.artefactId);
+              const artefactResponse = await fetch(`/api/get-artefact?id=${artefact.artefactId}`);
+              
+              if (!artefactResponse.ok) {
+                console.error('Failed to fetch artefact details for:', artefact.artefactId);
+                return artefact; // Return original if details fetch fails
+              }
+              
+              const artefactData = await artefactResponse.json();
+              console.log('Artefact details:', artefactData);
+              return {
+                ...artefact,
+                details: artefactData.artefact || artefactData.artefacts?.[0] // Handle both single and array responses
+              };
+            } catch (error) {
+              console.error('Error fetching artefact details:', error);
+              return artefact;
+            }
+          })
+        );
+        
+        console.log('Final quest data with artefact details:', {
+          ...questToEdit,
+          artefacts: artefactsWithDetails
+        });
+        
+        setQuest({
+          ...questToEdit,
+          artefacts: artefactsWithDetails
+        });
+        
+        if (questToEdit.prize?.image) {
+          setImagePreview(questToEdit.prize.image);
+        }
+      } catch (error) {
+        console.error('Error loading quest:', error);
+        alert(`Failed to load quest data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      }
+    };
+
+    loadQuestData();
+  }, [editId]);
 
   // Search artefacts whenever search query changes
   useEffect(() => {
@@ -57,17 +122,31 @@ const QuestBuild = () => {
       return;
     }
 
-    const filteredResults = mockArtefacts.filter(
-      (artefact) =>
-        artefact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (artefact.description &&
-          artefact.description
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()))
-    );
+    const searchArtefacts = async () => {
+      const artefacts = await fetchArtefacts();
+      const filteredResults = artefacts.filter(
+        (artefact: Artefact) =>
+          artefact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (artefact.description &&
+            artefact.description.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      setSearchResults(filteredResults);
+    };
 
-    setSearchResults(filteredResults);
+    searchArtefacts();
   }, [searchQuery]);
+
+  const fetchArtefacts = async () => {
+    try {
+      const response = await fetch('/api/get-artefacts');
+      if (!response.ok) throw new Error('Failed to fetch artefacts');
+      const data = await response.json();
+      return data.artifacts || [];
+    } catch (error) {
+      console.error('Error fetching artefacts:', error);
+      return [];
+    }
+  };
 
   const handleSetTitle = (title: string) => {
     setQuest((prev) => ({ ...prev, title }));
@@ -84,9 +163,7 @@ const QuestBuild = () => {
       const newErrors = { ...prev };
 
       if (!value.trim()) {
-        newErrors[field] = `${
-          field.charAt(0).toUpperCase() + field.slice(1)
-        } is required`;
+        newErrors[field] = `${field.charAt(0).toUpperCase() + field.slice(1)} is required`;
       } else {
         delete newErrors[field];
       }
@@ -120,20 +197,21 @@ const QuestBuild = () => {
     }));
   };
 
-  const addArtefact = (artefact: (typeof mockArtefacts)[0]) => {
+  const addArtefact = (artefact: Artefact) => {
     if (quest.artefacts.some((a) => a.artefactId === artefact.id)) {
-      return; // Prevent adding duplicates
+      return;
     }
 
     const newArtefact: QuestArtefact = {
       artefactId: artefact.id,
+      name: artefact.name,
       hints: [],
       hintDisplayMode: "sequential",
     };
 
     setQuest((prev) => ({
       ...prev,
-      artifacts: [...prev.artefacts, newArtefact],
+      artefacts: [...prev.artefacts, newArtefact],
     }));
 
     setShowSearch(false);
@@ -166,7 +244,6 @@ const QuestBuild = () => {
     if (activeArtefactIndex === index) {
       setActiveArtefactIndex(null);
     } else if (activeArtefactIndex !== null && activeArtefactIndex > index) {
-      // Adjust active index after deletion
       setActiveArtefactIndex(activeArtefactIndex - 1);
     }
   };
@@ -186,7 +263,6 @@ const QuestBuild = () => {
       return { ...prev, artefacts: newArtefacts };
     });
 
-    // Update active artefact index if it was moved
     if (activeArtefactIndex === index) {
       setActiveArtefactIndex(newIndex);
     } else if (activeArtefactIndex === newIndex) {
@@ -223,15 +299,13 @@ const QuestBuild = () => {
 
     setQuest((prev) => {
       const updatedArtefacts = [...prev.artefacts];
-      // Create a new copy of the artefact and its hints array
       const updatedArtefact = {
         ...updatedArtefacts[artefactIndex],
         hints: [
           ...updatedArtefacts[artefactIndex].hints,
           {
             ...currentHint,
-            displayAfterAttempts:
-              updatedArtefacts[artefactIndex].hints.length + 1,
+            displayAfterAttempts: updatedArtefacts[artefactIndex].hints.length + 1,
           },
         ],
       };
@@ -246,12 +320,10 @@ const QuestBuild = () => {
   const removeHint = (artefactIndex: number, hintIndex: number) => {
     setQuest((prev) => {
       const updatedArtefacts = [...prev.artefacts];
-      // Remove the hint
       const newHints = updatedArtefacts[artefactIndex].hints.filter(
         (_, i) => i !== hintIndex
       );
 
-      // Reorder remaining hints
       const reorderedHints = newHints.map((hint, i) => ({
         ...hint,
         displayAfterAttempts: i + 1,
@@ -273,10 +345,7 @@ const QuestBuild = () => {
   ) => {
     const newHintIndex = direction === "up" ? hintIndex - 1 : hintIndex + 1;
 
-    if (
-      newHintIndex < 0 ||
-      newHintIndex >= quest.artefacts[artefactIndex].hints.length
-    ) {
+    if (newHintIndex < 0 || newHintIndex >= quest.artefacts[artefactIndex].hints.length) {
       return;
     }
 
@@ -284,12 +353,10 @@ const QuestBuild = () => {
       const updatedArtefacts = [...prev.artefacts];
       const hints = [...updatedArtefacts[artefactIndex].hints];
 
-      // Swap the hints
       const temp = hints[hintIndex];
       hints[hintIndex] = hints[newHintIndex];
       hints[newHintIndex] = temp;
 
-      // Update display order
       const reorderedHints = hints.map((hint, i) => ({
         ...hint,
         displayAfterAttempts: i + 1,
@@ -308,7 +375,6 @@ const QuestBuild = () => {
     setQuest((prev) => {
       const updatedArtefacts = [...prev.artefacts];
 
-      // Update display order
       const reorderedHints = newHintsOrder.map((hint, i) => ({
         ...hint,
         displayAfterAttempts: i + 1,
@@ -326,7 +392,6 @@ const QuestBuild = () => {
   const setQuestType = (questType: "sequential" | "concurrent") => {
     setQuest((prev) => ({ ...prev, questType }));
 
-    // Validate based on new quest type
     if (questType === "concurrent" && quest.artefacts.length < 3) {
       setValidationErrors((prev) => ({
         ...prev,
@@ -381,14 +446,11 @@ const QuestBuild = () => {
   };
 
   const handleSaveQuest = async () => {
-    // Validate required fields
     const errors: Record<string, string> = {};
 
     if (!quest.title.trim()) errors.title = "Title is required";
-    if (!quest.description.trim())
-      errors.description = "Description is required";
-    if (quest.artefacts.length < 1)
-      errors.artefacts = "At least one artefact is required";
+    if (!quest.description.trim()) errors.description = "Description is required";
+    if (quest.artefacts.length < 1) errors.artefacts = "At least one artefact is required";
     if (!quest.dateRange?.from || !quest.dateRange?.to) {
       errors.dateRange = "Date range is required";
     } else if (quest.dateRange.from > quest.dateRange.to) {
@@ -405,7 +467,6 @@ const QuestBuild = () => {
     }
 
     try {
-      // Convert image to base64 if present
       let imageUrl = quest.prize?.image || "";
 
       if (imageFile) {
@@ -423,7 +484,6 @@ const QuestBuild = () => {
         imageUrl = uploadedUrl;
       }
 
-      // Prepare quest data for submission
       const questData = {
         ...quest,
         prize: quest.prize
@@ -434,11 +494,13 @@ const QuestBuild = () => {
           : undefined,
       };
 
-      // Send quest data to API
       const response = await fetch("/api/save-quest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(questData),
+        body: JSON.stringify({
+          ...questData,
+          quest_id: editId || undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -446,47 +508,25 @@ const QuestBuild = () => {
         throw new Error(errorData.error || "Failed to save quest");
       }
 
-      const result = await response.json();
-      console.log("Quest saved successfully:", result);
-
-      // Show success message
-      alert("Quest saved successfully!");
-
-      // Reset form
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
-      }
-      setImageFile(null);
-      setImagePreview("");
-
-      setQuest({
-        quest_id: "",
-        title: "",
-        description: "",
-        artefacts: [],
-        questType: "sequential",
-        dateRange: undefined,
-        prize: { title: "", description: "", image: "" },
-        createdAt: new Date().toISOString(),
-      });
-
-      setShowPrize(false);
-      setValidationErrors({});
+      alert(isEditMode ? "Quest updated successfully!" : "Quest created successfully!");
+      router.push('/admin');
     } catch (error) {
       console.error("Error saving quest:", error);
       alert(
-        `Failed to save quest: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `Failed to save quest: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
+  };
+
+  const handleCancel = () => {
+    router.push('/admin');
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-6 text-indigo-700">
-          Quest Builder
+          {isEditMode ? "Edit Quest" : "Create New Quest"}
         </h1>
 
         <QuestInfo
@@ -617,14 +657,19 @@ const QuestBuild = () => {
           onDrop={handleDrop}
         />
 
-        {/* Save Button */}
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-4">
+          <button
+            className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition flex items-center gap-2"
+            onClick={handleCancel}
+          >
+            Cancel
+          </button>
           <button
             className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
             onClick={handleSaveQuest}
           >
             <CheckCircle size={18} />
-            Save Quest
+            {isEditMode ? "Save Changes" : "Create Quest"}
           </button>
         </div>
       </div>

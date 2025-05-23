@@ -138,35 +138,17 @@ const PageBuilder = () => {
             </div>
           </div>
 
-          {editingImage && editingImage.type === "image" && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-4 rounded-lg max-w-4xl w-full">
-                <ImageEditor
-                  imageUrl={(editingImage.content as ImageContent).url}
-                  points={(editingImage.content as ImageContent).points || []}
-                  onSave={(points) => {
-                    if (editingImage.type === "image") {
-                      handleUpdate(editingImage.id, {
-                        ...(editingImage.content as ImageContent),
-                        points,
-                      });
-                    }
-                    setEditingImage(null);
-                  }}
-                  onClose={() => setEditingImage(null)}
-                />
-              </div>
-            </div>
-          )}
-
+          {/* Make the main content area scrollable */}
           <div className="flex flex-1 overflow-hidden">
             <ComponentList />
-            <DropZone
-              components={components}
-              onDelete={handleDelete}
-              onUpdate={handleUpdate}
-              onEditPoints={setEditingImage}
-            />
+            <div className="flex-1 h-full min-h-full flex flex-col overflow-y-auto">
+              <DropZone
+                components={components}
+                onDelete={handleDelete}
+                onUpdate={handleUpdate}
+                onEditPoints={setEditingImage}
+              />
+            </div>
           </div>
         </div>
       </DndContext>
