@@ -28,14 +28,14 @@ import { CSS } from "@dnd-kit/utilities";
 import { ReactNode } from "react";
 
 // Define the artifact type
-type Artifact = {
+type Artefact = {
   id: string;
   name: string;
   hints: any[];
   [key: string]: any;
 };
 
-type ArtifactListProps = {
+type ArtefactListProps = {
   artifacts: any[];
   questType: string;
   activeArtifactIndex: number | null;
@@ -165,7 +165,7 @@ const SortableArtifact = ({
   );
 };
 
-export const ArtifactList = ({
+export const ArtefactList = ({
   artifacts,
   questType,
   activeArtifactIndex,
@@ -175,7 +175,7 @@ export const ArtifactList = ({
   onToggleDetails,
   onReorderArtifacts,
   children,
-}: ArtifactListProps) => {
+}: ArtefactListProps) => {
   // Set up sensors for drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor, {

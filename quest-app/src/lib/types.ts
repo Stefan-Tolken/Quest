@@ -1,27 +1,72 @@
-export type Artefact = {
+// lib/types.ts
+import { DateRange } from "react-day-picker";
+
+export type Hint = {
+  description: string;
+  displayAfterAttempts: number;
+};
+
+export type HintDisplayMode = "sequential" | "random";
+
+export type ComponentData = {
+  id: string;
+  type: "heading" | "paragraph" | "image" | "restoration";
+  content: string | ImageContent | RestorationContent;
+  imageBase64?: string;
+  image?: string;
+};
+
+export type ImageContent = {
+  url: string;
+  points: Array<{
+    id: string;
+    x: number;
+    y: number;
+    text: string;
+  }>;
+};
+
+export type RestorationContent = {
+  restorations: Array<{
     id: string;
     name: string;
-    components: {
-        id: string;
-        name: string;
-    }[];
-    createdAt: string;
-    partOfQuest: boolean;
+    date: string | "unknown";
+    description: string;
+    imageUrl: string;
+    organization?: string;
+  }>;
+};
+
+export type Artefact = {
+  id: string;
+  name: string;
+  artist?: string;
+  date?: string;
+  description: string;
+  image: string;
+  components: ComponentData[];
+  createdAt: string;
+  partOfQuest: boolean;
+};
+
+export type QuestArtefact = {
+  artefactId: string;
+  hints: Hint[];
+  hintDisplayMode: HintDisplayMode;
 };
 
 export type Quest = {
-    id: string;
+  quest_id: string;
+  title: string;
+  description: string;
+  artefacts: QuestArtefact[];
+  questType: "sequential" | "concurrent";
+  dateRange?: DateRange;
+  prize?: {
     title: string;
     description: string;
-    artifacts: string[];
-    questType: string;
-    dateRange?: {
-        from: string;
-        to: string;
-    };
-    prize?: {
-        title: string;
-        description: string;
-    };
-    createdAt: string;
+    image?: string;
+    imagePreview?: string;
+  };
+  createdAt: string;
 };

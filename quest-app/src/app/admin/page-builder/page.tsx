@@ -4,10 +4,10 @@ import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useState } from "react";
 import { ComponentList } from "./componentList";
 import { DropZone } from "./dropZone";
-import { ComponentData } from "./types";
+import { ComponentData, RestorationContent } from "@/lib/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import AuthGuard from "@/components/authGuard";
-import { ImageContent } from "./types";
+import { ImageContent } from "@/lib/types";
 import { ImageEditor } from "./components/imageEditor";
 
 const PageBuilder = () => {
@@ -64,17 +64,17 @@ const PageBuilder = () => {
         setComponents((items) => arrayMove(items, oldIndex, newIndex));
         return;
       }
-    }
-
-    if (over?.id === "dropzone" && active.data.current?.isNew) {
+    }    if (over?.id === "dropzone" && active.data.current?.isNew) {
       setComponents((items) => [
         ...items,
         {
           id: crypto.randomUUID(),
           type: active.data.current?.type,
-          content:
+          content: 
             active.data.current?.type === "image"
               ? { url: "", points: [] }
+              : active.data.current?.type === "restoration"
+              ? { restorations: [] }
               : "New Content",
         },
       ]);
@@ -85,17 +85,21 @@ const PageBuilder = () => {
     setComponents((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const handleUpdate = (id: string, content: string | ImageContent) => {
+  const handleUpdate = (id: string, content: string | ImageContent | RestorationContent) => {
+    console.log('Updating component:', id, content);
     setComponents((prev) =>
       prev.map((c) => {
         if (c.id !== id) return c;
 
-        if (c.type === "image" && typeof content !== "string") {
+        if (c.type === "image" && typeof content !== "string" && 'url' in content) {
           return { ...c, content } as ComponentData;
         } else if (
           (c.type === "heading" || c.type === "paragraph") &&
           typeof content === "string"
         ) {
+          return { ...c, content } as ComponentData;
+        } else if (c.type === "restoration" && typeof content !== "string" && 'restorations' in content) {
+          console.log('Updating restoration component with:', content);
           return { ...c, content } as ComponentData;
         }
 

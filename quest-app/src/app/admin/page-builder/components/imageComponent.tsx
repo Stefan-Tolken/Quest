@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { ImageContent } from "../types";
+import { ImageContent } from "@/lib/types";
 import Image from "next/image";
 
 export const ImageComponent = ({

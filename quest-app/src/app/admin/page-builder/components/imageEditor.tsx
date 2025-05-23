@@ -2,12 +2,17 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 
+interface Point {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+}
+
 interface ImageEditorProps {
   imageUrl: string;
-  points: Array<{ id: string; x: number; y: number; text: string }>;
-  onSave: (
-    points: Array<{ id: string; x: number; y: number; text: string }>
-  ) => void;
+  points: Point[];
+  onSave: (points: Point[]) => void;
   onClose: () => void;
 }
 
