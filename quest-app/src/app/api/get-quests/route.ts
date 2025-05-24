@@ -22,7 +22,7 @@ export async function GET() {
       quest_id: item.quest_id.S,
       title: item.title.S,
       description: item.description.S,
-      artifacts: JSON.parse(item.artifacts.S || '[]'),
+      artefacts: JSON.parse(item.artefacts.S || '[]'),
       questType: item.questType.S,
       dateRange: item.dateRange?.S ? JSON.parse(item.dateRange.S) : undefined,
       prize: item.prize?.S ? JSON.parse(item.prize.S) : undefined,

@@ -371,7 +371,10 @@ const QuestBuild = () => {
     });
   };
 
-  const reorderHints = (artefactIndex: number, newHintsOrder: any[]) => {
+  const reorderHints = (
+    artefactIndex: number,
+    newHintsOrder: { description: string; displayAfterAttempts: number }[]
+  ) => {
     setQuest((prev) => {
       const updatedArtefacts = [...prev.artefacts];
 
