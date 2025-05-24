@@ -17,9 +17,8 @@ const QuestBuild = () => {
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const isEditMode = !!editId;
-
   const [quest, setQuest] = useState<Quest>({
-    quest_id: "",
+    quest_id: editId || crypto.randomUUID(), // Use editId if editing, otherwise generate new UUID
     title: "",
     description: "",
     artefacts: [],
@@ -470,40 +469,28 @@ const QuestBuild = () => {
     }
 
     try {
-      let imageUrl = quest.prize?.image || "";
-
+      const formData = new FormData();
+      
+      // Append image file if present
       if (imageFile) {
-        const formData = new FormData();
-        formData.append("file", imageFile);
-
-        const uploadResponse = await fetch("/api/upload-image", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) throw new Error("Image upload failed");
-
-        const { imageUrl: uploadedUrl } = await uploadResponse.json();
-        imageUrl = uploadedUrl;
+        formData.append("prizeImage", imageFile);
       }
 
       const questData = {
         ...quest,
-        prize: quest.prize
-          ? {
-              ...quest.prize,
-              image: imageUrl,
-            }
-          : undefined,
+        prize: quest.prize || undefined,
       };
+
+      // If editing, include quest_id
+      if (editId) {
+        questData["quest_id"] = editId;
+      }
+
+      formData.append("quest", JSON.stringify(questData));
 
       const response = await fetch("/api/save-quest", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...questData,
-          quest_id: editId || undefined,
-        }),
+        body: formData,
       });
 
       if (!response.ok) {
@@ -650,7 +637,8 @@ const QuestBuild = () => {
 
         <PrizeSection
           showPrize={showPrize}
-          prize={quest.prize}
+          prize={quest.prize ?? { title: "", description: "", image: "" }}
+          imagePreview={imagePreview}
           fileInputRef={fileInputRef}
           onTogglePrize={() => setShowPrize(!showPrize)}
           onSetPrize={handleSetPrize}

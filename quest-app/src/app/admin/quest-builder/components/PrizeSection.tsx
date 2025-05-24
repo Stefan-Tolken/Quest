@@ -2,9 +2,16 @@
 
 import { Award, Upload, X } from "lucide-react";
 
+type Prize = {
+  title?: string;
+  description?: string;
+  imagePreview?: string;
+};
+
 type PrizeSectionProps = {
   showPrize: boolean;
-  prize: any;
+  prize: Prize;
+  imagePreview: string;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onTogglePrize: () => void;
   onSetPrize: (field: "title" | "description", value: string) => void;
@@ -17,6 +24,7 @@ type PrizeSectionProps = {
 export const PrizeSection = ({
   showPrize,
   prize,
+  imagePreview,
   fileInputRef,
   onTogglePrize,
   onSetPrize,
@@ -73,10 +81,10 @@ export const PrizeSection = ({
             onChange={onImageUpload}
           />
 
-          {prize.imagePreview ? (
+          {imagePreview ? (
             <div className="relative w-full h-48 border border-gray-200 rounded-lg overflow-hidden">
               <img
-                src={prize.imagePreview}
+                src={imagePreview}
                 alt="Prize preview"
                 className="w-full h-full object-contain"
               />

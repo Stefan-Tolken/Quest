@@ -33,7 +33,6 @@ import { CSS } from "@dnd-kit/utilities";
 type Hint = {
   description: string;
   displayAfterAttempts: number;
-  [key: string]: any;
 };
 
 type HintsSectionProps = {
