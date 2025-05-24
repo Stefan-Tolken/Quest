@@ -9,6 +9,8 @@ import { arrayMove } from "@dnd-kit/sortable";
 import AuthGuard from "@/components/authGuard";
 import { ImageContent } from "@/lib/types";
 import { ImageEditor } from "./components/imageEditor";
+import { ArtifactDetails } from "@/lib/types";
+
 
 const PageBuilder = () => {
   const [components, setComponents] = useState<ComponentData[]>([]);
@@ -23,10 +25,16 @@ const PageBuilder = () => {
       return;
     }
 
+    // Add order property to each component before saving
+    const componentsWithOrder = components.map((component, index) => ({
+      ...component,
+      order: index
+    }));
+
     const artifactData = {
       id: crypto.randomUUID(), // UUID string
       name: artifactName,
-      components,
+      components: componentsWithOrder,
       createdAt: new Date().toISOString(),
       partOfQuest: false,
     };
@@ -64,17 +72,22 @@ const PageBuilder = () => {
         setComponents((items) => arrayMove(items, oldIndex, newIndex));
         return;
       }
-    }    if (over?.id === "dropzone" && active.data.current?.isNew) {
+    }    
+    
+    if (over?.id === "dropzone" && active.data.current?.isNew) {
       setComponents((items) => [
         ...items,
         {
           id: crypto.randomUUID(),
           type: active.data.current?.type,
+          order: items.length,
           content: 
             active.data.current?.type === "image"
               ? { url: "", points: [] }
               : active.data.current?.type === "restoration"
               ? { restorations: [] }
+              : active.data.current?.type === "details"
+              ? { created: "", origin: "", dimensions: "", materials: "" }
               : "New Content",
         },
       ]);
@@ -82,10 +95,17 @@ const PageBuilder = () => {
   };
 
   const handleDelete = (id: string) => {
-    setComponents((prev) => prev.filter((c) => c.id !== id));
+    setComponents((prev) => {
+      const filtered = prev.filter((c) => c.id !== id);
+      // Re-assign order after deletion to maintain sequential order
+      return filtered.map((component, index) => ({
+        ...component,
+        order: index
+      }));
+    });
   };
 
-  const handleUpdate = (id: string, content: string | ImageContent | RestorationContent) => {
+  const handleUpdate = (id: string, content: string | ImageContent | RestorationContent | ArtifactDetails) => {
     console.log('Updating component:', id, content);
     setComponents((prev) =>
       prev.map((c) => {
@@ -100,6 +120,9 @@ const PageBuilder = () => {
           return { ...c, content } as ComponentData;
         } else if (c.type === "restoration" && typeof content !== "string" && 'restorations' in content) {
           console.log('Updating restoration component with:', content);
+          return { ...c, content } as ComponentData;
+        } else if (c.type === "details" && typeof content !== "string" && 'created' in content) {
+          console.log('Updating details component with:', content);
           return { ...c, content } as ComponentData;
         }
 
