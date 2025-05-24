@@ -15,6 +15,16 @@ const basicComponents: ComponentData[] = [
       points: [],
     },
   },
+  {
+    id: "5",
+    type: "details",
+    content: {
+      created: "",
+      origin: "",
+      dimensions: "",
+      materials: ""
+    },
+  },
 ];
 
 const advancedComponents: ComponentData[] = [

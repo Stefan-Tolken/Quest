@@ -11,11 +11,13 @@ import {
 } from "./components";
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { GripVertical, X } from "lucide-react";
+import { DetailsComponent } from "./components/detailsComponent";
+import { ArtifactDetails } from "@/lib/types";
 
 interface PageComponentProps {
   component: ComponentData;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, content: string | ImageContent | RestorationContent) => void;
+  onUpdate: (id: string, content: string | ImageContent | RestorationContent | ArtifactDetails) => void;
   dragAttributes?: React.HTMLAttributes<HTMLDivElement>;
   dragListeners?: SyntheticListenerMap;
   onEditPoints: (component: ComponentData) => void;
@@ -31,7 +33,7 @@ export const PageComponent = ({
 }: PageComponentProps) => {
   console.log('PageComponent rendered with:', component);
   
-  const handleUpdate = (content: string | ImageContent | RestorationContent) => {
+  const handleUpdate = (content: string | ImageContent | RestorationContent | ArtifactDetails) => {
     console.log('handleUpdate called with:', content);
     onUpdate(component.id, content);
   };
@@ -88,6 +90,20 @@ export const PageComponent = ({
               }
               onUpdate={handleUpdate}
               onEditPoints={() => onEditPoints(component)}
+            />
+          )}
+
+          {component.type === "details" && (
+            <DetailsComponent
+              content={
+                (component.content as ArtifactDetails) || {
+                  created: "",
+                  origin: "",
+                  dimensions: "",
+                  materials: ""
+                }
+              }
+              onUpdate={handleUpdate}
             />
           )}
 

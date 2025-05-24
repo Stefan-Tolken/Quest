@@ -8,11 +8,17 @@ export type Hint = {
 
 export type HintDisplayMode = "sequential" | "random";
 
+export interface ArtifactDetails {
+  created: string;
+  origin: string;
+  dimensions: string;
+  materials: string;
+}
+
 export type ComponentData = {
   id: string;
-  type: "heading" | "paragraph" | "image" | "restoration";
-  content: string | ImageContent | RestorationContent;
-  imageBase64?: string;
+  type: "heading" | "paragraph" | "image" | "restoration" | "details";
+  content: string | ImageContent | RestorationContent | ArtifactDetails;
   image?: string;
   order?: number;
 };
