@@ -4,7 +4,6 @@ import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 
-// Configure AWS SDK
 const dynamoDB = new DynamoDBClient({
   region: process.env.AWS_REGION,
   credentials: {
@@ -21,7 +20,6 @@ const s3 = new S3Client({
   },
 });
 
-// Define TypeScript interface for quest data
 interface Quest {
   quest_id: string;
   title: string;
@@ -36,95 +34,64 @@ interface Quest {
   }>;
   questType: "sequential" | "concurrent";
   dateRange?: {
-    from: string; // ISO date string
-    to: string; // ISO date string
+    from: string;
+    to: string;
   };
   prize?: {
     title: string;
     description: string;
-    image?: string; // URL to image or base64
+    image?: string;
   };
   createdAt: string;
 }
 
 export async function POST(request: Request) {
   try {
-    // Get quest data from request
-    const questData: Omit<Quest, "quest_id" | "createdAt"> =
-      await request.json();
+    const formData = await request.formData();
+    const questData: Omit<Quest, "quest_id" | "createdAt"> = JSON.parse(
+      formData.get("quest") as string
+    );
+    const prizeImage = formData.get("prizeImage") as File | null;
 
     // Validate required fields
-    if (
-      !questData.title ||
-      !questData.description ||
-      questData.artefacts.length === 0
-    ) {
+    if (!questData.title || !questData.description || questData.artefacts.length === 0) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Generate unique ID and timestamp
     const questId = uuidv4();
     const timestamp = new Date().toISOString();
 
-    // Handle prize image if present
+    // Handle prize image upload
     let updatedPrize = questData.prize;
-
-    if (
-      questData.prize?.image &&
-      questData.prize.image.startsWith("data:image/")
-    ) {
-      try {
-        // Extract the MIME type and base64 data correctly
-        const matches = questData.prize.image.match(
-          /^data:([A-Za-z-+\/]+);base64,(.+)$/
+    if (prizeImage) {
+      if (!updatedPrize?.title || !updatedPrize?.description) {
+        return NextResponse.json(
+          { error: "Prize image provided but prize details are missing" },
+          { status: 400 }
         );
-
-        if (!matches || matches.length !== 3) {
-          console.warn("Invalid base64 image data for prize");
-        } else {
-          const contentType = matches[1];
-          const base64Data = matches[2];
-          const buffer = Buffer.from(base64Data, "base64");
-
-          // Generate a unique image key with timestamp
-          const timestamp = Date.now();
-          const imageKey = `quests/${questId}/prize-image-${timestamp}.jpg`;
-
-          console.log(`Uploading prize image to S3: ${imageKey}`);
-
-          // Upload to S3 with proper content type
-          await s3.send(
-            new PutObjectCommand({
-              Bucket: process.env.AWS_BUCKET_NAME!,
-              Key: imageKey,
-              Body: buffer,
-              ContentType: contentType,
-              // No ACL setting as the bucket doesn't support it
-            })
-          );
-
-          // Store the relative path to use with our API endpoint
-          const imageUrl = `/api/get-image?key=${encodeURIComponent(imageKey)}`;
-          console.log(
-            `Prize image uploaded successfully with key: ${imageKey}`
-          );
-
-          // Update the prize object with the new image URL
-          updatedPrize = {
-            ...questData.prize,
-            image: imageUrl,
-          };
-        }
-      } catch (err) {
-        console.error("S3 upload failed for prize image:", err);
-        // Keep the original prize object if upload fails
       }
+
+      const buffer = Buffer.from(await prizeImage.arrayBuffer());
+      const fileExtension = prizeImage.name.split(".").pop();
+      const imageKey = `quests/${questId}/prize-image-${uuidv4()}.${fileExtension}`;
+
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.AWS_BUCKET_NAME!,
+          Key: imageKey,
+          Body: buffer,
+          ContentType: prizeImage.type,
+        })
+      );
+
+      const imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${imageKey}`;
+      updatedPrize = { ...updatedPrize, image: imageUrl };
     }
 
-    // Prepare complete quest object with possible updated prize
+    // Prepare complete quest object
     const quest: Quest = {
       quest_id: questId,
       ...questData,
@@ -151,7 +118,6 @@ export async function POST(request: Request) {
       },
     };
 
-    // Execute DynamoDB put operation
     await dynamoDB.send(new PutItemCommand(params));
 
     return NextResponse.json({
@@ -159,7 +125,7 @@ export async function POST(request: Request) {
       quest_id: questId,
     });
   } catch (error) {
-    console.error("DynamoDB Error:", error);
+    console.error("Error:", error);
     return NextResponse.json(
       {
         error: "Failed to save quest",
