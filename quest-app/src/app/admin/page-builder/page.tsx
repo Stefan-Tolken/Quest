@@ -1,7 +1,7 @@
 // app/admin/page-builder/page.tsx
 "use client";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ComponentList } from "./componentList";
 import { DropZone } from "./dropZone";
 import { ComponentData, RestorationContent } from "@/lib/types";
@@ -10,14 +10,48 @@ import AuthGuard from "@/components/authGuard";
 import { ImageContent } from "@/lib/types";
 import { ImageEditor } from "./components/imageEditor";
 import { ArtifactDetails } from "@/lib/types";
+import { useSearchParams } from "next/navigation";
+import SuccessPopup from "@/components/ui/SuccessPopup";
 
 
 const PageBuilder = () => {
   const [components, setComponents] = useState<ComponentData[]>([]);
   const [artifactName, setArtifactName] = useState("");
+  const [artist, setArtist] = useState("");
+  const [date, setDate] = useState("");
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState<File | string>("");
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [showError, setShowError] = useState(false);
   const [editingImage, setEditingImage] = useState<ComponentData | null>(null);
+  const [step, setStep] = useState(0);
+  const [createdAt, setCreatedAt] = useState<string>("");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("edit");
+
+  // Load artifact for editing
+  useEffect(() => {
+    if (!editId) return;
+    (async () => {
+      const res = await fetch(`/api/get-artefacts`);
+      const data = await res.json();
+      if (data.success) {
+        const found = data.artifacts.find((a: any) => a.id === editId);
+        if (found) {
+          setArtifactName(found.name || "");
+          setArtist(found.artist || "");
+          setDate(found.date || "");
+          setDescription(found.description || "");
+          setImage(found.image || "");
+          setImagePreview(typeof found.image === "string" ? found.image : "");
+          setComponents(found.components || []);
+          setCreatedAt(found.createdAt || "");
+        }
+      }
+    })();
+  }, [editId]);
 
   const handleSubmit = async () => {
     if (!artifactName) {
@@ -31,11 +65,26 @@ const PageBuilder = () => {
       order: index
     }));
 
+    // If the image is a File, convert to base64 string for backend upload
+    let imageToSend = image;
+    if (image && typeof image !== "string") {
+      imageToSend = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(image as File);
+      });
+    }
+
     const artifactData = {
-      id: crypto.randomUUID(), // UUID string
+      id: editId || crypto.randomUUID(), // Use existing ID if editing
       name: artifactName,
+      artist,
+      date,
+      description,
+      image: imageToSend,
       components: componentsWithOrder,
-      createdAt: new Date().toISOString(),
+      createdAt: editId ? createdAt : new Date().toISOString(), // Always send a string
       partOfQuest: false,
     };
 
@@ -49,13 +98,26 @@ const PageBuilder = () => {
         body: JSON.stringify(artifactData),
       });
 
-      if (!response.ok) throw new Error("Save failed");
-      alert("Artifact saved successfully!");
+      if (!response.ok) {
+        let errorMsg = "Save failed";
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData?.error || errorMsg;
+        } catch (e) {
+          // fallback to text if not JSON
+          try {
+            errorMsg = await response.text();
+          } catch {}
+        }
+        throw new Error(errorMsg);
+      }
       setComponents([]);
       setArtifactName("");
-    } catch (error) {
+      setShowSuccess(true);
+      // window.location.href = "/admin"; // Now handled in popup
+    } catch (error: any) {
       console.error("Error saving artifact:", error);
-      alert("Error saving artifact");
+      alert("Error saving artifact: " + (error?.message || error));
     } finally {
       setIsSaving(false);
     }
@@ -131,8 +193,28 @@ const PageBuilder = () => {
     );
   };
 
+  const handleNext = () => {
+    if (step === 1 && !artifactName) {
+      setShowError(true);
+      return;
+    }
+    setShowError(false);
+    setStep((prev) => prev + 1);
+  };
+
+  const handleBack = () => {
+    setStep((prev) => prev - 1);
+  };
+
   return (
     <AuthGuard adminOnly={true}>
+      {showSuccess && (
+        <SuccessPopup
+          message="Artifact saved successfully!"
+          onOk={() => (window.location.href = "/admin")}
+        />
+      )}
+
       {editingImage && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
           <ImageEditor
@@ -159,37 +241,135 @@ const PageBuilder = () => {
                 * Please enter a name for your artifact.
               </p>
 
-              <input
-                type="text"
-                required
-                placeholder="Artifact Name *"
-                value={artifactName}
-                onChange={(e) => setArtifactName(e.target.value)}
-                onFocus={() => setShowError(false)}
-                className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleSubmit}
-                disabled={isSaving}
-                className="fixed bottom-4 right-4 bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
-              >
-                {isSaving ? "Saving..." : "Save Artifact"}
-              </button>
+              {/* Step 0: Basic Info */}
+              {step === 0 && (
+                <>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Artifact Name *"
+                    value={artifactName}
+                    onChange={(e) => setArtifactName(e.target.value)}
+                    onFocus={() => setShowError(false)}
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Artist (optional)"
+                    value={artist}
+                    onChange={(e) => setArtist(e.target.value)}
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Date (optional)"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!artifactName) {
+                        setShowError(true);
+                        return;
+                      }
+                      setStep(1);
+                    }}
+                    className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
+                  >
+                    Next
+                  </button>
+                </>
+              )}
+
+              {/* Step 1: Description & Image */}
+              {step === 1 && (
+                <>
+                  <textarea
+                    placeholder="Description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
+                  />
+                  <p className="text-sm text-gray-500 mb-2">
+                    Upload an image for your artifact:
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setImage(file);
+                        setImagePreview(URL.createObjectURL(file));
+                      } else {
+                        setImage("");
+                        setImagePreview("");
+                      }
+                    }}
+                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {imagePreview && (
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full max-h-48 object-contain rounded border mb-2"
+                    />
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setStep(0)}
+                      className="bg-gray-300 text-gray-700 px-6 py-2 rounded hover:bg-gray-400"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={() => setStep(2)}
+                      className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Step 2: Page Builder */}
+              {step === 2 && (
+                <>
+                  <div className="flex gap-2 mb-2">
+                    <button
+                      onClick={() => setStep(1)}
+                      className="bg-gray-300 text-gray-700 px-6 py-2 rounded hover:bg-gray-400"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isSaving}
+                      className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+                    >
+                      {isSaving ? "Saving..." : "Save Artifact"}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Make the main content area scrollable */}
-          <div className="flex flex-1 overflow-hidden">
-            <ComponentList />
-            <div className="flex-1 h-full min-h-full flex flex-col overflow-y-auto">
-              <DropZone
-                components={components}
-                onDelete={handleDelete}
-                onUpdate={handleUpdate}
-                onEditPoints={setEditingImage}
-              />
+          {/* Only show the page builder UI on step 2 */}
+          {step === 2 && (
+            <div className="flex flex-1 overflow-hidden">
+              <ComponentList />
+              <div className="flex-1 h-full min-h-full flex flex-col overflow-y-auto">
+                <DropZone
+                  components={components}
+                  onDelete={handleDelete}
+                  onUpdate={handleUpdate}
+                  onEditPoints={setEditingImage}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </DndContext>
     </AuthGuard>

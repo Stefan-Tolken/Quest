@@ -50,7 +50,7 @@ export type Artefact = {
   artist?: string;
   date?: string;
   description: string;
-  image: string;
+  image: File | string;
   components: ComponentData[];
   createdAt: string;
   partOfQuest: boolean;

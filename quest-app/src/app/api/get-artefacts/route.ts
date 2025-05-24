@@ -15,6 +15,10 @@ const dynamoDB = new DynamoDBClient({
 interface DynamoDBItem {
   id: AttributeValue;
   name: AttributeValue;
+  artist?: AttributeValue;
+  date?: AttributeValue;
+  description: AttributeValue;
+  image?: AttributeValue;
   components: AttributeValue;
   createdAt: AttributeValue;
   partOfQuest: AttributeValue;
@@ -23,20 +27,22 @@ interface DynamoDBItem {
 // Helper to parse DynamoDB Items
 function parseItem(item: DynamoDBItem) {
   const components: ComponentData[] = JSON.parse(item.components.S!);
-  
   // Sort components by order property, fallback to array index if order is missing
   const sortedComponents = components.sort((a: ComponentData, b: ComponentData) => {
     const orderA = a.order !== undefined ? a.order : components.indexOf(a);
     const orderB = b.order !== undefined ? b.order : components.indexOf(b);
     return orderA - orderB;
   });
-
   return {
-    id: item.id.S!,
-    name: item.name.S!,
+    id: item.id?.S ?? '',
+    name: item.name?.S ?? '',
+    artist: item.artist?.S ?? undefined,
+    date: item.date?.S ?? undefined,
+    description: item.description?.S ?? '',
+    image: item.image?.S ?? '',
     components: sortedComponents,
-    createdAt: item.createdAt.S!,
-    partOfQuest: item.partOfQuest.BOOL!,
+    createdAt: item.createdAt?.S ?? '',
+    partOfQuest: item.partOfQuest?.BOOL ?? false,
   };
 }
 

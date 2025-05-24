@@ -87,8 +87,10 @@ export async function POST(request: Request) {
         })
       );
 
-      const imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${imageKey}`;
-      updatedPrize = { ...updatedPrize, image: imageUrl };
+      updatedPrize = {
+        ...updatedPrize,
+        image: `/api/get-image?key=${encodeURIComponent(imageKey)}`
+      };
     }
 
     // Prepare complete quest object

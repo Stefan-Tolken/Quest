@@ -30,7 +30,8 @@ const QuestBuild = () => {
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-
+  const [isLoading, setIsLoading] = useState(true);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Artefact[]>([]);
   const [showSearch, setShowSearch] = useState(false);
@@ -45,12 +46,41 @@ const QuestBuild = () => {
 
   // Load quest data when in edit mode
   useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+
+    const resetState = () => {
+      if (!isMounted) return;
+      setQuest({
+        quest_id: editId || crypto.randomUUID(),
+        title: "",
+        description: "",
+        artefacts: [],
+        questType: "sequential",
+        dateRange: undefined,
+        prize: { title: "", description: "", image: "" },
+        createdAt: new Date().toISOString(),
+      });
+      setImagePreview("");
+      setImageFile(null);
+      setActiveArtefactIndex(null);
+      setValidationErrors({});
+    };
+
     const loadQuestData = async () => {
-      if (!editId) return;
+      if (!editId) {
+        setIsLoading(false);
+        return;
+      }
       
       try {
+        resetState();
+        setIsLoading(true);
+
         console.log('Fetching quest data for ID:', editId);
-        const response = await fetch(`/api/get-quests?id=${editId}`);
+        const response = await fetch(`/api/get-quests?id=${editId}`, {
+          signal: abortController.signal,
+        });
         
         if (!response.ok) {
           const errorData = await response.json();
@@ -64,7 +94,12 @@ const QuestBuild = () => {
           throw new Error('No quest found with this ID');
         }
 
-        const questToEdit = data.quests[0];
+        const questToEdit = data.quests.find((quest: { quest_id: string; }) => quest.quest_id === editId);
+
+        if (!questToEdit) {
+          throw new Error(`No quest found with ID: ${editId}`);
+        }
+
         console.log('Quest to edit:', questToEdit);
 
         // Fetch artefact details for each artefact in the quest
@@ -108,10 +143,26 @@ const QuestBuild = () => {
       } catch (error) {
         console.error('Error loading quest:', error);
         alert(`Failed to load quest data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    loadQuestData();
+    setQuest({
+      quest_id: editId || crypto.randomUUID(),
+      title: "",
+      description: "",
+      artefacts: [],
+      questType: "sequential",
+      dateRange: undefined,
+      prize: { title: "", description: "", image: "" },
+      createdAt: new Date().toISOString(),
+    });
+    setImagePreview("");
+    setImageFile(null);
+
+    if (editId) loadQuestData();
+    else setIsLoading(false);
   }, [editId]);
 
   // Search artefacts whenever search query changes
@@ -514,156 +565,160 @@ const QuestBuild = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-6 text-indigo-700">
-          {isEditMode ? "Edit Quest" : "Create New Quest"}
-        </h1>
-
-        <QuestInfo
-          title={quest.title}
-          description={quest.description}
-          dateRange={quest.dateRange}
-          validationErrors={validationErrors}
-          onTitleChange={handleSetTitle}
-          onDescriptionChange={handleSetDescription}
-          onDateRangeChange={handleDateRangeChange}
-        />
-
-        {/* Artefacts Section */}
+      {isLoading ? (
+        <div className="text-center py-8">Loading quest data...</div>
+      ) : (
         <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Artefacts to Collect
-            </h2>
-            <button
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-              onClick={() => setShowSearch(!showSearch)}
-            >
-              <Plus size={18} />
-              Add Artefact
-            </button>
-          </div>
+          <h1 className="text-3xl font-bold mb-6 text-indigo-700">
+            {isEditMode ? "Edit Quest" : "Create New Quest"}
+          </h1>
 
-          {showSearch && (
-            <ArtefactSearch
-              searchQuery={searchQuery}
-              searchResults={searchResults}
-              onSearchChange={setSearchQuery}
-              onAddArtifact={addArtefact}
-            />
-          )}
-
-          {/* Quest Type Selection */}
-          {quest.artefacts.length > 0 && (
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Quest Type
-              </label>
-              <div className="flex gap-4">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="radio"
-                    className="h-4 w-4 text-indigo-600"
-                    checked={quest.questType === "sequential"}
-                    onChange={() => setQuestType("sequential")}
-                  />
-                  <span className="ml-2">Sequential (Story-based order)</span>
-                </label>
-                <label
-                  className={`flex items-center cursor-pointer ${
-                    quest.artefacts.length < 3 ? "opacity-50" : ""
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    className="h-4 w-4 text-indigo-600"
-                    checked={quest.questType === "concurrent"}
-                    onChange={() => setQuestType("concurrent")}
-                    disabled={quest.artefacts.length < 3}
-                  />
-                  <span className="ml-2">Concurrent (Any order)</span>
-                  {quest.artefacts.length < 3 && (
-                    <span className="ml-2 text-xs text-gray-500">
-                      (Requires 3+ artefacts)
-                    </span>
-                  )}
-                </label>
-              </div>
-              {validationErrors.questType && (
-                <p className="mt-1 text-sm text-red-500">
-                  {validationErrors.questType}
-                </p>
-              )}
-            </div>
-          )}
-
-          <ArtefactList
-            artifacts={quest.artefacts}
-            questType={quest.questType}
-            activeArtifactIndex={activeArtefactIndex}
+          <QuestInfo
+            title={quest.title}
+            description={quest.description}
+            dateRange={quest.dateRange}
             validationErrors={validationErrors}
-            onRemoveArtifact={removeArtefact}
-            onMoveArtifact={moveArtefact}
-            onToggleDetails={toggleArtefactDetails}
-            onReorderArtifacts={reorderArtefacts}
-          >
-            {activeArtefactIndex !== null && (
-              <HintsSection
-                hints={quest.artefacts[activeArtefactIndex].hints}
-                hintDisplayMode={
-                  quest.artefacts[activeArtefactIndex].hintDisplayMode
-                }
-                currentHint={currentHint}
-                onToggleDisplayMode={() =>
-                  toggleHintDisplayMode(activeArtefactIndex)
-                }
-                onAddHint={() => handleAddHint(activeArtefactIndex)}
-                onRemoveHint={(hintIndex) =>
-                  removeHint(activeArtefactIndex, hintIndex)
-                }
-                onMoveHint={(hintIndex, direction) =>
-                  moveHint(activeArtefactIndex, hintIndex, direction)
-                }
-                onCurrentHintChange={(value) =>
-                  setCurrentHint({ ...currentHint, description: value })
-                }
-                onReorderHints={(newOrder) =>
-                  reorderHints(activeArtefactIndex, newOrder)
-                }
+            onTitleChange={handleSetTitle}
+            onDescriptionChange={handleSetDescription}
+            onDateRangeChange={handleDateRangeChange}
+          />
+
+          {/* Artefacts Section */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Artefacts to Collect
+              </h2>
+              <button
+                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+                onClick={() => setShowSearch(!showSearch)}
+              >
+                <Plus size={18} />
+                Add Artefact
+              </button>
+            </div>
+
+            {showSearch && (
+              <ArtefactSearch
+                searchQuery={searchQuery}
+                searchResults={searchResults}
+                onSearchChange={setSearchQuery}
+                onAddArtifact={addArtefact}
               />
             )}
-          </ArtefactList>
-        </div>
 
-        <PrizeSection
-          showPrize={showPrize}
-          prize={quest.prize ?? { title: "", description: "", image: "" }}
-          imagePreview={imagePreview}
-          fileInputRef={fileInputRef}
-          onTogglePrize={() => setShowPrize(!showPrize)}
-          onSetPrize={handleSetPrize}
-          onImageUpload={handleImageUpload}
-          onRemoveImage={removeImage}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        />
+            {/* Quest Type Selection */}
+            {quest.artefacts.length > 0 && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Quest Type
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      className="h-4 w-4 text-indigo-600"
+                      checked={quest.questType === "sequential"}
+                      onChange={() => setQuestType("sequential")}
+                    />
+                    <span className="ml-2">Sequential (Story-based order)</span>
+                  </label>
+                  <label
+                    className={`flex items-center cursor-pointer ${
+                      quest.artefacts.length < 3 ? "opacity-50" : ""
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      className="h-4 w-4 text-indigo-600"
+                      checked={quest.questType === "concurrent"}
+                      onChange={() => setQuestType("concurrent")}
+                      disabled={quest.artefacts.length < 3}
+                    />
+                    <span className="ml-2">Concurrent (Any order)</span>
+                    {quest.artefacts.length < 3 && (
+                      <span className="ml-2 text-xs text-gray-500">
+                        (Requires 3+ artefacts)
+                      </span>
+                    )}
+                  </label>
+                </div>
+                {validationErrors.questType && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {validationErrors.questType}
+                  </p>
+                )}
+              </div>
+            )}
 
-        <div className="flex justify-end gap-4">
-          <button
-            className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition flex items-center gap-2"
-            onClick={handleCancel}
-          >
-            Cancel
-          </button>
-          <button
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
-            onClick={handleSaveQuest}
-          >
-            <CheckCircle size={18} />
-            {isEditMode ? "Save Changes" : "Create Quest"}
-          </button>
+            <ArtefactList
+              artifacts={quest.artefacts}
+              questType={quest.questType}
+              activeArtifactIndex={activeArtefactIndex}
+              validationErrors={validationErrors}
+              onRemoveArtifact={removeArtefact}
+              onMoveArtifact={moveArtefact}
+              onToggleDetails={toggleArtefactDetails}
+              onReorderArtifacts={reorderArtefacts}
+            >
+              {activeArtefactIndex !== null && (
+                <HintsSection
+                  hints={quest.artefacts[activeArtefactIndex].hints}
+                  hintDisplayMode={
+                    quest.artefacts[activeArtefactIndex].hintDisplayMode
+                  }
+                  currentHint={currentHint}
+                  onToggleDisplayMode={() =>
+                    toggleHintDisplayMode(activeArtefactIndex)
+                  }
+                  onAddHint={() => handleAddHint(activeArtefactIndex)}
+                  onRemoveHint={(hintIndex) =>
+                    removeHint(activeArtefactIndex, hintIndex)
+                  }
+                  onMoveHint={(hintIndex, direction) =>
+                    moveHint(activeArtefactIndex, hintIndex, direction)
+                  }
+                  onCurrentHintChange={(value) =>
+                    setCurrentHint({ ...currentHint, description: value })
+                  }
+                  onReorderHints={(newOrder) =>
+                    reorderHints(activeArtefactIndex, newOrder)
+                  }
+                />
+              )}
+            </ArtefactList>
+          </div>
+
+          <PrizeSection
+            showPrize={showPrize}
+            prize={quest.prize ?? { title: "", description: "", image: "" }}
+            imagePreview={imagePreview}
+            fileInputRef={fileInputRef}
+            onTogglePrize={() => setShowPrize(!showPrize)}
+            onSetPrize={handleSetPrize}
+            onImageUpload={handleImageUpload}
+            onRemoveImage={removeImage}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          />
+
+          <div className="flex justify-end gap-4">
+            <button
+              className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition flex items-center gap-2"
+              onClick={handleCancel}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+              onClick={handleSaveQuest}
+            >
+              <CheckCircle size={18} />
+              {isEditMode ? "Save Changes" : "Create Quest"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

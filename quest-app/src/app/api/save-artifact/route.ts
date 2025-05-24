@@ -24,6 +24,10 @@ const s3 = new S3Client({
 interface ArtifactData {
   id: string;
   name: string;
+  artist?: string;
+  date?: string;
+  description: string;
+  image: string;
   components: ComponentData[];
   createdAt: string;
   partOfQuest: boolean;
@@ -33,13 +37,41 @@ export async function POST(request: Request) {
   try {
     const artifactData: ArtifactData = await request.json();
 
-    if (!artifactData.name || !artifactData.components) {
+    if (!artifactData.name) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
+    // Handle main artifact image upload if it's a base64 data URL
+    let imageUrl = artifactData.image;
+    if (typeof imageUrl === "string" && imageUrl.startsWith("data:image/")) {
+      try {
+        const matches = imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (matches && matches.length === 3) {
+          const contentType = matches[1];
+          const base64Data = matches[2];
+          const buffer = Buffer.from(base64Data, "base64");
+          const timestamp = Date.now();
+          const imageKey = `artifacts/${artifactData.id}/main-image-${timestamp}.jpg`;
+          await s3.send(
+            new PutObjectCommand({
+              Bucket: process.env.AWS_BUCKET_NAME!,
+              Key: imageKey,
+              Body: buffer,
+              ContentType: contentType,
+            })
+          );
+          imageUrl = `/api/get-image?key=${encodeURIComponent(imageKey)}`;
+        }
+      } catch (err) {
+        console.error("S3 upload failed for main artifact image:", err);
+        imageUrl = "";
+      }
+    }
+
+    // Find and upload images for image and restoration components in the components array
     const updatedComponents = await Promise.all(
       artifactData.components.map(async (component, index) => {
         // Handle image component
@@ -50,47 +82,35 @@ export async function POST(request: Request) {
           component.content.url.startsWith("data:image/")
         ) {
           try {
-            // Extract the MIME type and base64 data correctly
             const matches = component.content.url.match(
               /^data:([A-Za-z-+\/]+);base64,(.+)$/
             );
-
-            if (!matches || matches.length !== 3) {
-              throw new Error("Invalid base64 image data");
+            if (matches && matches.length === 3) {
+              const contentType = matches[1];
+              const base64Data = matches[2];
+              const buffer = Buffer.from(base64Data, "base64");
+              const timestamp = Date.now();
+              const imageKey = `artifacts/${artifactData.id}/component-${index}-${timestamp}.jpg`;
+              await s3.send(
+                new PutObjectCommand({
+                  Bucket: process.env.AWS_BUCKET_NAME!,
+                  Key: imageKey,
+                  Body: buffer,
+                  ContentType: contentType,
+                })
+              );
+              return {
+                ...component,
+                content: {
+                  ...component.content,
+                  url: `/api/get-image?key=${encodeURIComponent(imageKey)}`,
+                },
+              };
             }
-
-            const contentType = matches[1];
-            const base64Data = matches[2];
-            const buffer = Buffer.from(base64Data, "base64");
-
-            // Generate a unique image key with timestamp
-            const timestamp = Date.now();
-            const imageKey = `artifacts/${artifactData.id}/component-${index}-${timestamp}.jpg`;
-
-            // Upload to S3 with proper content type
-            await s3.send(
-              new PutObjectCommand({
-                Bucket: process.env.AWS_BUCKET_NAME!,
-                Key: imageKey,
-                Body: buffer,
-                ContentType: contentType,
-              })
-            );
-
-            // Return component with updated image URL
-            return {
-              ...component,
-              content: {
-                ...component.content,
-                url: `/api/get-image?key=${encodeURIComponent(imageKey)}`,
-              },
-            };
           } catch (err) {
-            console.error("S3 upload failed:", err);
-            return component;
+            console.error("S3 upload failed for image component:", err);
           }
         }
-
         // Handle restoration component
         if (
           component.type === "restoration" &&
@@ -99,70 +119,57 @@ export async function POST(request: Request) {
         ) {
           try {
             const updatedRestorations = await Promise.all(
-              component.content.restorations.map(async (restoration, rIndex) => {
-                if (restoration.imageUrl && restoration.imageUrl.startsWith("data:image/")) {
-                  const matches = restoration.imageUrl.match(
-                    /^data:([A-Za-z-+\/]+);base64,(.+)$/
-                  );
-
-                  if (!matches || matches.length !== 3) {
-                    throw new Error("Invalid base64 image data");
+              (component.content.restorations as Array<any>).map(async (rest: any, rIndex: number) => {
+                if (rest.imageUrl && rest.imageUrl.startsWith("data:image/")) {
+                  const matches = rest.imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+                  if (matches && matches.length === 3) {
+                    const contentType = matches[1];
+                    const base64Data = matches[2];
+                    const buffer = Buffer.from(base64Data, "base64");
+                    const timestamp = Date.now();
+                    const imageKey = `artifacts/${artifactData.id}/restoration-${index}-${rIndex}-${timestamp}.jpg`;
+                    await s3.send(
+                      new PutObjectCommand({
+                        Bucket: process.env.AWS_BUCKET_NAME!,
+                        Key: imageKey,
+                        Body: buffer,
+                        ContentType: contentType,
+                      })
+                    );
+                    return {
+                      ...rest,
+                      imageUrl: `/api/get-image?key=${encodeURIComponent(imageKey)}`,
+                    };
                   }
-
-                  const contentType = matches[1];
-                  const base64Data = matches[2];
-                  const buffer = Buffer.from(base64Data, "base64");
-
-                  // Generate a unique image key for each restoration
-                  const timestamp = Date.now();
-                  const imageKey = `artifacts/${artifactData.id}/restoration-${index}-${rIndex}-${timestamp}.jpg`;
-
-                  await s3.send(
-                    new PutObjectCommand({
-                      Bucket: process.env.AWS_BUCKET_NAME!,
-                      Key: imageKey,
-                      Body: buffer,
-                      ContentType: contentType,
-                    })
-                  );
-
-                  // Update the restoration with the new image URL
-                  return {
-                    ...restoration,
-                    imageUrl: `/api/get-image?key=${encodeURIComponent(imageKey)}`,
-                  };
                 }
-                return restoration;
+                return rest;
               })
             );
-
             return {
               ...component,
               content: {
+                ...component.content,
                 restorations: updatedRestorations,
               },
             };
           } catch (err) {
             console.error("Failed to process restoration images:", err);
-            return component;
           }
         }
-
         return component;
       })
     );
 
-    // Log the components being saved to DynamoDB
-    console.log(
-      "Saving to DynamoDB:",
-      JSON.stringify(updatedComponents).substring(0, 100) + "..."
-    );
-
+    // Build DynamoDB item with correct image URL
     const params = {
       TableName: "artefacts",
       Item: {
         id: { S: artifactData.id },
         name: { S: artifactData.name },
+        artist: artifactData.artist ? { S: artifactData.artist } : { NULL: true },
+        date: artifactData.date ? { S: artifactData.date } : { NULL: true },
+        description: { S: artifactData.description },
+        image: { S: typeof imageUrl === "string" ? imageUrl : "" },
         components: { S: JSON.stringify(updatedComponents) },
         createdAt: { S: artifactData.createdAt },
         partOfQuest: { BOOL: artifactData.partOfQuest },
