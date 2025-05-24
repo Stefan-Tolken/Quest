@@ -14,6 +14,7 @@ export type ComponentData = {
   content: string | ImageContent | RestorationContent;
   imageBase64?: string;
   image?: string;
+  order?: number;
 };
 
 export type ImageContent = {

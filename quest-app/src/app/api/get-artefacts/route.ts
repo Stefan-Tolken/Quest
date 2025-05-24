@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { DynamoDBClient, ScanCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBClient, ScanCommand, AttributeValue } from '@aws-sdk/client-dynamodb';
+import { ComponentData } from '@/lib/types';
 
 // Configure AWS SDK
 const dynamoDB = new DynamoDBClient({
@@ -10,14 +11,32 @@ const dynamoDB = new DynamoDBClient({
   },
 });
 
+// Define DynamoDB item structure
+interface DynamoDBItem {
+  id: AttributeValue;
+  name: AttributeValue;
+  components: AttributeValue;
+  createdAt: AttributeValue;
+  partOfQuest: AttributeValue;
+}
+
 // Helper to parse DynamoDB Items
-function parseItem(item: any) {
+function parseItem(item: DynamoDBItem) {
+  const components: ComponentData[] = JSON.parse(item.components.S!);
+  
+  // Sort components by order property, fallback to array index if order is missing
+  const sortedComponents = components.sort((a: ComponentData, b: ComponentData) => {
+    const orderA = a.order !== undefined ? a.order : components.indexOf(a);
+    const orderB = b.order !== undefined ? b.order : components.indexOf(b);
+    return orderA - orderB;
+  });
+
   return {
-    id: item.id.S,
-    name: item.name.S,
-    components: JSON.parse(item.components.S),
-    createdAt: item.createdAt.S,
-    partOfQuest: item.partOfQuest.BOOL,
+    id: item.id.S!,
+    name: item.name.S!,
+    components: sortedComponents,
+    createdAt: item.createdAt.S!,
+    partOfQuest: item.partOfQuest.BOOL!,
   };
 }
 
@@ -28,7 +47,7 @@ export async function GET() {
     };
 
     const data = await dynamoDB.send(new ScanCommand(params));
-    const artifacts = data.Items?.map(parseItem) || [];
+    const artifacts = data.Items?.map((item) => parseItem(item as unknown as DynamoDBItem)) || [];
 
     return NextResponse.json({ success: true, artifacts });
   } catch (error) {

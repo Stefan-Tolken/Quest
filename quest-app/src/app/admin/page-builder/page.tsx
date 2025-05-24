@@ -23,10 +23,16 @@ const PageBuilder = () => {
       return;
     }
 
+    // Add order property to each component before saving
+    const componentsWithOrder = components.map((component, index) => ({
+      ...component,
+      order: index
+    }));
+
     const artifactData = {
       id: crypto.randomUUID(), // UUID string
       name: artifactName,
-      components,
+      components: componentsWithOrder,
       createdAt: new Date().toISOString(),
       partOfQuest: false,
     };
@@ -64,12 +70,15 @@ const PageBuilder = () => {
         setComponents((items) => arrayMove(items, oldIndex, newIndex));
         return;
       }
-    }    if (over?.id === "dropzone" && active.data.current?.isNew) {
+    }    
+    
+    if (over?.id === "dropzone" && active.data.current?.isNew) {
       setComponents((items) => [
         ...items,
         {
           id: crypto.randomUUID(),
           type: active.data.current?.type,
+          order: items.length, // Add order based on current array length
           content: 
             active.data.current?.type === "image"
               ? { url: "", points: [] }
@@ -82,7 +91,14 @@ const PageBuilder = () => {
   };
 
   const handleDelete = (id: string) => {
-    setComponents((prev) => prev.filter((c) => c.id !== id));
+    setComponents((prev) => {
+      const filtered = prev.filter((c) => c.id !== id);
+      // Re-assign order after deletion to maintain sequential order
+      return filtered.map((component, index) => ({
+        ...component,
+        order: index
+      }));
+    });
   };
 
   const handleUpdate = (id: string, content: string | ImageContent | RestorationContent) => {

@@ -266,7 +266,7 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
   return (
     <div className="space-y-6">
       {content.restorations?.length > 0 ? (
-        content.restorations.map((restoration, index) => (
+        content.restorations.map((restoration) => (
           <div key={restoration.id} className="border rounded-lg p-4">
             <h3 className="text-lg font-bold">{restoration.name}</h3>
             <p className="text-sm text-gray-500">
