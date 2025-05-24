@@ -110,6 +110,23 @@ const PageBuilder = () => {
 
   return (
     <AuthGuard adminOnly={true}>
+      {editingImage && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <ImageEditor
+            imageUrl={(editingImage.content as ImageContent).url}
+            points={(editingImage.content as ImageContent).points}
+            onSave={(points) => {
+              handleUpdate(editingImage.id, {
+                ...(editingImage.content as ImageContent),
+                points,
+              });
+              setEditingImage(null);
+            }}
+            onClose={() => setEditingImage(null)}
+          />
+        </div>
+      )}
+
       <DndContext onDragEnd={handleDragEnd}>
         <div className="flex flex-col h-screen bg-gray-50">
           <div className="p-4 border-b bg-white">
