@@ -1,16 +1,13 @@
 'use client';
 
-import { Html5Qrcode, Html5QrcodeScannerState, Html5QrcodeCameraScanConfig } from 'html5-qrcode';
 import { useEffect, useRef } from 'react';
-import { getCameraStream, releaseCameraStream } from '@/lib/cameraStreamManager';
+import QrScanner from 'qr-scanner';
 
 interface QRScannerProps {
   onScanSuccess: (decodedText: string, decodedResult: any) => void;
   onScanError: (errorMessage: string) => void;
   onScannerInit: (success: boolean) => void;
   isActive: boolean;
-  fps?: number;
-  qrbox?: number;
   preferredCamera?: string;
   fullView?: boolean;
 }
@@ -20,65 +17,67 @@ export default function QRScanner({
   onScanError,
   onScannerInit,
   isActive,
-  fps = 10,
-  qrbox,
   preferredCamera = 'environment',
   fullView = false,
 }: QRScannerProps) {
-  const qrRef = useRef<HTMLDivElement>(null);
-  const scanner = useRef<Html5Qrcode | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const scannerRef = useRef<QrScanner | null>(null);
 
   useEffect(() => {
-    if (!isActive || !qrRef.current) return;
+    if (!isActive || !containerRef.current) return;
 
-    const initScanner = async () => {
-      try {
-        await getCameraStream(); // Optional, handles permissions
-        scanner.current = new Html5Qrcode('qr-scanner');
+    const videoElem = document.createElement('video');
+    videoElem.style.width = '100%';
+    videoElem.style.height = '100%';
+    videoRef.current = videoElem;
+    containerRef.current.appendChild(videoElem);
 
-        const config: Html5QrcodeCameraScanConfig = {
-          fps,
-          qrbox: qrbox ?? undefined,
-        };
-
-        await scanner.current.start(
-          { facingMode: preferredCamera },
-          config,
-          onScanSuccess,
-          () => {} // Optional: decode failure callback
-        );
-
-        onScannerInit(true);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to initialize QR scanner';
-        console.error('QR Scanner init error:', err);
-        onScannerInit(false);
-        onScanError(errorMessage);
+    const scanner = new QrScanner(
+      videoElem,
+      (result) => {
+        if (typeof result === 'string') {
+          onScanSuccess(result, null);
+        } else {
+          onScanSuccess(result.data, result);
+        }
+      },
+      {
+        onDecodeError: (error) => {
+          const message = error instanceof Error ? error.message : String(error);
+          onScanError(message);
+        },
+        preferredCamera,
+        returnDetailedScanResult: true,
       }
-    };
+    );
+    scannerRef.current = scanner;
 
-    initScanner();
+    scanner
+      .start()
+      .then(() => onScannerInit(true))
+      .catch((err) => {
+        console.error('Failed to start QR scanner:', err);
+        onScannerInit(false);
+        onScanError(err.message);
+      });
 
     return () => {
-      if (scanner.current) {
-        scanner.current
-          .stop()
-          .then(() => {
-            scanner.current?.clear();
-            releaseCameraStream();
-          })
-          .catch((e) => {
-            console.error('Error stopping scanner:', e);
-          });
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current.destroy();
+        scannerRef.current = null;
+      }
+
+      if (videoRef.current && containerRef.current?.contains(videoRef.current)) {
+        containerRef.current.removeChild(videoRef.current);
       }
     };
-  }, [isActive, fps, qrbox, preferredCamera, onScanSuccess, onScanError, onScannerInit]);
+  }, [isActive, preferredCamera, onScanSuccess, onScanError, onScannerInit]);
 
   return (
     <div
-      id="qr-scanner"
-      ref={qrRef}
+      ref={containerRef}
       className={`relative ${fullView ? 'w-full h-full' : 'w-[300px] h-[300px]'} overflow-hidden`}
     />
   );
