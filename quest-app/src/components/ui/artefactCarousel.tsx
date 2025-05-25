@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ArtefactCard } from "./artefactCard";
 import type { Artefact as ArtefactType } from "@/lib/types";
 
@@ -43,7 +43,7 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
   const getVisibleIndexes = () => {
     if (totalItems === 0) return [];
 
-    const indexes = [];
+    const indexes: number[] = [];
     const halfToShow = Math.floor(itemsToShow / 2);
 
     // Show fewer items when near boundaries
@@ -82,7 +82,7 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
   }, [centerIndex]);
 
   // Handle wheel events to update the center index
-  const handleScroll = (direction: number) => {
+  const handleScroll = useCallback((direction: number) => {
     if (isScrolling) return;
     setIsScrolling(true);
     
@@ -95,21 +95,21 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
     });
     
     setTimeout(() => setIsScrolling(false), 100);
-  };
+  }, [isScrolling, totalItems]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      handleScroll(Math.sign(e.deltaY));
+      const direction = e.deltaY > 0 ? 1 : -1;
+      handleScroll(direction);
     };
 
     const container = containerRef.current;
-    container?.addEventListener('wheel', handleWheel, { passive: false });
-    
-    return () => {
-      container?.removeEventListener('wheel', handleWheel);
-    };
-  }, [totalItems, isScrolling]);
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false });
+      return () => container.removeEventListener('wheel', handleWheel);
+    }
+  }, [handleScroll]);
 
   // Handle touch events for mobile
   useEffect(() => {

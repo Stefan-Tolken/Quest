@@ -24,11 +24,6 @@ interface QuestProgress {
   lastAttemptedArtefactId?: string;
 }
 
-interface DetailsContent {
-  created?: string;
-  origin?: string;
-  dimensions?: string;
-  materials?: string;
 
 // Separate component for image with points to avoid hook issues
 function ImageWithPoints({ component }: { component: ComponentData }) {
@@ -555,75 +550,11 @@ export default function ArtefactDetail({
                         case 'paragraph':
                           return <p key={component.id} className="text-base">{typeof component.content === 'string' ? component.content : ''}</p>;
                         case 'image':
-                          interface ImageContent {
-                            url: string;
-                          }
-                          const imageContent = component.content as ImageContent;
-                          return (
-                            <div key={component.id} className="w-full flex justify-center">
-                              <Image
-                                src={imageContent.url}
-                                alt="Artifact Image"
-                                width={500}
-                                height={350}
-                                className="rounded-lg object-contain"
-                              />
-                            </div>
-                          );
-                        case 'restoration':
-                          interface Restoration {
-                            id?: string;
-                            name: string;
-                            date: string;
-                            description: string;
-                            imageUrl?: string;
-                            organization?: string;
-                          }
-                          interface RestorationContent {
-                            restorations?: Restoration[];
-                          }
-                          const restorationContent = component.content as RestorationContent;
-                          return (
-                            <div key={component.id} className="border rounded-lg p-4">
-                              <h4 className="font-semibold mb-2">Restoration Timeline</h4>
-                              <ol className="list-decimal ml-6">
-                                {restorationContent.restorations?.map((rest: Restoration, idx: number) => (
-                                  <li key={rest.id || idx} className="mb-2">
-                                    <div className="font-medium">{rest.name} ({rest.date})</div>
-                                    <div className="text-sm text-muted-foreground mb-1">{rest.description}</div>
-                                    {rest.imageUrl && (
-                                      <Image
-                                        src={rest.imageUrl}
-                                        alt={rest.name}
-                                        width={300}
-                                        height={200}
-                                        className="rounded border mt-1"
-                                      />
-                                    )}
-                                    {rest.organization && (
-                                      <div className="text-xs text-muted-foreground mt-1">By: {rest.organization}</div>
-                                    )}
-                                  </li>
-                                ))}
-                              </ol>
-                            </div>
-                          );
-                        case 'details':
-                          const details = component.content as DetailsContent;
-                          return (
-                            <div key={component.id} className="border rounded-lg p-4">
-                              <h4 className="font-semibold mb-2">Details</h4>
-                              <ul className="text-sm">
-                                <li><b>Created:</b> {details.created}</li>
-                                <li><b>Origin:</b> {details.origin}</li>
-                                <li><b>Dimensions:</b> {details.dimensions}</li>
-                                <li><b>Materials:</b> {details.materials}</li>
-                              </ul>
                           return <ImageWithPoints key={component.id} component={component} />;
                         case 'restoration':
                           return <RestorationTimeline key={component.id} component={component} />;
                         case 'details':
-                          const details = component.content as any;
+                           const details = component.content as any;
                           return (
                             <div key={component.id} className="border rounded-xl p-6">
                               <h2 className="text-xl font-semibold mb-4">Details</h2>
