@@ -2,6 +2,7 @@
 "use client";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useState, useEffect } from "react";
+import Image from 'next/image';
 import { ComponentList } from "./componentList";
 import { DropZone } from "./dropZone";
 import { ComponentData, RestorationContent } from "@/lib/types";
@@ -38,7 +39,7 @@ const PageBuilder = () => {
       const res = await fetch(`/api/get-artefacts`);
       const data = await res.json();
       if (data.success) {
-        const found = data.artifacts.find((a: any) => a.id === editId);
+        const found = data.artifacts.find((a: { id: string }) => a.id === editId);
         if (found) {
           setArtifactName(found.name || "");
           setArtist(found.artist || "");
@@ -100,23 +101,25 @@ const PageBuilder = () => {
       if (!response.ok) {
         let errorMsg = "Save failed";
         try {
-          const errorData = await response.json();
+          const errorData = await response.json() as { error?: string };
           errorMsg = errorData?.error || errorMsg;
-        } catch (e) {
-          // fallback to text if not JSON
+        } catch {
           try {
             errorMsg = await response.text();
-          } catch {}
+          } catch {
+            // Keep default error message if text extraction fails
+          }
         }
         throw new Error(errorMsg);
       }
+
       setComponents([]);
       setArtifactName("");
       setShowSuccess(true);
-      // window.location.href = "/admin"; // Now handled in popup
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
       console.error("Error saving artifact:", error);
-      alert("Error saving artifact: " + (error?.message || error));
+      alert("Error saving artifact: " + error.message);
     } finally {
       setIsSaving(false);
     }
@@ -134,24 +137,37 @@ const PageBuilder = () => {
         return;
       }
     }    
-    
-    if (over?.id === "dropzone" && active.data.current?.isNew) {
-      setComponents((items) => [
-        ...items,
-        {
-          id: crypto.randomUUID(),
-          type: active.data.current?.type,
-          order: items.length,
-          content: 
-            active.data.current?.type === "image"
-              ? { url: "", points: [] }
-              : active.data.current?.type === "restoration"
-              ? { restorations: [] }
-              : active.data.current?.type === "details"
-              ? { created: "", origin: "", dimensions: "", materials: "" }
-              : "New Content",
-        },
-      ]);
+      if (over?.id === "dropzone" && active.data.current?.isNew) {
+      const type = active.data.current?.type as ComponentData['type'];
+      const newComponent: ComponentData = {
+        id: crypto.randomUUID(),
+        type,
+        order: components.length, 
+        content: (() => {
+          switch (type) {
+            case "image":
+              return { url: "", points: [] };
+            case "restoration":
+              return { restorations: [] };
+            case "details":
+              return {
+                created: "",
+                origin: "",
+                currentLocation: "",
+                dimensions: "",
+                materials: ""
+              };
+            case "heading":
+              return "New Heading";
+            case "paragraph":
+              return "New Paragraph";
+            default:
+              return "";
+          }
+        })(),
+      };
+      
+      setComponents(items => [...items, newComponent]);
     }
   };
 
@@ -191,20 +207,6 @@ const PageBuilder = () => {
       })
     );
   };
-
-  const handleNext = () => {
-    if (step === 1 && !artifactName) {
-      setShowError(true);
-      return;
-    }
-    setShowError(false);
-    setStep((prev) => prev + 1);
-  };
-
-  const handleBack = () => {
-    setStep((prev) => prev - 1);
-  };
-
   return (
     <AuthGuard adminOnly={true}>
       {showSuccess && (
@@ -308,12 +310,14 @@ const PageBuilder = () => {
                     }}
                     className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  {imagePreview && (
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full max-h-48 object-contain rounded border mb-2"
-                    />
+                  {imagePreview && (                    <div className="relative w-full h-48">
+                      <Image
+                        src={imagePreview}
+                        alt="Preview"
+                        fill
+                        className="object-contain rounded border"
+                      />
+                    </div>
                   )}
                   <div className="flex gap-2">
                     <button

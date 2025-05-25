@@ -31,7 +31,6 @@ const QuestBuild = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
-  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Artefact[]>([]);
   const [showSearch, setShowSearch] = useState(false);
@@ -46,11 +45,9 @@ const QuestBuild = () => {
 
   // Load quest data when in edit mode
   useEffect(() => {
-    let isMounted = true;
     const abortController = new AbortController();
 
     const resetState = () => {
-      if (!isMounted) return;
       setQuest({
         quest_id: editId || crypto.randomUUID(),
         title: "",

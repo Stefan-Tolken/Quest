@@ -20,7 +20,7 @@ const basicComponents: ComponentData[] = [
     type: "details",
     content: {
       created: "",
-      origin: "",
+      origin: "",      currentLocation: "",
       dimensions: "",
       materials: ""
     },
