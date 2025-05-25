@@ -26,8 +26,7 @@ const NavBarAdmin: React.FC = () => {
                         <Link href="/admin/page-builder">
                                 Page Builder
                         </Link>
-                    </Button>
-                    <Button 
+                    </Button>                    <Button 
                         variant={"link"}
                     >
                         <Link href="/admin/quest-builder">
@@ -35,7 +34,16 @@ const NavBarAdmin: React.FC = () => {
                         </Link>
                     </Button>
                 </div>
-                <AuthButton />
+                <div className="flex gap-4 items-center">
+                    <Button 
+                        variant={"outline"}
+                    >
+                        <Link href="/client">
+                            Client View
+                        </Link>
+                    </Button>
+                    <AuthButton />
+                </div>
             </>
         ) : (
             <>
