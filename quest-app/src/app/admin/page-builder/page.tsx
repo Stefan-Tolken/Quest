@@ -156,11 +156,10 @@ const PageBuilder = () => {
                 currentLocation: "",
                 dimensions: "",
                 materials: ""
-              };
-            case "heading":
-              return "New Heading";
+              };            case "heading":
+              return "";
             case "paragraph":
-              return "New Paragraph";
+              return "";
             default:
               return "";
           }
@@ -245,6 +244,8 @@ const PageBuilder = () => {
               {/* Step 0: Basic Info */}
               {step === 0 && (
                 <>
+                  <h2 className="text-xl font-semibold mb-2">Basic Information</h2>
+                  <h3 className="text-lg mb-2">Title of the artifact</h3>
                   <input
                     type="text"
                     required
@@ -254,6 +255,7 @@ const PageBuilder = () => {
                     onFocus={() => setShowError(false)}
                     className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                  <h3 className="text-lg mb-2">Enter the artist and date of the artifact (optional)</h3>
                   <input
                     type="text"
                     placeholder="Artist (optional)"
@@ -286,15 +288,15 @@ const PageBuilder = () => {
               {/* Step 1: Description & Image */}
               {step === 1 && (
                 <>
+                  <h2 className="text-xl font-semibold mb-2">Description & Image</h2>
+                  <h3 className="text-lg mb-2">Short artifact description to entise students to explore the page.</h3>
                   <textarea
                     placeholder="Description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[80px]"
                   />
-                  <p className="text-sm text-gray-500 mb-2">
-                    Upload an image for your artifact:
-                  </p>
+                  <h3 className="text-lg mb-2">Upload an for your artifact. This will be the image displayed at the top of the artifact page.</h3>
                   <input
                     type="file"
                     accept="image/*"

@@ -1,7 +1,6 @@
 "use client";
 
 import { useData } from "@/context/dataContext";
-import type { Artefact, Quest } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -10,7 +9,7 @@ import { Trash } from "lucide-react";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 
 export default function AdminHome() {
-  const { artefacts, quests, loading, error } = useData();
+  const { artefacts, quests, loading } = useData();
   const router = useRouter();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteType, setDeleteType] = useState<"artefact" | "quest" | null>(null);
@@ -47,7 +46,7 @@ export default function AdminHome() {
     if (data.usedIn && data.usedIn.length > 0) {
       setDeleteWarning(
         `This artefact is used in the following quest(s):\n${data.usedIn
-          .map((q: any) => q.title)
+          .map((q: { title: string }) => q.title)
           .join(", ")}. You must remove it from all quests before deleting.`
       );
       setDeletingId(id);

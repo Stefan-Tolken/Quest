@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     let imageUrl = artifactData.image;
     if (typeof imageUrl === "string" && imageUrl.startsWith("data:image/")) {
       try {
-        const matches = imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        const matches = imageUrl.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
         if (matches && matches.length === 3) {
           const contentType = matches[1];
           const base64Data = matches[2];
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
         ) {
           try {
             const matches = component.content.url.match(
-              /^data:([A-Za-z-+\/]+);base64,(.+)$/
+              /^data:([A-Za-z-+/]+);base64,(.+)$/
             );
             if (matches && matches.length === 3) {
               const contentType = matches[1];
@@ -120,7 +120,7 @@ export async function POST(request: Request) {
             const updatedRestorations = await Promise.all(
               (component.content.restorations as Array<any>).map(async (rest: any, rIndex: number) => {
                 if (rest.imageUrl && rest.imageUrl.startsWith("data:image/")) {
-                  const matches = rest.imageUrl.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+                  const matches = rest.imageUrl.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
                   if (matches && matches.length === 3) {
                     const contentType = matches[1];
                     const base64Data = matches[2];

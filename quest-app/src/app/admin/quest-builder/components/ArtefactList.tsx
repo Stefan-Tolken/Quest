@@ -301,7 +301,7 @@ export const ArtefactList = ({
       ) : (
         <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
           <p className="text-gray-500">
-            No artifacts added yet. Click 'Add Artifact' to begin.
+            No artifacts added yet. Click &#39;Add Artifact&#39; to begin.
           </p>
         </div>
       )}
