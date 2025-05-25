@@ -52,14 +52,38 @@ export default function ArtefactDetail({
       .catch(() => setError('Failed to fetch artefact'))
       .finally(() => setLoading(false));
   }, [artefactId]);
-
   // Fetch user quest progress for the active quest
   useEffect(() => {
-    if (!activeQuest) return;
-    fetch(`/api/user-quest-progress?questId=${activeQuest.quest_id}`)
+    if (!activeQuest || !activeQuest.quest_id) return;
+
+    // Get JWT token from localStorage or sessionStorage (OIDC user)
+    let token = localStorage.getItem('token');
+    if (!token && typeof window !== 'undefined') {
+      const oidcKey = Object.keys(sessionStorage).find(k => k.startsWith('oidc.user:'));
+      if (oidcKey) {
+        try {
+          const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
+          token = oidcUser.id_token;
+        } catch {}
+      }
+    }
+
+    fetch(`/api/user-quest-progress?questId=${activeQuest.quest_id}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    })
       .then(res => res.json())
-      .then(data => setProgress(data))
-      .catch(() => setProgress(null));
+      .then(data => {
+        if (!data.error) {
+          setProgress(data);
+        } else {
+          console.warn('User quest progress error:', data.error);
+          setProgress(null);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch quest progress:', err);
+        setProgress(null);
+      });
   }, [activeQuest]);
 
   useEffect(() => {

@@ -27,14 +27,15 @@ export async function POST(req: NextRequest) {
     }));
     if (getRes.Item) {
       return NextResponse.json({ error: 'Quest already started' }, { status: 409 });
-    }
-    // Create new progress entry
+    }    // Create new progress entry with initialized attempts field
     const newProgress = {
       userId,
       questId,
       status: 'in_progress',
-      collectedArtefacts: [],
-      startedAt: new Date().toISOString(),
+      collectedArtefactIds: [],
+      attempts: [], // Initialize as empty array
+      completed: false,
+      startedAt: new Date().toISOString()
     };
     await ddbDocClient.send(new PutCommand({
       TableName: TABLE_NAME,

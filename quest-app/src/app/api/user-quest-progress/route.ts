@@ -26,13 +26,13 @@ export async function GET(req: NextRequest) {
     }
     // Defensive: handle missing or wrong type for collectedArtefactIds
     let collectedArtefactIds: string[] = [];
-    if (data.Item.collectedArtefactIds && Array.isArray(data.Item.collectedArtefactIds.SS)) {
-      collectedArtefactIds = data.Item.collectedArtefactIds.SS;
+    if (data.Item.collectedArtefactIds && Array.isArray(data.Item.collectedArtefactIds.SS)) {      collectedArtefactIds = data.Item.collectedArtefactIds.SS;
     }
     return NextResponse.json({
       collectedArtefactIds,
       completed: data.Item.completed ? data.Item.completed.BOOL : false,
       completedAt: data.Item.completedAt ? data.Item.completedAt.S : null,
+      attempts: data.Item.attempts ? data.Item.attempts.M : {},
     });
   } catch (e) {
     console.error('user-quest-progress error:', e);
