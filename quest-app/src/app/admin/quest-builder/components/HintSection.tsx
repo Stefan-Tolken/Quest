@@ -6,7 +6,6 @@ import {
   ArrowUp,
   ArrowDown,
   List,
-  Shuffle,
   GripVertical,
 } from "lucide-react";
 
@@ -39,7 +38,6 @@ type HintsSectionProps = {
   hints: Hint[];
   hintDisplayMode: string;
   currentHint: Hint;
-  onToggleDisplayMode: () => void;
   onAddHint: () => void;
   onRemoveHint: (hintIndex: number) => void;
   onMoveHint: (hintIndex: number, direction: "up" | "down") => void;
@@ -145,7 +143,6 @@ export const HintsSection = ({
   hints,
   hintDisplayMode,
   currentHint,
-  onToggleDisplayMode,
   onAddHint,
   onRemoveHint,
   onMoveHint,
@@ -184,31 +181,12 @@ export const HintsSection = ({
     <div className="p-4 border-t border-gray-200">
       <div className="mb-4">
         <div className="flex justify-between items-center mb-2">
-          <h4 className="font-medium">Hints (max 5)</h4>
-          <div className="flex items-center gap-2">
+          <h4 className="font-medium">Hints (max 5)</h4>          <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">Display Mode:</span>
-            <button
-              className={`flex items-center gap-1 px-3 py-1 rounded text-sm ${
-                hintDisplayMode === "sequential"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-              onClick={onToggleDisplayMode}
-            >
+            <div className="flex items-center gap-1 px-3 py-1 rounded text-sm bg-indigo-600 text-white">
               <List size={14} />
-              Sequential
-            </button>
-            <button
-              className={`flex items-center gap-1 px-3 py-1 rounded text-sm ${
-                hintDisplayMode === "random"
-                  ? "bg-indigo-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              }`}
-              onClick={onToggleDisplayMode}
-            >
-              <Shuffle size={14} />
-              Random
-            </button>
+              <span>Sequential</span>
+            </div>
           </div>
         </div>
 

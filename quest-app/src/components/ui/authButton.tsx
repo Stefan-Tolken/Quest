@@ -4,7 +4,7 @@ import { useAuthState } from "@/lib/useAuth";
 import { Button } from "./button";
 
 export default function AuthButton() {
-  const { isAuthenticated, isLoading, signin, signup, signout, user } = useAuthState();
+  const { isAuthenticated, isLoading, signin, signup, signout } = useAuthState();
 
   if (isLoading) return <p>Loading...</p>;
 

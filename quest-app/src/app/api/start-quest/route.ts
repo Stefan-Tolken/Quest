@@ -20,30 +20,41 @@ export async function POST(req: NextRequest) {
     if (!questId) {
       return NextResponse.json({ error: 'Missing questId' }, { status: 400 });
     }
+
     // Check if already started
     const getRes = await ddbDocClient.send(new GetCommand({
       TableName: TABLE_NAME,
       Key: { userId, questId },
     }));
+
     if (getRes.Item) {
       return NextResponse.json({ error: 'Quest already started' }, { status: 409 });
-    }    // Create new progress entry with initialized attempts field
+    }
+
+    // Create new progress entry with initialized fields
+    const startTime = new Date().toISOString();
     const newProgress = {
       userId,
       questId,
       status: 'in_progress',
       collectedArtefactIds: [],
-      attempts: [], // Initialize as empty array
+      attempts: 0, // Initialize as single number
+      displayedHints: {}, // Object to track displayed hints per artefact
       completed: false,
-      startedAt: new Date().toISOString()
+      startTime,
+      endTime: null,
+      lastAttemptedArtefactId: null
     };
+
     await ddbDocClient.send(new PutCommand({
       TableName: TABLE_NAME,
       Item: newProgress,
     }));
+
     return NextResponse.json({ success: true, progress: newProgress });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error in /api/start-quest:', err);
-    return NextResponse.json({ error: 'Internal server error', details: err.message }, { status: 500 });
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: 'Internal server error', details: errorMessage }, { status: 500 });
   }
 }

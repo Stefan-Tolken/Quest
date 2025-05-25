@@ -329,17 +329,17 @@ const QuestBuild = () => {
     setCurrentHint({ description: "", displayAfterAttempts: 1 });
   };
 
-  const toggleHintDisplayMode = (artefactIndex: number) => {
-    setQuest((prev) => {
-      const updatedArtefacts = [...prev.artefacts];
-      const currentMode = updatedArtefacts[artefactIndex].hintDisplayMode;
-      updatedArtefacts[artefactIndex] = {
-        ...updatedArtefacts[artefactIndex],
-        hintDisplayMode: currentMode === "sequential" ? "random" : "sequential",
-      };
-      return { ...prev, artefacts: updatedArtefacts };
-    });
-  };
+  // const toggleHintDisplayMode = (artefactIndex: number) => {
+  //   setQuest((prev) => {
+  //     const updatedArtefacts = [...prev.artefacts];
+  //     const currentMode = updatedArtefacts[artefactIndex].hintDisplayMode;
+  //     updatedArtefacts[artefactIndex] = {
+  //       ...updatedArtefacts[artefactIndex],
+  //       hintDisplayMode: currentMode === "sequential" ? "random" : "sequential",
+  //     };
+  //     return { ...prev, artefacts: updatedArtefacts };
+  //   });
+  // };
 
   const handleAddHint = (artefactIndex: number) => {
     if (!currentHint.description.trim()) return;
@@ -665,9 +665,9 @@ const QuestBuild = () => {
                     quest.artefacts[activeArtefactIndex].hintDisplayMode
                   }
                   currentHint={currentHint}
-                  onToggleDisplayMode={() =>
-                    toggleHintDisplayMode(activeArtefactIndex)
-                  }
+                  // onToggleDisplayMode={() =>
+                  //   toggleHintDisplayMode(activeArtefactIndex)
+                  // }
                   onAddHint={() => handleAddHint(activeArtefactIndex)}
                   onRemoveHint={(hintIndex) =>
                     removeHint(activeArtefactIndex, hintIndex)
