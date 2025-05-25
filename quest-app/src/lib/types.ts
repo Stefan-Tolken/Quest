@@ -4,6 +4,7 @@ import { DateRange } from "react-day-picker";
 export type Hint = {
   description: string;
   displayAfterAttempts: number;
+  displayedHint?: boolean;
 };
 
 export type HintDisplayMode = "sequential" | "random";

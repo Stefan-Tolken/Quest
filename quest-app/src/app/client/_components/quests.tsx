@@ -1,16 +1,110 @@
 // components/ui/quests.tsx
 'use client';
+
+import { useCallback, useEffect, useState } from 'react';
 import { useData } from '@/context/dataContext';
 import { useQuest } from '@/context/questContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { CalendarDays, Trophy, MapPin } from 'lucide-react';
-import type { Quest as MainQuest } from "@/lib/types";
-import { useEffect, useState } from 'react';
+import type { Quest, Hint } from '@/lib/types';
+
+interface QuestProgress {
+  collectedArtefactIds: string[];
+  completed: boolean;
+  completedAt?: string | null;
+  attempts: number;
+  startTime?: string;
+  endTime?: string;
+  lastAttemptedArtefactId?: string;
+  displayedHints: Record<string, boolean>;
+}
+
+type MainQuest = Omit<Quest, 'artefacts'> & {
+  artefacts: Array<{
+    artefactId: string;
+    hints: Hint[];
+    hintDisplayMode: 'sequential' | 'random';
+    name?: string;
+  }>;
+  dateRange?: {
+    from?: string;
+    to?: string;
+  };
+  questType?: 'sequential' | 'random';
+  prize?: {
+    title: string;
+  };
+};
+
+function parseDate(date?: string | Date): Date | undefined {
+  return date ? new Date(date) : undefined;
+}
+
+function isMainQuest(q: unknown): q is MainQuest {
+  if (!q || typeof q !== 'object') return false;
+  const quest = q as MainQuest;
+  return typeof quest.title === 'string' && 
+         typeof quest.quest_id === 'string' &&
+         Array.isArray(quest.artefacts);
+}
 
 export default function Quests() {
   const { quests, loading, error } = useData();
   const { activeQuest, acceptQuest, cancelQuest } = useQuest();
+  const [progress, setProgress] = useState<QuestProgress | null>(null);
+  const [progressLoading, setProgressLoading] = useState(false);
+  const [progressError, setProgressError] = useState<string | null>(null);
+  
+  // Get the single attempts number
+  const getAttempts = useCallback((): number => {
+    return progress?.attempts || 0;
+  }, [progress]);
+
+  const handleError = useCallback((err: unknown) => {
+    console.error(err);
+    setProgressError('Could not load progress');
+    setProgressLoading(false);
+  }, [setProgressError, setProgressLoading]);
+
+  const loadQuestProgress = useCallback(async (questId: string) => {
+    setProgressLoading(true);
+    setProgressError(null);
+
+    try {
+      let token = localStorage.getItem('token');
+      if (!token && typeof window !== 'undefined') {
+        const oidcKey = Object.keys(sessionStorage).find(k => k.startsWith('oidc.user:'));
+        if (oidcKey) {
+          const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
+          token = oidcUser.id_token;
+        }
+      }
+
+      const response = await fetch(`/api/user-quest-progress?questId=${questId}`, {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch quest progress');
+      }
+
+      const data = await response.json();
+      setProgress(data);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setProgressLoading(false);
+    }
+  }, [handleError, setProgress, setProgressError, setProgressLoading]);
+
+  useEffect(() => {
+    if (isMainQuest(activeQuest)) {
+      loadQuestProgress(activeQuest.quest_id);
+    } else {
+      setProgress(null);
+    }
+  }, [activeQuest, loadQuestProgress, setProgress]);
 
   if (loading) {
     return (
@@ -39,7 +133,7 @@ export default function Quests() {
     );
   }
 
-  if (!quests.length) {
+  if (!quests?.length) {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Quests</h1>
@@ -52,91 +146,75 @@ export default function Quests() {
     );
   }
 
-  // Helper to parse dates safely
-  const parseDate = (date: any) => (date ? new Date(date) : undefined);
   const now = new Date();
-
-  // Categorize quests
-  let acceptedQuest: MainQuest | null = null;
+  let questToShow: MainQuest | null = null;
   const ongoingQuests: MainQuest[] = [];
   const upcomingQuests: MainQuest[] = [];
 
-  for (let i = 0; i < quests.length; i++) {
-    const quest = quests[i] as MainQuest;
-    const from = parseDate(quest.dateRange?.from);
-    const to = parseDate(quest.dateRange?.to);
-    const isAccepted = activeQuest?.quest_id === quest.quest_id;
+  // Categorize quests
+  for (const quest of quests) {
+    if (isMainQuest(quest)) {
+      const from = parseDate(quest.dateRange?.from);
+      const to = parseDate(quest.dateRange?.to);
+      const isAccepted = activeQuest?.quest_id === quest.quest_id;
 
-    if (isAccepted) {
-      acceptedQuest = quest;
-      continue;
-    }
-    if (from && from > now) {
-      upcomingQuests.push(quest);
-    } else if (from && from <= now && (!to || to > now)) {
-      ongoingQuests.push(quest);
-    }
-    // Past quests (to && to < now) are not shown
-  }
-
-  // Type guard for acceptedQuest
-  function isMainQuest(q: any): q is MainQuest {
-    return q && typeof q === 'object' && typeof q.title === 'string' && typeof q.quest_id === 'string';
-  }
-
-  let questToShow: MainQuest | null = null;
-  if (isMainQuest(acceptedQuest)) {
-    questToShow = acceptedQuest;
-  }
-  // User quest progress state
-  const [progress, setProgress] = useState<{ 
-    collectedArtefactIds: string[]; 
-    completed: boolean; 
-    completedAt?: string | null;
-    attempts: number[]; // Track attempts as array of numbers
-  } | null>(null);
-  const [progressLoading, setProgressLoading] = useState(false);
-  const [progressError, setProgressError] = useState<string | null>(null);
-
-  // Helper function to get attempts for a specific artifact
-  const getAttempts = (artifactIndex: number) => {
-    if (!progress?.attempts) return 0;
-    return progress.attempts[artifactIndex] || 0;
-  };
-
-  // Fetch user quest progress when accepted quest changes
-  useEffect(() => {
-    if (!questToShow) {
-      setProgress(null);
-      return;
-    }
-    setProgressLoading(true);
-    setProgressError(null);
-    // Get JWT token from localStorage (adjust key as needed for your app)
-    let token = localStorage.getItem('token');
-    if (!token && typeof window !== 'undefined') {
-      // Try to find Cognito OIDC user in sessionStorage
-      const oidcKey = Object.keys(sessionStorage).find(k => k.startsWith('oidc.user:'));
-      if (oidcKey) {
-        try {
-          const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
-          token = oidcUser.id_token;
-        } catch {}
+      if (isAccepted) {
+        questToShow = quest;
+      } else if (from && from > now) {
+        upcomingQuests.push(quest);
+      } else if (from && from <= now && (!to || to > now)) {
+        ongoingQuests.push(quest);
       }
     }
-    fetch(`/api/user-quest-progress?questId=${questToShow.quest_id}`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-    })
-      .then(res => res.json())
-      .then(data => {
-        setProgress(data);
-        setProgressLoading(false);
-      })
-      .catch(err => {
-        setProgressError('Could not load progress');
-        setProgressLoading(false);
+  }
+
+  // Determine which artefacts to display based on quest type
+  const getVisibleArtefacts = (questType: 'sequential' | 'random' | undefined, artefacts: MainQuest['artefacts'], progress: QuestProgress) => {
+    if (questType === 'random' && !progress.completed) {
+      const uncollectedArtefacts = artefacts.filter(
+        a => !progress.collectedArtefactIds?.includes(a.artefactId)
+      );
+      if (uncollectedArtefacts.length > 0) {
+        return [uncollectedArtefacts[Math.floor(Math.random() * uncollectedArtefacts.length)]];
+      }
+    }
+    return artefacts;
+  };  // Get hints to display for an artefact based on its hint display mode and attempts
+  const getHintsToDisplay = (artefact: MainQuest['artefacts'][0], attempts: number, progress: QuestProgress): Hint[] => {
+    if (attempts === 0 || !progress.startTime) {
+      return [];
+    }
+
+    // Filter hints based on the number of attempts
+    const eligibleHints = artefact.hints.filter(hint => {
+      if (attempts < hint.displayAfterAttempts) {
+        return false;
+      }
+      return true;
+    });
+
+    if (eligibleHints.length === 0) {
+      return [];
+    }
+
+    if (artefact.hintDisplayMode === 'random') {
+      // Get unshown hints for the current artefact
+      const unshownHints = eligibleHints.filter((_, idx) => {
+        const hintKey = `${artefact.artefactId}-${idx}`;
+        return !progress.displayedHints[hintKey];
       });
-  }, [questToShow]);
+
+      if (unshownHints.length === 0) {
+        return [];
+      }
+
+      // Return a random unshown hint
+      return [unshownHints[Math.floor(Math.random() * unshownHints.length)]];
+    }
+
+    // For sequential hints, return all eligible hints in order
+    return eligibleHints;
+  };
 
   return (
     <div className="pb-20 p-6 space-y-10">
@@ -151,8 +229,9 @@ export default function Quests() {
               <CardTitle>{questToShow.title}</CardTitle>
               <CardDescription>{questToShow.description}</CardDescription>
             </CardHeader>
+
             <CardContent className="grid grid-cols-1 gap-4">
-              {/* Main quest info */}
+              {/* Quest Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                 {questToShow.dateRange && (
                   <div className="flex items-start gap-3">
@@ -170,7 +249,7 @@ export default function Quests() {
                   <div>
                     <p className="font-medium">Artefacts</p>
                     <p className="text-muted-foreground">
-                      {Array.isArray(questToShow.artefacts) ? questToShow.artefacts.length : 0} to discover
+                      {questToShow.artefacts.length} to discover
                     </p>
                   </div>
                 </div>
@@ -183,23 +262,25 @@ export default function Quests() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Hints Section */}
-              {progress && questToShow.artefacts && (
+              </div>              {/* Hints Section */}
+              {questToShow && progress && (
                 <div className="mt-4">
                   <h3 className="font-medium text-blue-800 mb-3">Quest Progress & Hints</h3>
                   <div className="space-y-3">
-                    {questToShow.artefacts.map((artefact: any, index: number) => {
+                    {getVisibleArtefacts(questToShow.questType, questToShow.artefacts, progress).map((artefact) => {
+                      const originalIndex = questToShow.artefacts.findIndex(a => a.artefactId === artefact.artefactId);
                       const isCollected = progress.collectedArtefactIds?.includes(artefact.artefactId);
-                      const isNextInSequence = !progress.completed && questToShow.questType === 'sequential' && 
-                        index === (progress.collectedArtefactIds?.length || 0);
-                      const attempts = progress.attempts?.[index] || 0;
-                      
-                      // Only show next artifact and collected ones in sequential mode
+                      const isNextInSequence = !progress.completed && 
+                        questToShow.questType === 'sequential' && 
+                        originalIndex === (progress.collectedArtefactIds?.length || 0);
+                      const attempts = getAttempts();
+                      const isLastAttempted = progress.lastAttemptedArtefactId === artefact.artefactId;
+
                       if (questToShow.questType === 'sequential' && !isCollected && !isNextInSequence) {
                         return null;
                       }
+
+                      const hintsToDisplay = getHintsToDisplay(artefact, attempts, progress);
 
                       return (
                         <div 
@@ -222,36 +303,61 @@ export default function Quests() {
                                 <span className="ml-2 text-blue-600 text-sm">Current Target</span>
                               )}
                             </div>
-                            {attempts > 0 && !isCollected && (
+                            {(attempts > 0 && isLastAttempted && !isCollected) && (
                               <span className="text-sm text-gray-500">
                                 Attempts: {attempts}
                               </span>
                             )}
-                          </div>
-                          
-                          {/* Show hints based on number of attempts */}
+                          </div>                          {/* Show hints section */}
                           {!isCollected && !progress.completed && artefact.hints && (
                             <div className="space-y-2 mt-3">
-                              {artefact.hints.slice(0, attempts).map((hint: any, hintIndex: number) => (
-                                <div 
-                                  key={hintIndex}
-                                  className="text-sm bg-white p-3 rounded border border-gray-200"
-                                >
-                                  <div className="flex gap-2 items-center">
-                                    <span className="font-medium">Hint {hintIndex + 1}</span>
+                              {hintsToDisplay.map((hint, idx) => {
+                                const hintKey = `${artefact.artefactId}-${idx}`;
+                                const isDisplayed = progress.displayedHints[hintKey];
+                                
+                                if (!isDisplayed) {
+                                  // Update displayedHints in the backend
+                                  fetch(`/api/user-quest-progress`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      questId: questToShow.quest_id,
+                                      artefactId: artefact.artefactId,
+                                      displayedHint: { [hintKey]: true }
+                                    })
+                                  }).catch(console.error);
+
+                                  // Update local progress state
+                                  setProgress(prev => {
+                                    if (!prev) return prev;
+                                    return {
+                                      ...prev,
+                                      displayedHints: {
+                                        ...prev.displayedHints,
+                                        [hintKey]: true
+                                      }
+                                    };
+                                  });
+                                }
+                                
+                                return (
+                                  <div 
+                                    key={idx}
+                                    className="text-sm bg-white p-3 rounded border border-gray-200"
+                                  >
+                                    <div className="flex gap-2 items-center">
+                                      <span className="font-medium">Hint {idx + 1}</span>
+                                    </div>
+                                    <p className="mt-1 text-gray-600">{hint.description}</p>
                                   </div>
-                                  <p className="mt-1 text-gray-600">{hint.description}</p>
-                                </div>
-                              ))}
-                              {/* Show placeholder for next hint if there are more available */}
-                              {attempts < artefact.hints.length && (
-                                <div 
-                                  className="text-sm bg-gray-50 p-3 rounded border border-gray-200"
-                                >
+                                );
+                              })}
+                              {artefact.hints.some(hint => attempts < hint.displayAfterAttempts) && (
+                                <div className="text-sm bg-gray-50 p-3 rounded border border-gray-200">
                                   <div className="flex gap-2 items-center">
                                     <span className="font-medium text-gray-400">Next Hint</span>
                                     <span className="text-gray-400 text-xs">
-                                      (Unlocks after next attempt)
+                                      (Unlocks after more attempts)
                                     </span>
                                   </div>
                                 </div>
@@ -280,8 +386,7 @@ export default function Quests() {
                     <>
                       <span className="font-medium">Artefacts found:</span>
                       <span>
-                        {Array.isArray(progress?.collectedArtefactIds) ? progress.collectedArtefactIds.length : 0} / 
-                        {Array.isArray(questToShow.artefacts) ? questToShow.artefacts.length : 0}
+                        {progress.collectedArtefactIds.length} / {questToShow.artefacts.length}
                       </span>
                     </>
                   )}
@@ -301,7 +406,7 @@ export default function Quests() {
       )}
 
       {/* Ongoing Quests Section */}
-      {ongoingQuests.length > 0 && !acceptedQuest && (
+      {ongoingQuests.length > 0 && !questToShow && (
         <div>
           <h2 className="text-xl font-semibold mb-2 text-green-700">Ongoing Quests</h2>
           <div className="grid gap-6">
@@ -327,9 +432,7 @@ export default function Quests() {
                     <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Artefacts</p>
-                      <p className="text-muted-foreground">
-                        {Array.isArray(quest.artefacts) ? quest.artefacts.length : 0} to discover
-                      </p>
+                      <p className="text-muted-foreground">{quest.artefacts.length} to discover</p>
                     </div>
                   </div>
                   {quest.prize && (
@@ -358,7 +461,7 @@ export default function Quests() {
       )}
 
       {/* Upcoming Quests Section */}
-      {upcomingQuests.length > 0 && !acceptedQuest && (
+      {upcomingQuests.length > 0 && !questToShow && (
         <div>
           <h2 className="text-xl font-semibold mb-2 text-gray-700">Upcoming Quests</h2>
           <div className="grid gap-6">
@@ -384,9 +487,7 @@ export default function Quests() {
                     <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Artefacts</p>
-                      <p className="text-muted-foreground">
-                        {Array.isArray(quest.artefacts) ? quest.artefacts.length : 0} to discover
-                      </p>
+                      <p className="text-muted-foreground">{quest.artefacts.length} to discover</p>
                     </div>
                   </div>
                   {quest.prize && (
@@ -400,7 +501,11 @@ export default function Quests() {
                   )}
                 </CardContent>
                 <CardFooter>
-                  <Button disabled variant="secondary" className="w-full sm:w-auto opacity-60 cursor-not-allowed">
+                  <Button 
+                    disabled 
+                    variant="secondary" 
+                    className="w-full sm:w-auto opacity-60 cursor-not-allowed"
+                  >
                     Not Yet Available
                   </Button>
                 </CardFooter>
