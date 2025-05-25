@@ -7,6 +7,11 @@ interface ArtefactCarouselProps {
   onArtefactSelect?: (artefact: ArtefactType, elementRect: DOMRect) => void;
 }
 
+// Define fixed constants outside component to prevent recreations
+const itemsToShow = 3; // Number of items to display
+const centerItemHeight = 275; // Height for centered item (larger)
+const sideItemHeight = 80;   // Height for non-centered items (smaller)
+
 export default function ArtefactCarousel({ artefacts, onArtefactSelect }: ArtefactCarouselProps) {
   const totalItems = artefacts.length;
   const [centerIndex, setCenterIndex] = useState(Math.floor(totalItems / 2));
@@ -17,30 +22,21 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
   const [newItems, setNewItems] = useState<Record<number, boolean>>({});
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   
-  // In ArtefactCarousel component
+  // Effect for resetting center index when artefacts change
   useEffect(() => {
-    // Reset center index when artefacts array changes
     if (artefacts.length > 0) {
       setCenterIndex(Math.floor(artefacts.length / 2));
     } else {
-      // Handle empty artefacts array
       setVisibleIndices([]);
     }
-  }, [artefacts]);
+  }, [artefacts.length]);
 
-  // Define fixed heights for centered and side items
-  const centerItemHeight = 275; // Height for centered item (larger)
-  const sideItemHeight = 80;   // Height for non-centered items (smaller)
-  
   useEffect(() => {
     setCenterIndex(Math.floor(totalItems / 2));
-  }, [artefacts]);
-
-  // Variable to determine how many items to display
-  const itemsToShow = 3; // Change this value to 3 or any other number as needed
+  }, [totalItems]);
 
   // Calculate the indexes of the items to display
-  const getVisibleIndexes = () => {
+  const getVisibleIndexes = useCallback(() => {
     if (totalItems === 0) return [];
 
     const indexes: number[] = [];
@@ -55,7 +51,7 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
     }
 
     return indexes;
-  };
+  }, [centerIndex, totalItems]);
 
   // Track visible indices changes to detect new items
   useEffect(() => {
@@ -79,7 +75,7 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
     }, 50); // Slightly longer than the animation duration
     
     return () => clearTimeout(timer);
-  }, [centerIndex]);
+  }, [centerIndex, getVisibleIndexes, previousVisibleIndices]);
 
   // Handle wheel events to update the center index
   const handleScroll = useCallback((direction: number) => {
@@ -96,20 +92,6 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
     
     setTimeout(() => setIsScrolling(false), 100);
   }, [isScrolling, totalItems]);
-
-  useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const direction = e.deltaY > 0 ? 1 : -1;
-      handleScroll(direction);
-    };
-
-    const container = containerRef.current;
-    if (container) {
-      container.addEventListener('wheel', handleWheel, { passive: false });
-      return () => container.removeEventListener('wheel', handleWheel);
-    }
-  }, [handleScroll]);
 
   // Handle touch events for mobile
   useEffect(() => {
@@ -135,7 +117,21 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
       container?.removeEventListener('touchstart', handleTouchStart);
       container?.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [totalItems]);
+  }, [handleScroll]); // Added handleScroll as a dependency
+
+  useEffect(() => {
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const direction = e.deltaY > 0 ? 1 : -1;
+      handleScroll(direction);
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      container.addEventListener('wheel', handleWheel, { passive: false });
+      return () => container.removeEventListener('wheel', handleWheel);
+    }
+  }, [handleScroll]); // This was already correct
 
   // Calculate vertical positions with fixed heights
   const calculatePositions = () => {

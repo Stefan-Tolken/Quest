@@ -7,14 +7,23 @@ interface ArtefactProps {
   description: string;
   isCenter: boolean;
   isGrid?: boolean;
-  image?: string; // Add image prop
+  image?: string;
 }
+
+// Utility function to limit description to 50 words
+const truncateDescription = (text: string): string => {
+  const words = text.split(/\s+/);
+  if (words.length <= 50) return text;
+  return words.slice(0, 50).join(' ') + '...';
+};
 
 export const ArtefactCard = ({ id, name, description, isCenter, isGrid = false, image }: ArtefactProps) => {
   // Use provided image or fallback to placeholder
   const imageUrl = image && typeof image === 'string' && image.length > 0
     ? image
     : `/api/placeholder/${id}`;
+
+  const truncatedDescription = truncateDescription(description);
 
   if (isGrid) {
     return (
@@ -32,7 +41,7 @@ export const ArtefactCard = ({ id, name, description, isCenter, isGrid = false, 
             <CardContent className="p-4 w-full">
               <h2 className="text-xl font-bold text-white">{name}</h2>
               <p className="text-sm text-white/80 line-clamp-2 mt-1">
-                {description}
+                {truncatedDescription}
               </p>
             </CardContent>
           </div>
@@ -58,7 +67,7 @@ export const ArtefactCard = ({ id, name, description, isCenter, isGrid = false, 
           <h2 className="text-lg font-semibold text-center">{name}</h2>
           {isCenter && (
             <p className="text-sm text-muted-foreground text-center">
-              {description}
+              {truncatedDescription}
             </p>
           )}
         </CardContent>

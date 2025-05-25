@@ -1,7 +1,7 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import { Artefact as ArtefactType } from '@/lib/mockData';
+import { Artefact } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,8 +13,8 @@ import {
 import { Filter, Grid, Layers } from 'lucide-react';
 
 interface SearchBarProps {
-  onSearch: (results: ArtefactType[]) => void;
-  artefacts: ArtefactType[];
+  onSearch: (results: Artefact[]) => void;
+  artefacts: Artefact[];
   isGrid: boolean;
   onViewToggle: () => void;
 }
@@ -28,23 +28,20 @@ export default function SearchBar({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
 
-  // Get unique groups from artefacts
-  const groups = Array.from(new Set(artefacts.map(artefact => artefact.group)));
+  // Get unique groups from artefacts, filtering out undefined values
+  const groups = Array.from(new Set(artefacts
+    .map(artefact => artefact.group)
+    .filter((group): group is string => group !== undefined)));
 
-  // Initialize Fuse instance with our artefacts
-  const fuse = new Fuse(artefacts, {
+  // Initialize Fuse instance with our artefacts using useMemo
+  const fuse = useMemo(() => new Fuse(artefacts, {
     keys: ['name', 'description'],
     threshold: 0.4,
     includeScore: true
-  });
-
-  // This effect runs whenever searchTerm or selectedGroup changes
-  useEffect(() => {
-    updateResults();
-  }, [searchTerm, selectedGroup]);
+  }), [artefacts]);
 
   const updateResults = useCallback(() => {
-    let results: ArtefactType[] = [];
+    let results: Artefact[] = [];
     
     // Apply search if there's a search term
     if (searchTerm) {
@@ -56,11 +53,16 @@ export default function SearchBar({
 
     // Apply group filter if selected
     if (selectedGroup) {
-      results = results.filter(artefact => artefact.group === selectedGroup);
+      results = results.filter(artefact => artefact.group && artefact.group === selectedGroup);
     }
 
     onSearch(results);
   }, [artefacts, fuse, onSearch, searchTerm, selectedGroup]);
+
+  // This effect runs whenever searchTerm or selectedGroup changes
+  useEffect(() => {
+    updateResults();
+  }, [searchTerm, selectedGroup, updateResults]);
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);

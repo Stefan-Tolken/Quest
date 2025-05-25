@@ -356,7 +356,10 @@ export default function ArtefactDetail({
         try {
           const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
           token = oidcUser.id_token;
-        } catch {}
+        } catch {
+          console.warn('Failed to parse OIDC user from sessionStorage');
+          token = null;
+        }
       }
     }
 
@@ -436,7 +439,10 @@ export default function ArtefactDetail({
           try {
             const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
             token = oidcUser.id_token;
-          } catch {}
+          } catch {
+            console.warn('Failed to parse OIDC user from sessionStorage');
+            token = null;
+          }
         }
       }
       
@@ -553,7 +559,7 @@ export default function ArtefactDetail({
                           return <ImageWithPoints key={component.id} component={component} />;
                         case 'restoration':
                           return <RestorationTimeline key={component.id} component={component} />;
-                        case 'details':
+                        case 'details': {
                            const details = component.content as any;
                           return (
                             <div key={component.id} className="border rounded-xl p-6">
@@ -590,6 +596,7 @@ export default function ArtefactDetail({
                               </div>
                             </div>
                           );
+                        }
                         default:
                           return null;
                       }

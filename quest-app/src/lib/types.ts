@@ -56,6 +56,7 @@ export type Artefact = {
   components: ComponentData[];
   createdAt: string;
   partOfQuest: string[];
+  group?: string;  // Making it optional to maintain backward compatibility
 };
 
 export type QuestArtefact = {

@@ -1,6 +1,6 @@
 'use client';
 import { Button } from "@/components/ui/button";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import clsx from "clsx";
 
 interface AppNavbarProps {
@@ -19,7 +19,7 @@ export default function AppNavbar({
   const [highlightedIndex, setHighlightedIndex] = useState(currentIndex);
   const isScrolling = useRef(false);
 
-  const handleScroll = () => {
+  const handleScroll = useCallback(() => {
     if (!navRef.current) return;
     
     isScrolling.current = true;
@@ -45,7 +45,7 @@ export default function AppNavbar({
       onNavSelect(closestIndex);
       isScrolling.current = false;
     }, 100);
-  };
+  }, [onNavSelect]);
 
   // Handle clicks on navigation items
   const handleNavClick = (index: number) => {
@@ -73,7 +73,7 @@ export default function AppNavbar({
     const el = navRef.current;
     el?.addEventListener('scroll', handleScroll, { passive: true });
     return () => el?.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [handleScroll]);
 
   useEffect(() => {
     // Sync highlighted index with current index when not scrolling

@@ -73,7 +73,7 @@ export default function QRScanner({
           });
       }
     };
-  }, [isActive, fps, qrbox, preferredCamera]);
+  }, [isActive, fps, qrbox, preferredCamera, onScanSuccess, onScanError, onScannerInit]);
 
   return (
     <div

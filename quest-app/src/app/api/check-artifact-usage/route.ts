@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const data = await dynamoDB.send(
       new ScanCommand({ TableName: "quests" })
     );
-    const usedIn = [];
+    const usedIn: { id: string | undefined; title: string | undefined }[] = [];
     for (const item of data.Items || []) {
       const artefacts = item.artefacts?.S ? JSON.parse(item.artefacts.S) : [];
       if (artefacts.some((a: any) => a.artefactId === artefactId || a.id === artefactId)) {
