@@ -66,10 +66,10 @@ export default function AppPage() {
   const touchStartX = useRef<number | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
   const pages = [
-    <Quests />,
-    <Scan setSwipeEnabled={setSwipeEnabled} />,
-    <Artefacts setSwipeEnabled={setSwipeEnabled} />,
-    <Profile />,
+    <Quests key="quests" />,
+    <Scan key="scan" setSwipeEnabled={setSwipeEnabled} />,
+    <Artefacts key="artefacts" setSwipeEnabled={setSwipeEnabled} />,
+    <Profile key="profile" />,
   ];
 
   useEffect(() => {

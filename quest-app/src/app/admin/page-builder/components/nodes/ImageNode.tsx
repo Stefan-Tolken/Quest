@@ -1,9 +1,7 @@
 // components/nodes/ImageNode.tsx
 import {
-  EditorConfig,
   LexicalNode,
   NodeKey,
-  SerializedLexicalNode,
   Spread,
   ElementNode,
   SerializedElementNode,
@@ -40,7 +38,7 @@ export class ImageNode extends ElementNode {
     this.__width = width || "auto";
   }
 
-  createDOM(config: EditorConfig): HTMLElement {
+  createDOM(): HTMLElement {
     const container = document.createElement("div");
     container.style.display = "flex";
     container.style.justifyContent = "center";

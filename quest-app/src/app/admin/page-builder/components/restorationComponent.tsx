@@ -32,8 +32,6 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
   });
 
   useEffect(() => {
-    console.log('Content updated:', content);
-    console.log('Current steps:', steps);
     if (content.restorations?.length) {
       setSteps(content.restorations);
       setIsInitialModalOpen(false);

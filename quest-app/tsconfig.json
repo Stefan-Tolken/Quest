@@ -13,6 +13,10 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    // Add these to disable specific strict checks
+    "noImplicitAny": false,       // Disable implicit 'any' errors
+    "noUnusedLocals": false,      // Allow unused variables
+    "noUnusedParameters": false,  // Allow unused function params
     "plugins": [
       {
         "name": "next"

@@ -24,7 +24,6 @@ export async function GET(request: Request) {
       })
     );
     const contentType = s3Res.ContentType || "application/octet-stream";
-    // @ts-ignore
     const body = s3Res.Body;
     return new NextResponse(body as any, {
       status: 200,

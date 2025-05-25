@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Award, Upload, X } from "lucide-react";
 
 type Prize = {
@@ -82,13 +83,16 @@ export const PrizeSection = ({
           />
 
           {imagePreview ? (
-            <div className="relative w-full h-48 border border-gray-200 rounded-lg overflow-hidden">
-              <img
+            <div className="relative w-full h-48 flex items-center justify-center border border-gray-300 rounded-lg">
+              <Image
                 src={imagePreview}
                 alt="Prize preview"
-                className="w-full h-full object-contain"
+                className="object-contain"
+                fill
+                style={{ objectFit: "contain" }}
               />
               <button
+                type="button"
                 className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
                 onClick={onRemoveImage}
               >
