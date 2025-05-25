@@ -53,7 +53,10 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
           token = oidcUser.id_token;
-        } catch {}
+        } catch {
+          console.error('Error parsing OIDC user from sessionStorage');
+          sessionStorage.removeItem(oidcKey); // Clean up if parsing fails
+        }
       }
     }
     try {
@@ -89,7 +92,10 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
         try {
           const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
           token = oidcUser.id_token;
-        } catch {}
+        } catch {
+          console.error('Error parsing OIDC user from sessionStorage');
+          sessionStorage.removeItem(oidcKey); // Clean up if parsing fails
+        }
       }
     }
 
