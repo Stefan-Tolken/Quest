@@ -35,10 +35,10 @@ export default function ArtefactGrid({ artefacts, onArtefactSelect }: ArtefactGr
               <ArtefactCard
                 id={artefact.id}
                 name={artefact.name}
-                // Ask james to add descriptions
-                description={artefact.name}
+                description={artefact.description}
                 isCenter={false}
                 isGrid={true}
+                image={typeof artefact.image === 'string' ? artefact.image : undefined}
               />
             </div>
           ))}

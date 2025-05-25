@@ -7,6 +7,8 @@ import { ArrowLeft, Info, Calendar, MapPin, Ruler, Box } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import QRCodeGenerator from '@/components/QRGenerator';
 import { ComponentData } from '@/lib/types';
+import { useQuest } from '@/context/questContext';
+import { useData } from '@/context/dataContext';
 
 interface ArtefactDetailProps {
   artefactId: string | null | undefined;
@@ -26,7 +28,11 @@ export default function ArtefactDetail({
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState<boolean | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle'|'success'|'error'|'already'|null>(null);
   const detailRef = useRef<HTMLDivElement>(null);
+  const { activeQuest } = useQuest();
+  const { quests } = useData();
+  const [progress, setProgress] = useState<{ collectedArtefactIds: string[]; completed: boolean; completedAt?: string | null } | null>(null);
 
   // Fetch artefact from API
   useEffect(() => {
@@ -46,6 +52,15 @@ export default function ArtefactDetail({
       .catch(() => setError('Failed to fetch artefact'))
       .finally(() => setLoading(false));
   }, [artefactId]);
+
+  // Fetch user quest progress for the active quest
+  useEffect(() => {
+    if (!activeQuest) return;
+    fetch(`/api/user-quest-progress?questId=${activeQuest.quest_id}`)
+      .then(res => res.json())
+      .then(data => setProgress(data))
+      .catch(() => setProgress(null));
+  }, [activeQuest]);
 
   useEffect(() => {
     setIsVisible(isOpen);
@@ -71,8 +86,65 @@ export default function ArtefactDetail({
     onClose();
   };
 
-  // Placeholder for quest logic
-  const handleSubmit = () => {};
+  // Check if this artefact is part of the active quest
+  const isQuestArtefact = activeQuest && Array.isArray(activeQuest.artefacts) && activeQuest.artefacts.includes(artefact?.id);
+
+  // Parse artefacts as objects
+  const questArtefacts = Array.isArray(activeQuest?.artefacts) ? activeQuest.artefacts : [];
+  // Find the artefact object for this artefactId
+  const artefactObj = questArtefacts.find((a: any) => a.artefactId === artefact?.id || a === artefact?.id);
+  // Get hintDisplayMode from the first artefact object (if present)
+  const hintDisplayMode = questArtefacts[0]?.hintDisplayMode || 'concurrent';
+  const isSequential = hintDisplayMode === 'sequential';
+  // For sequential: only allow the next artefact in the sequence
+  let isNextSequential = false;
+  if (isSequential && Array.isArray(questArtefacts) && progress) {
+    const foundIds = Array.isArray(progress.collectedArtefactIds) ? progress.collectedArtefactIds : [];
+    const nextArtefact = questArtefacts.find((a: any) => !foundIds.includes(a.artefactId || a));
+    isNextSequential = !!(nextArtefact && (nextArtefact.artefactId === artefact?.id || nextArtefact === artefact?.id));
+  }
+  // Always show the submit button if artefactObj && activeQuest
+  const showSubmitButton = !!activeQuest;
+
+  // Submit artefact as quest answer
+  const handleSubmit = async () => {
+    if (!activeQuest || !artefact?.id) return;
+    setSubmitStatus(null);
+    // For sequential, check if this is the next artefact
+    if (isSequential && !isNextSequential) {
+      // Log incorrect answer (for now)
+      console.log('Answer incorrect: not the next artefact in sequence');
+      setSubmitStatus('error');
+      return;
+    }
+    try {
+      // Get JWT token from localStorage or sessionStorage (OIDC user)
+      let token = localStorage.getItem('token');
+      if (!token && typeof window !== 'undefined') {
+        const oidcKey = Object.keys(sessionStorage).find(k => k.startsWith('oidc.user:'));
+        if (oidcKey) {
+          try {
+            const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
+            token = oidcUser.id_token;
+          } catch {}
+        }
+      }
+      const res = await fetch('/api/collect-artifact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ questId: activeQuest.quest_id, artefactId: artefact.id })
+      });
+      const data = await res.json();
+      if (data.success) setSubmitStatus('success');
+      else if (data.error && data.error.includes('already')) setSubmitStatus('already');
+      else setSubmitStatus('error');
+    } catch {
+      setSubmitStatus('error');
+    }
+  };
 
   if (!isOpen || !isVisible) return null;
   if (loading) return <div className="p-8 text-center">Loading artefact...</div>;
@@ -264,12 +336,21 @@ export default function ArtefactDetail({
               </div>
 
               {/* Quest status */}
-              {artefact.partOfQuest && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+              {activeQuest && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col gap-2">
                   <h3 className="font-medium text-blue-800 mb-1">Quest Artefact</h3>
                   <p className="text-sm text-blue-700">
-                    This artefact is part of an active quest. Submit it to complete your quest!
+                    This artefact is part of your active quest. Submit it to mark as found!
                   </p>
+                  <Button onClick={handleSubmit} variant="default">
+                    Submit as Quest Answer
+                  </Button>
+                  {isSequential && !isNextSequential && submitStatus === 'error' && (
+                    <span className="text-yellow-600 font-medium">Incorrect artefact for this step. Try another.</span>
+                  )}
+                  {submitStatus === 'success' && <span className="text-green-600 font-medium">Artefact submitted!</span>}
+                  {submitStatus === 'already' && <span className="text-blue-600 font-medium">Already submitted.</span>}
+                  {submitStatus === 'error' && !isSequential && <span className="text-red-600 font-medium">Error submitting. Try again.</span>}
                 </div>
               )}
             </div>

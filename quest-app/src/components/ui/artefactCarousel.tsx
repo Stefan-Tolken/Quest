@@ -223,9 +223,10 @@ export default function ArtefactCarousel({ artefacts, onArtefactSelect }: Artefa
                 <ArtefactCard
                   id={artefact.id}
                   name={artefact.name}
-                  description={artefact.name} // Placeholder for description
+                  description={artefact.description}
                   isCenter={isCenter}
-                  isGrid={false} // No concept of grid in carousel layout
+                  isGrid={false}
+                  image={typeof artefact.image === 'string' ? artefact.image : undefined}
                 />
               </div>
             );

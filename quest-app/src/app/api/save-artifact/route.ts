@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, PutItemCommand, PutItemCommandInput } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { ComponentData } from "@/lib/types";
 
@@ -30,7 +30,6 @@ interface ArtifactData {
   image: string;
   components: ComponentData[];
   createdAt: string;
-  partOfQuest: boolean;
 }
 
 export async function POST(request: Request) {
@@ -161,7 +160,7 @@ export async function POST(request: Request) {
     );
 
     // Build DynamoDB item with correct image URL
-    const params = {
+    const params: PutItemCommandInput = {
       TableName: "artefacts",
       Item: {
         id: { S: artifactData.id },
@@ -172,7 +171,6 @@ export async function POST(request: Request) {
         image: { S: typeof imageUrl === "string" ? imageUrl : "" },
         components: { S: JSON.stringify(updatedComponents) },
         createdAt: { S: artifactData.createdAt },
-        partOfQuest: { BOOL: artifactData.partOfQuest },
       },
     };
 

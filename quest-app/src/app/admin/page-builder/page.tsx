@@ -84,8 +84,7 @@ const PageBuilder = () => {
       description,
       image: imageToSend,
       components: componentsWithOrder,
-      createdAt: editId ? createdAt : new Date().toISOString(), // Always send a string
-      partOfQuest: false,
+      createdAt: editId ? createdAt : new Date().toISOString(),
     };
 
     try {

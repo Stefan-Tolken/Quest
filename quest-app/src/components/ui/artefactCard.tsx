@@ -7,16 +7,22 @@ interface ArtefactProps {
   description: string;
   isCenter: boolean;
   isGrid?: boolean;
+  image?: string; // Add image prop
 }
 
-export const ArtefactCard = ({ id, name, description, isCenter, isGrid = false }: ArtefactProps) => {
+export const ArtefactCard = ({ id, name, description, isCenter, isGrid = false, image }: ArtefactProps) => {
+  // Use provided image or fallback to placeholder
+  const imageUrl = image && typeof image === 'string' && image.length > 0
+    ? image
+    : `/api/placeholder/${id}`;
+
   if (isGrid) {
     return (
       <li className="w-full h-full flex flex-col">
         <Card className="w-full aspect-square relative overflow-hidden p-0 gap-0 border-none shadow-md hover:shadow-lg transition-shadow duration-300">
           <div className="absolute inset-0">
             <Image
-              src={`https://picsum.photos/seed/${id}/400/400`}
+              src={imageUrl}
               alt={name}
               fill
               className="object-cover w-full h-full"
@@ -41,7 +47,7 @@ export const ArtefactCard = ({ id, name, description, isCenter, isGrid = false }
         {isCenter && (
           <div className="relative w-full h-48">
             <Image
-              src={`https://picsum.photos/seed/${id}/200/300`}
+              src={imageUrl}
               alt={name}
               fill
               className="object-cover w-full h-full rounded-t-xl"

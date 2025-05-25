@@ -34,9 +34,7 @@ export const DetailsComponent = ({ content, onUpdate }: DetailsComponentProps) =
             placeholder="e.g., May 24, 2025 or 15th century"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-        </div>
-
-        {/* Origin Location */}
+        </div>        {/* Origin Location */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
             <MapPin className="w-4 h-4 text-gray-500" />
@@ -47,6 +45,21 @@ export const DetailsComponent = ({ content, onUpdate }: DetailsComponentProps) =
             value={content.origin || ''}
             onChange={(e) => handleInputChange('origin', e.target.value)}
             placeholder="e.g., Ancient Rome, Egypt"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Current Location */}
+        <div className="space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+            <MapPin className="w-4 h-4 text-gray-500" />
+            Current Location
+          </label>
+          <input
+            type="text"
+            value={content.currentLocation || ''}
+            onChange={(e) => handleInputChange('currentLocation', e.target.value)}
+            placeholder="e.g., British Museum, London"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -90,11 +103,15 @@ export const DetailsComponent = ({ content, onUpdate }: DetailsComponentProps) =
             <Calendar className="w-4 h-4" />
             <span className="font-medium">Created:</span>
             <span>{content.created || 'Not specified'}</span>
-          </div>
-          <div className="flex items-center gap-2">
+          </div>          <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
             <span className="font-medium">Origin:</span>
             <span>{content.origin || 'Not specified'}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4" />
+            <span className="font-medium">Current Location:</span>
+            <span>{content.currentLocation || 'Not specified'}</span>
           </div>
           <div className="flex items-center gap-2">
             <Ruler className="w-4 h-4" />

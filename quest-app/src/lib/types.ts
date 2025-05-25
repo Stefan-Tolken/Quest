@@ -11,6 +11,7 @@ export type HintDisplayMode = "sequential" | "random";
 export interface ArtifactDetails {
   created: string;
   origin: string;
+  currentLocation: string;
   dimensions: string;
   materials: string;
 }
@@ -53,7 +54,7 @@ export type Artefact = {
   image: File | string;
   components: ComponentData[];
   createdAt: string;
-  partOfQuest: boolean;
+  partOfQuest: string[];
 };
 
 export type QuestArtefact = {
