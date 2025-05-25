@@ -1,6 +1,6 @@
 // components/ui/artefacts.tsx
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useData } from '@/context/dataContext';
 import ArtefactCarousel from '@/components/ui/artefactCarousel';
 import SearchBar from '@/components/ui/searchBar';
@@ -38,9 +38,9 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
     localStorage.setItem('artefactsViewIsGrid', String(isGrid));
   }, [isGrid]);
 
-  const handleSearch = (results: Artefact[]) => {
+  const handleSearch = useCallback((results: Artefact[]) => {
     setFilteredArtefacts(results);
-  };
+  }, []);
 
   const handleArtefactSelect = (artefact: Artefact, elementRect: DOMRect) => {
     setDetailPosition({
@@ -57,9 +57,9 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
     setDetailOpen(false);
   };
 
-  const handleViewToggle = () => {
-    setIsGrid(!isGrid);
-  };
+  const handleViewToggle = useCallback(() => {
+    setIsGrid(prev => !prev);
+  }, []);
 
   if (loading) {
     return (

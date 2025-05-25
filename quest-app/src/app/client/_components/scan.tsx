@@ -73,8 +73,6 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
             onScanSuccess={handleScanSuccess}
             onScanError={handleScanError}
             onScannerInit={handleScannerInit}
-            qrbox={isMobile ? undefined : 250}
-            fps={10}
             preferredCamera="environment"
             isActive={isScannerActive}
             fullView={isMobile}
