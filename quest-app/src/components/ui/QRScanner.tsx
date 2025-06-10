@@ -78,7 +78,7 @@ export default function QRScanner({
   return (
     <div
       ref={containerRef}
-      className={`relative ${fullView ? 'w-full h-full' : 'w-[300px] h-[300px]'} overflow-hidden`}
+      className={`relative w-[300px] h-[300px] rounded-lg overflow-hidden`}
     />
   );
 }
