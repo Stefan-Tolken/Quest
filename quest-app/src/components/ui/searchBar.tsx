@@ -80,16 +80,6 @@ export default function SearchBar({
     <div className="searchBar top-4 flex-1 z-50">
       <div className="relative w-full max-w-3xl mx-auto flex flex-col gap-2 z-50">
         <div className='flex items-center gap-2'>
-        {/* View Toggle Button */}
-          <Button 
-            onClick={onViewToggle} 
-            variant="secondary" 
-            className="flex gap-2"
-            aria-label={isGrid ? "Switch to list view" : "Switch to grid view"}
-          >
-            {isGrid ? <Layers size={18} /> : <Grid size={18} />}
-          </Button>
-
           {/* Search Input */}
           <div className="relative flex-1">
             <Input

@@ -125,7 +125,7 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
   }
 
   if (error) {
-    return <div className="p-6 text-red-500">Error: {error}</div>;
+    return <div className="p-6 text-destructive">Error: {error}</div>;
   }
 
   return (
@@ -138,17 +138,10 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
       />
       
       {filteredArtefacts.length > 0 ? (
-        isGrid ? (
-          <ArtefactGrid
-            artefacts={filteredArtefacts}
-            onArtefactSelect={handleArtefactSelect}
-          />
-        ) : (
-          <ArtefactCarousel 
-            artefacts={filteredArtefacts} 
-            onArtefactSelect={handleArtefactSelect}
-          />
-        )
+        <ArtefactGrid
+          artefacts={filteredArtefacts}
+          onArtefactSelect={handleArtefactSelect}
+        />
       ) : (
         <div className="text-center py-12">
           <p className="text-gray-500">No artefacts found matching your search.</p>
