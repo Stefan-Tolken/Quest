@@ -35,7 +35,7 @@ export default function ArtefactGrid({ artefacts, onArtefactSelect }: ArtefactGr
               <ArtefactCard
                 id={artefact.id}
                 name={artefact.name}
-                description={artefact.description}
+                artist={artefact.artist}
                 isCenter={false}
                 isGrid={true}
                 image={typeof artefact.image === 'string' ? artefact.image : undefined}

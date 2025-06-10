@@ -49,7 +49,7 @@ export type RestorationContent = {
 export type Artefact = {
   id: string;
   name: string;
-  artist?: string;
+  artist: string;
   date?: string;
   description: string;
   image: File | string;

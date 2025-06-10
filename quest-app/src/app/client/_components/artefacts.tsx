@@ -2,7 +2,6 @@
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useData } from '@/context/dataContext';
-import ArtefactCarousel from '@/components/ui/artefactCarousel';
 import SearchBar from '@/components/ui/searchBar';
 import ArtefactDetail from '@/components/ui/artefactDetails';
 import type { Artefact } from '@/lib/types';
@@ -125,7 +124,11 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
   }
 
   if (error) {
-    return <div className="p-6 text-destructive">Error: {error}</div>;
+    return (
+      <div className="p-6">
+        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">Error: {error}</div>;
+      </div>
+    );
   }
 
   return (
@@ -144,7 +147,7 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
         />
       ) : (
         <div className="text-center py-12">
-          <p className="text-gray-500">No artefacts found matching your search.</p>
+          <p className="bg-primary/70 text-primary-foreground p-2 rounded-md">No artefacts found matching your search.</p>
         </div>
       )}
       
