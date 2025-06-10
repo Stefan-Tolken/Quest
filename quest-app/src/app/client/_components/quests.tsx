@@ -216,7 +216,7 @@ export default function Quests() {
       {/* Accepted Quest Section */}
       {questToShow && (
         <div>
-          <Card className="border-blue-200 bg-blue-50">
+          <Card>
             <CardHeader>
               <CardTitle>{questToShow.title}</CardTitle>
               <CardDescription>{questToShow.description}</CardDescription>
@@ -410,28 +410,28 @@ export default function Quests() {
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                   {quest.dateRange && (
                     <div className="flex items-start gap-3">
-                      <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <CalendarDays className="h-4 w-4 mt-0.5" />
                       <div>
                         <p className="font-medium">Available Until</p>
-                        <p className="text-muted-foreground">
+                        <p>
                           {quest.dateRange.to ? new Date(quest.dateRange.to).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
                     </div>
                   )}
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <MapPin className="h-4 w-4 mt-0.5" />
                     <div>
                       <p className="font-medium">Artefacts</p>
-                      <p className="text-muted-foreground">{quest.artefacts.length} to discover</p>
+                      <p>{quest.artefacts.length} to discover</p>
                     </div>
                   </div>
                   {quest.prize && (
                     <div className="flex items-start gap-3">
-                      <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <Trophy className="h-4 w-4 mt-0.5" />
                       <div>
                         <p className="font-medium">Prize</p>
-                        <p className="text-muted-foreground">{quest.prize.title}</p>
+                        <p>{quest.prize.title}</p>
                       </div>
                     </div>
                   )}
@@ -464,28 +464,28 @@ export default function Quests() {
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                   {quest.dateRange && (
                     <div className="flex items-start gap-3">
-                      <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <CalendarDays className="h-4 w-4 mt-0.5" />
                       <div>
                         <p className="font-medium">Available From</p>
-                        <p className="text-muted-foreground">
+                        <p>
                           {quest.dateRange.from ? new Date(quest.dateRange.from).toLocaleDateString() : 'N/A'}
                         </p>
                       </div>
                     </div>
                   )}
                   <div className="flex items-start gap-3">
-                    <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <MapPin className="h-4 w-4 mt-0.5" />
                     <div>
                       <p className="font-medium">Artefacts</p>
-                      <p className="text-muted-foreground">{quest.artefacts.length} to discover</p>
+                      <p>{quest.artefacts.length} to discover</p>
                     </div>
                   </div>
                   {quest.prize && (
                     <div className="flex items-start gap-3">
-                      <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <Trophy className="h-4 w-4 mt-0.5" />
                       <div>
                         <p className="font-medium">Prize</p>
-                        <p className="text-muted-foreground">{quest.prize.title}</p>
+                        <p>{quest.prize.title}</p>
                       </div>
                     </div>
                   )}
@@ -494,7 +494,7 @@ export default function Quests() {
                   <Button 
                     disabled 
                     variant="secondary" 
-                    className="w-full sm:w-auto opacity-60 cursor-not-allowed"
+                    className="w-full cursor-not-allowed"
                   >
                     Not Yet Available
                   </Button>

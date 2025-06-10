@@ -84,15 +84,15 @@ export default function SearchBar({
           <div className="relative flex-1">
             <Input
               type="text"
-              placeholder="Search artefacts..."
+              placeholder="Search"
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              className="bg-secondary/70 border-none"
+              className="glass"
             />
             {searchTerm && (
               <button
                 onClick={handleClear}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/70 focus:outline-none"
                 aria-label="Clear search"
               >
                 <svg
@@ -114,7 +114,7 @@ export default function SearchBar({
           {/* Filter Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="secondary" className="flex gap-2">
+              <Button variant="glass" className="flex gap-2">
                 <Filter className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>

@@ -520,9 +520,8 @@ export default function ArtefactDetail({
             <Button
               onClick={handleClose}
               variant={"glass"}
-              size={"icon"}
             >
-              <ArrowLeft size={24} />
+              <ArrowLeft size={24} /> Back
             </Button>
           </div>
         </div>
