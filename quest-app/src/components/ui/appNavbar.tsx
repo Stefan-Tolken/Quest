@@ -106,7 +106,6 @@ export default function AppNavbar({
             "snap-center shrink-0 transition-all mx-2 text-center min-w-[80px]",
             {
               "font-bold text-lg": highlightedIndex === i,
-              "text-muted-foreground": highlightedIndex !== i,
             }
           )}
           onClick={() => handleNavClick(i)}
