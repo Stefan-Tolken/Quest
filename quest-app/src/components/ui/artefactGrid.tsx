@@ -24,7 +24,7 @@ export default function ArtefactGrid({ artefacts, onArtefactSelect }: ArtefactGr
   return (
     <div className="w-full max-w-5xl mx-auto py-4 relative">
       <div className="max-h-[82vh] overflow-y-auto no-scrollbar rounded-xl">
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-4">
           {artefacts.map((artefact) => (
             <div 
               key={artefact.id}

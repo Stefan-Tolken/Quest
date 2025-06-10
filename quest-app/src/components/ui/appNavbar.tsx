@@ -96,7 +96,7 @@ export default function AppNavbar({
   return (
     <nav
       ref={navRef}
-      className="navbar w-full fixed bottom-0 bg-gradient-to-t from-black/70 to-transparent border-none z-50 overflow-x-auto no-scrollbar flex snap-x snap-mandatory px-4 pb-2 pt-3 pl-[50%] pr-[50%]"
+      className="navbar w-full fixed bottom-0 backdrop-blur-xs bg-gradient-to-t from-black/70 to-transparent border-none z-50 overflow-x-auto no-scrollbar flex snap-x snap-mandatory px-4 pb-2 pt-3 pl-[50%] pr-[50%]"
     >
       {navItems.map((label, i) => (
         <Button

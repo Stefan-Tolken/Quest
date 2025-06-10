@@ -79,7 +79,7 @@ export default function SearchBar({
   return (
     <div className="searchBar top-4 flex-1 z-50">
       <div className="relative w-full max-w-3xl mx-auto flex flex-col gap-2 z-50">
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-4'>
           {/* Search Input */}
           <div className="relative flex-1">
             <Input
