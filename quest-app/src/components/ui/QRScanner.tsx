@@ -28,8 +28,15 @@ export default function QRScanner({
     if (!isActive || !containerRef.current) return;
 
     const videoElem = document.createElement('video');
-    videoElem.style.width = '100%';
-    videoElem.style.height = '100%';
+    videoElem.setAttribute('playsinline', 'true');
+    videoElem.style.position = 'absolute';
+    videoElem.style.top = '50%';
+    videoElem.style.left = '50%';
+    videoElem.style.transform = 'translate(-50%, -50%)';
+    videoElem.style.minWidth = '100%';
+    videoElem.style.minHeight = '100%';
+    videoElem.style.objectFit = 'cover';
+
     videoRef.current = videoElem;
     containerRef.current.appendChild(videoElem);
 
@@ -78,7 +85,7 @@ export default function QRScanner({
   return (
     <div
       ref={containerRef}
-      className={`relative w-[300px] h-[300px] rounded-lg overflow-hidden`}
+      className="relative w-[300px] h-[300px] rounded-2xl overflow-hidden bg-black"
     />
   );
 }
