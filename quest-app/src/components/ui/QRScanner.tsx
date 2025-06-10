@@ -37,6 +37,18 @@ export default function QRScanner({
     videoRef.current = videoElem;
     containerRef.current.appendChild(videoElem);
 
+    // Create overlay div for glass effect
+    const overlay = document.createElement('div');
+    overlay.className = 'glass-border'; // apply your glass effect class here
+    overlay.style.position = 'absolute';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.zIndex = '50'; // make sure it's on top of video
+
+    containerRef.current.appendChild(overlay);
+
     const scanner = new QrScanner(
       videoElem,
       (result) => {
@@ -82,7 +94,7 @@ export default function QRScanner({
   return (
     <div
       ref={containerRef}
-      className="relative w-[300px] h-[300px] rounded-2xl overflow-hidden bg-black"
+      className="relative w-[300px] h-[300px] rounded-2xl overflow-hidden bg-transparent glass"
     />
   );
 }

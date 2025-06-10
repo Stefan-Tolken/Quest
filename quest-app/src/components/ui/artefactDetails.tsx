@@ -515,11 +515,11 @@ export default function ArtefactDetail({
     <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
       <div className="container max-w-6xl p-4 sm:px-6">
         {/* Header with back button */}
-        <div className='fixed top-0 left-0 z-50 p-4 w-[101%] backdrop-blur-xs bg-gradient-to-b from-black/70 to-transparent'>
+        <div className='fixed top-0 left-0 z-50 p-4 w-[101%] bg-gradient-to-b from-black/70 to-transparent'>
           <div className="flex items-center justify-between">
             <Button
               onClick={handleClose}
-              variant={"default"}
+              variant={"glass"}
               size={"icon"}
             >
               <ArrowLeft size={24} />
