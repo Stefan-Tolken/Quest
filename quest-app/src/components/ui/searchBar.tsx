@@ -87,7 +87,7 @@ export default function SearchBar({
               placeholder="Search artefacts..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
-              className="bg-secondary border-none"
+              className="bg-secondary/70 border-none"
             />
             {searchTerm && (
               <button
