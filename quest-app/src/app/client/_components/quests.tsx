@@ -218,7 +218,6 @@ export default function Quests() {
 
   return (
     <div className="pb-20 p-6 space-y-10">
-      <h1 className="text-2xl font-bold">Quests</h1>
 
       {/* Accepted Quest Section */}
       {questToShow && (
@@ -407,8 +406,7 @@ export default function Quests() {
 
       {/* Ongoing Quests Section */}
       {ongoingQuests.length > 0 && !questToShow && (
-        <div>
-          <h2 className="text-xl font-semibold mb-2 text-green-700">Ongoing Quests</h2>
+        <div className="m-0 mb-6">
           <div className="grid gap-6">
             {ongoingQuests.map((quest) => (
               <Card key={quest.quest_id}>
@@ -463,7 +461,6 @@ export default function Quests() {
       {/* Upcoming Quests Section */}
       {upcomingQuests.length > 0 && !questToShow && (
         <div>
-          <h2 className="text-xl font-semibold mb-2 text-gray-700">Upcoming Quests</h2>
           <div className="grid gap-6">
             {upcomingQuests.map((quest) => (
               <Card key={quest.quest_id}>
