@@ -496,24 +496,38 @@ export default function ArtefactDetail({
   };
 
   if (!isOpen) return null;
-  if (loading) return <div className="p-8 text-center">Loading artefact...</div>;
-  if (error) return <div className="p-8 text-center text-red-500">{error}</div>;
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">Loading Artefact...</div>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">Error: {error}</div>;
+      </div>
+    );
+  }
 
   return artefact ? (
     <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
       <div className="container max-w-6xl p-4 sm:px-6">
         {/* Header with back button */}
-        <div className="flex items-center justify-between mb-8">
-          <Button
-            onClick={handleClose}
-            variant={"default"}
-            size={"icon"}
-          >
-            <ArrowLeft size={24} />
-          </Button>
+        <div className='fixed top-0 left-0 z-50 p-4 w-[101%] backdrop-blur-xs bg-gradient-to-b from-black/70 to-transparent'>
+          <div className="flex items-center justify-between">
+            <Button
+              onClick={handleClose}
+              variant={"default"}
+              size={"icon"}
+            >
+              <ArrowLeft size={24} />
+            </Button>
+          </div>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-4 mt-13">
           {/* Hero image */}
           <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-100">
             <Image
@@ -526,20 +540,14 @@ export default function ArtefactDetail({
           </div>
 
           {/* Main content grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Left column - Description and Components */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className="lg:col-span-2 space-y-4">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight mb-2">
                   {artefact.name}
                 </h1>
-                <div className="flex items-center text-muted-foreground mb-6">
-                  <span>ID: {artefact.id}</span>
-                </div>
                 <div className="prose max-w-none">
-                  <h2 className="flex items-center gap-2 text-xl font-semibold mb-4">
-                    <Info size={18} /> About
-                  </h2>
                   <p className="text-lg">{artefact.description}</p>
                 </div>
               </div>
@@ -547,7 +555,6 @@ export default function ArtefactDetail({
               {/* Render components in order */}
               {(artefact.components?.length ?? 0) > 0 && (
                 <div>
-                  <h2 className="text-xl font-semibold mb-4">Page Content</h2>
                   <div className="space-y-4">
                     {artefact.components?.map((component: ComponentData) => {
                       switch (component.type) {
@@ -607,7 +614,7 @@ export default function ArtefactDetail({
             </div>
 
             {/* Right column - Details */}
-            <div className="space-y-8">
+            <div className="space-y-4">
               {/* QR Code */}
               <div className="bg-muted p-6 rounded-xl">
                 <h2 className="text-lg font-semibold mb-4 text-center">
