@@ -23,15 +23,17 @@ export default function QRScanner({
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scannerRef = useRef<QrScanner | null>(null);
-
   useEffect(() => {
     if (!isActive || !containerRef.current) return;
+
+    // Store container reference for cleanup
+    const container = containerRef.current;
 
     const videoElem = document.createElement('video');
     videoElem.style.width = '100%';
     videoElem.style.height = '100%';
     videoRef.current = videoElem;
-    containerRef.current.appendChild(videoElem);
+    container.appendChild(videoElem);
 
     const scanner = new QrScanner(
       videoElem,
@@ -69,8 +71,8 @@ export default function QRScanner({
         scannerRef.current = null;
       }
 
-      if (videoRef.current && containerRef.current?.contains(videoRef.current)) {
-        containerRef.current.removeChild(videoRef.current);
+      if (videoRef.current && container?.contains(videoRef.current)) {
+        container.removeChild(videoRef.current);
       }
     };
   }, [isActive, preferredCamera, onScanSuccess, onScanError, onScannerInit]);
