@@ -124,11 +124,10 @@ export default function Quests() {
     );
   }
 
-  if (error) {
+   if (error) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Quests</h1>
-        <div className="text-red-500">Error loading quests: {error}</div>
+        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">Error Loading Quests: {error}</div>;
       </div>
     );
   }
@@ -136,12 +135,7 @@ export default function Quests() {
   if (!quests?.length) {
     return (
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-4">Quests</h1>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">No quests available at this time</p>
-          </CardContent>
-        </Card>
+        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">No quests available at this time</div>;
       </div>
     );
   }
@@ -222,7 +216,6 @@ export default function Quests() {
       {/* Accepted Quest Section */}
       {questToShow && (
         <div>
-          <h2 className="text-xl font-semibold mb-2 text-blue-700">Accepted Quest</h2>
           <Card className="border-blue-200 bg-blue-50">
             <CardHeader>
               <CardTitle>{questToShow.title}</CardTitle>
