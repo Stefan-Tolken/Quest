@@ -30,9 +30,6 @@ export default function QRScanner({
     const videoElem = document.createElement('video');
     videoElem.setAttribute('playsinline', 'true');
     videoElem.style.position = 'absolute';
-    videoElem.style.top = '50%';
-    videoElem.style.left = '50%';
-    videoElem.style.transform = 'translate(-50%, -50%)';
     videoElem.style.minWidth = '100%';
     videoElem.style.minHeight = '100%';
     videoElem.style.objectFit = 'cover';
