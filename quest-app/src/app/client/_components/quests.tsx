@@ -493,7 +493,7 @@ export default function Quests() {
                 <CardFooter>
                   <Button 
                     disabled 
-                    variant="secondary" 
+                    variant="destructive" 
                     className="w-full cursor-not-allowed"
                   >
                     Not Yet Available
