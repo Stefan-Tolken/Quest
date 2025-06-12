@@ -221,7 +221,6 @@ export default function AdminHome() {
     },
   ];
 
-  
   const questColumns: ColumnDef<Quest>[] = [
     {
       accessorKey: "title",
@@ -242,6 +241,7 @@ export default function AdminHome() {
       ),
     },
     {
+      accessorKey: "status",
       id: "status",
       header: ({ column }) => {
         return (
@@ -290,15 +290,18 @@ export default function AdminHome() {
       },
     },
     {
-      id: "date_range",
+      accessorKey: "dateRange.from",
+      id: "start_date",
       header: ({ column }) => {
         return (
           <Button
             variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            onClick={() => {
+              column.toggleSorting(column.getIsSorted() === "asc");
+            }}
             className="hover:cursor-pointer"
           >
-            Date Range
+            Start Date
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         );
@@ -306,10 +309,9 @@ export default function AdminHome() {
       cell: ({ row }) => {
         const quest = row.original;
         const startDate = quest.dateRange?.from;
-        const endDate = quest.dateRange?.to;
         
-        if (!startDate && !endDate) {
-          return <div className="text-gray-400 text-sm">No dates set</div>;
+        if (!startDate) {
+          return <div className="text-gray-400 text-sm ml-3">No start dates set</div>;
         }
         
         const formatDate = (dateStr: string | Date) => {
@@ -320,58 +322,99 @@ export default function AdminHome() {
           });
         };
         
-        if (startDate && endDate) {
+        if (startDate) {
           return (
-            <div className="text-sm text-gray-600">
-              {formatDate(startDate)} - {formatDate(endDate)}
-            </div>
-          );
-        } else if (startDate) {
-          return (
-            <div className="text-sm text-gray-600">
-              From {formatDate(startDate)}
-            </div>
-          );
-        } else if (endDate) {
-          return (
-            <div className="text-sm text-gray-600">
-              Until {formatDate(endDate)}
+            <div className="text-sm text-gray-600 ml-3">
+              {formatDate(startDate)}
             </div>
           );
         }
         
-        return <div className="text-gray-400 text-sm">-</div>;
+        return <div className="text-gray-400 text-sm ml-3">-</div>;
+      },
+      accessorFn: (row) => {
+        // This is key - provide an accessor function for sorting
+        if (row.dateRange?.from) return new Date(row.dateRange.from).getTime();
+        return Infinity; // Put items without dates at the end
       },
       sortingFn: (rowA, rowB) => {
-        const today = new Date();
+        const getDateValue = (quest: Quest) => {
+          if (quest.dateRange?.from) return new Date(quest.dateRange.from).getTime();
+          return Infinity; // Items without dates go to the end
+        };
+
+        const dateA = getDateValue(rowA.original);
+        const dateB = getDateValue(rowB.original);
+
+        // Return -1, 0, or 1 for proper sorting
+        if (dateA < dateB) return -1;
+        if (dateA > dateB) return 1;
+        return 0;
+      },
+      enableSorting: true,
+    },
+    {
+      accessorKey: "dateRange.to",
+      id: "end_date",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              column.toggleSorting(column.getIsSorted() === "asc");
+            }}
+            className="hover:cursor-pointer"
+          >
+            End Date
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const quest = row.original;
+        const endDate = quest.dateRange?.to;
         
-        const getClosestDate = (quest: Quest) => {
-          const startDate = quest.dateRange?.from ? new Date(quest.dateRange.from) : null;
-          const endDate = quest.dateRange?.to ? new Date(quest.dateRange.to) : null;
-          
-          if (!startDate && !endDate) return new Date('9999-12-31'); // Far future for no dates
-          
-          const dates = [startDate, endDate].filter(Boolean) as Date[];
-          
-          // Find the date closest to today
-          return dates.reduce((closest, current) => {
-            const closestDiff = Math.abs(closest.getTime() - today.getTime());
-            const currentDiff = Math.abs(current.getTime() - today.getTime());
-            return currentDiff < closestDiff ? current : closest;
+        if (!endDate) {
+          return <div className="text-gray-400 text-sm ml-3">No end dates set</div>;
+        }
+        
+        const formatDate = (dateStr: string | Date) => {
+          return new Date(dateStr).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
           });
         };
         
-        const dateA = getClosestDate(rowA.original);
-        const dateB = getClosestDate(rowB.original);
-          // Sort by closest to today, taking into account the sort direction
-        const diffA = Math.abs(dateA.getTime() - today.getTime());
-        const diffB = Math.abs(dateB.getTime() - today.getTime());
+        if (endDate) {
+          return (
+            <div className="text-sm ml-3 text-gray-600">
+              {formatDate(endDate)}
+            </div>
+          );
+        }
         
-        // Get sort order from column info - if ascending, smaller diffs (closer dates) come first
-        // if descending, larger diffs (further dates) come first
-        const sortOrder = questTable.getColumn("date_range")?.getIsSorted() === "desc" ? -1 : 1;
-        return (diffA - diffB) * sortOrder;
+        return <div className="text-gray-400 text-sm ml-3">-</div>;
       },
+      accessorFn: (row) => {
+        if (row.dateRange?.to) return new Date(row.dateRange.to).getTime();
+        return Infinity; // Put items without dates at the end
+      },
+      sortingFn: (rowA, rowB) => {
+        const getDateValue = (quest: Quest) => {
+          if (quest.dateRange?.to) return new Date(quest.dateRange.to).getTime();
+          return Infinity; // Items without dates go to the end
+        };
+
+        const dateA = getDateValue(rowA.original);
+        const dateB = getDateValue(rowB.original);
+
+        // Return -1, 0, or 1 for proper sorting
+        if (dateA < dateB) return -1;
+        if (dateA > dateB) return 1;
+        return 0;
+      },
+      enableSorting: true,
     },
     {
       id: "actions",
@@ -548,6 +591,40 @@ export default function AdminHome() {
                   }
                   className="max-w-sm"
                 />
+                <div className="ml-auto flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => questTable.getColumn("title")?.toggleVisibility()}
+                    className={`hover:cursor-pointer ${questTable.getColumn("title")?.getIsVisible() ? "" : "opacity-50"}`}
+                  >
+                    Title
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => questTable.getColumn("status")?.toggleVisibility()}
+                    className={`hover:cursor-pointer ${questTable.getColumn("status")?.getIsVisible() ? "" : "opacity-50"}`}
+                  >
+                    Status
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => questTable.getColumn("start_date")?.toggleVisibility()}
+                    className={`hover:cursor-pointer ${questTable.getColumn("start_date")?.getIsVisible() ? "" : "opacity-50"}`}
+                  >
+                    Start
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => questTable.getColumn("end_date")?.toggleVisibility()}
+                    className={`hover:cursor-pointer ${questTable.getColumn("end_date")?.getIsVisible() ? "" : "opacity-50"}`}
+                  >
+                    End
+                  </Button>
+                </div>
               </div>
               <div className="rounded-md border">
                 <Table>
