@@ -151,9 +151,6 @@ export default function AdminHome() {
         })
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response text:', errorText);
@@ -170,7 +167,6 @@ export default function AdminHome() {
       }
 
       const result = await response.json();
-      console.log('Success response:', result);
       
       const { downloadUrl } = result;
       

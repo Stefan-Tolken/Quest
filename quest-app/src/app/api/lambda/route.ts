@@ -8,28 +8,8 @@ const lambda = new AWS.Lambda({
 });
 
 export async function POST(request: NextRequest) {
-  // Validate environment variables
-  if (!process.env.QR_LAMBDA_FUNCTION_NAME) {
-    console.error('QR_LAMBDA_FUNCTION_NAME environment variable is not set');
-    return NextResponse.json(
-      { error: 'Lambda function name not configured' },
-      { status: 500 }
-    );
-  }
-
-  if (!process.env.AWS_REGION || !process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-    console.error('AWS credentials not properly configured');
-    return NextResponse.json(
-      { error: 'AWS credentials not configured' },
-      { status: 500 }
-    );
-  }
-
   try {
     const body = await request.json();
-    
-    console.log('Invoking Lambda function:', process.env.QR_LAMBDA_FUNCTION_NAME);
-    console.log('Request body:', JSON.stringify(body, null, 2));
 
     const params = {
       FunctionName: process.env.QR_LAMBDA_FUNCTION_NAME!,
@@ -40,13 +20,8 @@ export async function POST(request: NextRequest) {
     };
 
     const result = await lambda.invoke(params).promise();
-    
-    console.log('Lambda response:', result);
 
     if (result.FunctionError) {
-      console.error('Lambda function error:', result.FunctionError);
-      console.error('Lambda error payload:', result.Payload?.toString());
-      
       let errorDetails = result.FunctionError;
       if (result.Payload) {
         try {
@@ -70,13 +45,11 @@ export async function POST(request: NextRequest) {
     
     if (result.Payload) {
       const response = JSON.parse(result.Payload.toString());
-      console.log('Parsed Lambda response:', response);
       
       if (response.statusCode === 200) {
         const responseBody = JSON.parse(response.body);
         return NextResponse.json(responseBody);
       } else {
-        console.error('Lambda returned error status:', response.statusCode);
         return NextResponse.json(
           JSON.parse(response.body),
           { status: response.statusCode }
@@ -90,9 +63,6 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('Lambda invocation error:', error);
-    
-    // Provide more specific error information
     if (error instanceof Error) {
       return NextResponse.json(
         { 
