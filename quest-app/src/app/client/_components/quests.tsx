@@ -7,34 +7,67 @@ import { useQuest } from '@/context/questContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { CalendarDays, Trophy, MapPin } from 'lucide-react';
-import type { Quest, Hint } from '@/lib/types';
+import type { Hint, QuestProgress, MainQuest } from '@/lib/types';
 
-interface QuestProgress {
-  collectedArtefactIds: string[];
-  completed: boolean;
-  completedAt?: string | null;
-  attempts: number;
-  startTime?: string;
-  endTime?: string;
-  lastAttemptedArtefactId?: string;
-  displayedHints: Record<string, boolean>;
-}
+// Separate component for hints display to properly handle hooks
+const HintsDisplay = ({ 
+  artefact, 
+  questId, 
+  hints, 
+  isCollected, 
+  completed,
+  displayedHints,
+  onUpdateProgress 
+}: { 
+  artefact: MainQuest['artefacts'][0],
+  questId: string,
+  hints: Hint[],
+  isCollected: boolean,
+  completed: boolean,
+  displayedHints: Record<string, boolean>,
+  onUpdateProgress: (updates: Partial<QuestProgress>) => void
+}) => {
+  useEffect(() => {
+    if (!isCollected && !completed) {
+      hints.forEach((hint, idx) => {
+        const hintKey = `${artefact.artefactId}-${idx}`;
+        if (!displayedHints[hintKey]) {
+          fetch(`/api/user-quest-progress`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              questId: questId,
+              artefactId: artefact.artefactId,
+              displayedHint: { [hintKey]: true }
+            })
+          }).catch(console.error);
 
-type MainQuest = Omit<Quest, 'artefacts'> & {
-  artefacts: Array<{
-    artefactId: string;
-    hints: Hint[];
-    hintDisplayMode: 'sequential' | 'random';
-    name?: string;
-  }>;
-  dateRange?: {
-    from?: string;
-    to?: string;
-  };
-  questType?: 'sequential' | 'random';
-  prize?: {
-    title: string;
-  };
+          onUpdateProgress({
+            displayedHints: {
+              ...displayedHints,
+              [hintKey]: true
+            }
+          });
+        }
+      });
+    }
+  }, [artefact.artefactId, hints, isCollected, completed, displayedHints, questId, onUpdateProgress]);
+
+  return (
+    <>
+      {hints.map((hint, idx) => (
+        <div 
+          key={idx}
+          className="text-sm bg-white p-3 rounded border border-gray-200"
+        >
+          <div className="flex gap-2 items-center">
+            <span className="font-medium">Hint {idx + 1}</span>
+          </div>
+          <p className="mt-1 text-gray-600">{hint.description}</p>
+        </div>
+      ))}
+    </>
+  );
 };
 
 function parseDate(date?: string | Date): Date | undefined {
@@ -51,7 +84,7 @@ function isMainQuest(q: unknown): q is MainQuest {
 
 export default function Quests() {
   const { quests, loading, error } = useData();
-  const { activeQuest, acceptQuest, cancelQuest } = useQuest();
+  const { activeQuest, acceptQuest, cancelQuest, checkQuestCompletion } = useQuest();
   const [progress, setProgress] = useState<QuestProgress | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
@@ -60,6 +93,40 @@ export default function Quests() {
   const getAttempts = useCallback((): number => {
     return progress?.attempts || 0;
   }, [progress]);
+
+  // Handler for progress updates
+  const handleProgressUpdate = useCallback((updates: Partial<QuestProgress>) => {
+    setProgress(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        ...updates,
+        collectedArtefactIds: updates.collectedArtefactIds || prev.collectedArtefactIds,
+        displayedHints: {
+          ...prev.displayedHints,
+          ...(updates.displayedHints || {})
+        }
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    // Only run completion check when we have all necessary data
+    if (
+      isMainQuest(activeQuest) && 
+      progress?.collectedArtefactIds && 
+      !progress?.completed && 
+      activeQuest.artefacts.length > 0
+    ) {
+      const totalArtefacts = activeQuest.artefacts.length;
+      const collectedCount = progress.collectedArtefactIds.length;
+      
+      // Only check completion if we have collected all artefacts
+      if (collectedCount >= totalArtefacts) {
+        checkQuestCompletion(progress.collectedArtefactIds);
+      }
+    }
+  }, [activeQuest, progress?.collectedArtefactIds, progress?.completed, checkQuestCompletion]);
 
   const handleError = useCallback((err: unknown) => {
     console.error(err);
@@ -254,7 +321,8 @@ export default function Quests() {
                     </div>
                   </div>
                 )}
-              </div>              {/* Hints Section */}
+              </div>              
+              {/* Hints Section */}
               {questToShow && progress && (
                 <div className="mt-4">
                   <h3 className="font-medium text-blue-800 mb-3">Quest Progress & Hints</h3>
@@ -300,50 +368,19 @@ export default function Quests() {
                                 Attempts: {attempts}
                               </span>
                             )}
-                          </div>                          {/* Show hints section */}
+                          </div>
+                          {/* Show hints section */}
                           {!isCollected && !progress.completed && artefact.hints && (
                             <div className="space-y-2 mt-3">
-                              {hintsToDisplay.map((hint, idx) => {
-                                const hintKey = `${artefact.artefactId}-${idx}`;
-                                const isDisplayed = progress.displayedHints[hintKey];
-                                
-                                if (!isDisplayed) {
-                                  // Update displayedHints in the backend
-                                  fetch(`/api/user-quest-progress`, {
-                                    method: 'PATCH',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      questId: questToShow.quest_id,
-                                      artefactId: artefact.artefactId,
-                                      displayedHint: { [hintKey]: true }
-                                    })
-                                  }).catch(console.error);
-
-                                  // Update local progress state
-                                  setProgress(prev => {
-                                    if (!prev) return prev;
-                                    return {
-                                      ...prev,
-                                      displayedHints: {
-                                        ...prev.displayedHints,
-                                        [hintKey]: true
-                                      }
-                                    };
-                                  });
-                                }
-                                
-                                return (
-                                  <div 
-                                    key={idx}
-                                    className="text-sm bg-white p-3 rounded border border-gray-200"
-                                  >
-                                    <div className="flex gap-2 items-center">
-                                      <span className="font-medium">Hint {idx + 1}</span>
-                                    </div>
-                                    <p className="mt-1 text-gray-600">{hint.description}</p>
-                                  </div>
-                                );
-                              })}
+                              <HintsDisplay
+                                artefact={artefact}
+                                questId={questToShow.quest_id}
+                                hints={hintsToDisplay}
+                                isCollected={isCollected}
+                                completed={progress.completed}
+                                displayedHints={progress.displayedHints}
+                                onUpdateProgress={handleProgressUpdate}
+                              />
                               {artefact.hints.some(hint => attempts < hint.displayAfterAttempts) && (
                                 <div className="text-sm bg-gray-50 p-3 rounded border border-gray-200">
                                   <div className="flex gap-2 items-center">

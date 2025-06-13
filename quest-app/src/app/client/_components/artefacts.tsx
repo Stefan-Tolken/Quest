@@ -1,7 +1,8 @@
 // components/ui/artefacts.tsx
 'use client';
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useData } from '@/context/dataContext';
+import { useUserData } from '@/hooks/useUserData'; // Add this import
 import SearchBar from '@/components/ui/searchBar';
 import ArtefactDetail from '@/components/ui/artefactDetails';
 import type { Artefact } from '@/lib/types';
@@ -9,6 +10,8 @@ import ArtefactGrid from '@/components/ui/artefactGrid';
 
 export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabled: boolean) => void }) {
   const { artefacts, loading, error } = useData();
+  const { userData, isLoading: userDataLoading } = useUserData(); // Add user data
+  
   const [isGrid, setIsGrid] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const savedState = localStorage.getItem('artefactsViewIsGrid');
@@ -17,7 +20,7 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
     return false;
   });
   
-  const [filteredArtefacts, setFilteredArtefacts] = useState<Artefact[]>(artefacts);
+  const [filteredArtefacts, setFilteredArtefacts] = useState<Artefact[]>([]);
   const [selectedArtefact, setSelectedArtefact] = useState<Artefact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailPosition, setDetailPosition] = useState<{
@@ -26,20 +29,32 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
     width: number;
     height: number;
   } | null>(null);
+  // Memoized filtered artefacts computation
+  const filteredArtefactsList = useMemo(() => {
+    if (!userData?.artefacts_collected || !artefacts.length) return [];
+    return artefacts.filter(artefact => 
+      userData.artefacts_collected.includes(artefact.id)
+    );
+  }, [userData?.artefacts_collected, artefacts]);
 
-  // Update filtered artefacts when the main artefacts data changes
+  // Initialize filtered artefacts
   useEffect(() => {
-    setFilteredArtefacts(artefacts);
-  }, [artefacts]);
+    setFilteredArtefacts(filteredArtefactsList);
+  }, [filteredArtefactsList]);
 
   // Save to localStorage whenever isGrid changes
   useEffect(() => {
     localStorage.setItem('artefactsViewIsGrid', String(isGrid));
-  }, [isGrid]);
-
-  const handleSearch = useCallback((results: Artefact[]) => {
-    setFilteredArtefacts(results);
-  }, []);
+  }, [isGrid]);  const handleSearch = useCallback((results: Artefact[]) => {
+    if (!userData?.artefacts_collected || !results.length) {
+      setFilteredArtefacts([]);
+      return;
+    }
+    const filtered = results.filter(artefact => 
+      userData.artefacts_collected.includes(artefact.id)
+    );
+    setFilteredArtefacts(filtered);
+  }, [userData?.artefacts_collected]);
 
   const handleArtefactSelect = (artefact: Artefact, elementRect: DOMRect) => {
     setDetailPosition({
@@ -60,7 +75,8 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
     setIsGrid(prev => !prev);
   }, []);
 
-  if (loading) {
+  // Show loading state while data is loading
+  if (loading || userDataLoading) {
     return (
       <div className="p-6">
         {/* SearchBar skeleton */}
@@ -126,16 +142,15 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
   if (error) {
     return (
       <div className="p-6">
-        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">Error: {error}</div>;
+        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">Error: {error}</div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <SearchBar 
+    <div className="p-6">      <SearchBar 
         onSearch={handleSearch} 
-        artefacts={artefacts}
+        artefacts={filteredArtefactsList}
         isGrid={isGrid}
         onViewToggle={handleViewToggle}
       />
@@ -147,7 +162,16 @@ export default function Artefacts({ setSwipeEnabled }: { setSwipeEnabled: (enabl
         />
       ) : (
         <div className="text-center py-12">
-          <p className="bg-primary/70 text-primary-foreground p-2 rounded-md">No artefacts found matching your search.</p>
+          <div className="bg-primary/70 text-primary-foreground p-4 rounded-md">
+            {userData && userData.artefacts_collected.length === 0 ? (
+              <div>
+                <p className="font-semibold mb-2">No artefacts collected yet!</p>
+                <p className="text-sm">Complete quests to discover and collect artefacts.</p>
+              </div>
+            ) : (
+              <p>No artefacts found matching your search.</p>
+            )}
+          </div>
         </div>
       )}
       

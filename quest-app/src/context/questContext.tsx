@@ -9,6 +9,7 @@ type QuestContextType = {
   acceptQuest: (quest: Quest) => void;
   cancelQuest: () => void;
   submitArtefact: (artefactId: string) => boolean;
+  checkQuestCompletion: (collectedArtefactIds: string[]) => Promise<void>;
 };
 
 const QuestContext = createContext<QuestContextType | undefined>(undefined);
@@ -120,8 +121,76 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     return activeQuest.artefacts.some((artefact) => artefact.artefactId === artefactId);
   };
 
+  // New function to check and handle quest completion
+  const checkQuestCompletion = async (collectedArtefactIds: string[]) => {
+    if (!activeQuest) return;
+
+    // Check if all artefacts have been collected
+    const totalArtefacts = activeQuest.artefacts.length;
+    const collectedCount = collectedArtefactIds.length;
+    
+    if (collectedCount >= totalArtefacts) {
+      console.log('Quest completed!', activeQuest.quest_id);
+      
+      try {
+        // Save quest completion - backend handles both quest progress and user profile
+        let token = localStorage.getItem('token');
+        if (!token && typeof window !== 'undefined') {
+          const oidcKey = Object.keys(sessionStorage).find(k => k.startsWith('oidc.user:'));
+          if (oidcKey) {
+            try {
+              const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
+              token = oidcUser.id_token;
+            } catch {
+              console.error('Error parsing OIDC user from sessionStorage');
+            }
+          }
+        }        console.log('Sending complete-quest request for quest:', activeQuest.quest_id);
+        
+        const response = await fetch('/api/complete-quest', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ 
+            questId: activeQuest.quest_id
+          })
+        });
+
+        const data = await response.json();
+        console.log('Complete quest response:', data);
+
+        if (response.ok) {
+          // Clear active quest after successful completion
+          setActiveQuest(null);
+          
+          if (data.update?.completed_quests) {
+            console.log('Updated completed_quests:', data.update.completed_quests);
+          }
+          
+          // Show completion message
+          alert(`🎉 Quest "${activeQuest.title}" completed! ${activeQuest.prize ? `Prize: ${activeQuest.prize.title}` : ''}`);
+        } else {
+          console.error('Failed to complete quest:', data.error || 'Unknown error');
+          alert('Failed to complete quest. Please try again.');
+        }
+        
+      } catch (err) {
+        console.error('Error completing quest:', err);
+      }
+    }
+  };
+
   return (
-    <QuestContext.Provider value={{ activeQuest, isLoading, acceptQuest, cancelQuest, submitArtefact }}>
+    <QuestContext.Provider value={{ 
+      activeQuest, 
+      isLoading, 
+      acceptQuest, 
+      cancelQuest, 
+      submitArtefact,
+      checkQuestCompletion
+    }}>
       {children}
     </QuestContext.Provider>
   );

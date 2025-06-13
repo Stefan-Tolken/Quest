@@ -1,5 +1,4 @@
 import { ReactNode } from 'react'
-import AuthGuard from '@/components/authGuard'
 import { QuestProvider } from '@/context/questContext'
 import { DataProvider } from '@/context/dataContext'
 
