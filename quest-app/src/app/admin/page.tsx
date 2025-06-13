@@ -123,194 +123,86 @@ export default function AdminHome() {
     return selectedRows.map(row => row.original);
   };
 
-  // Generate QR code as canvas
-  const generateQRCanvas = async (artefact: Artefact, size: number = 200): Promise<HTMLCanvasElement> => {
-    return new Promise((resolve, reject) => {
-      // Create a temporary container for QR generation
-      const tempDiv = document.createElement('div');
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.top = '-9999px';
-      tempDiv.innerHTML = `<div id="temp-qr-${artefact.id}"></div>`;
-      document.body.appendChild(tempDiv);
+  const handleBulkDownloadLambda = async () => {
+    const selectedArtefacts = getSelectedArtefacts();
+    if (selectedArtefacts.length === 0) {
+      alert('Please select at least one artefact to download QR codes.');
+      return;
+    }
 
-      const qrContainer = document.getElementById(`temp-qr-${artefact.id}`);
-      if (!qrContainer) {
-        document.body.removeChild(tempDiv);
-        reject(new Error('Could not create QR container'));
-        return;
-      }
-
-      // Create a React root and render the QR component
-      import('react-dom/client').then(({ createRoot }) => {
-        const root = createRoot(qrContainer);
-        
-        // Render your QRCodeGenerator component
-        // Render QRCodeGenerator and extract the SVG after rendering
-        root.render(
-          React.createElement(QRCodeGenerator, {
-            data: { artefactId: artefact.id },
-            size: size,
-          })
-        );
-
-        // Wait for the QRCodeGenerator to render, then extract the SVG and convert to canvas
-        setTimeout(() => {
-          const svgElement = qrContainer.querySelector('svg');
-          if (!svgElement) {
-            root.unmount();
-            document.body.removeChild(tempDiv);
-            reject(new Error('Could not find QR SVG element'));
-            return;
-          }
-
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            root.unmount();
-            document.body.removeChild(tempDiv);
-            reject(new Error('Could not get canvas context'));
-            return;
-          }
-
-          const svgData = new XMLSerializer().serializeToString(svgElement);
-          const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-          const url = URL.createObjectURL(svgBlob);
-
-          const img = new Image();
-          img.onload = () => {
-            canvas.width = size;
-            canvas.height = size;
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0);
-
-            // Clean up
-            URL.revokeObjectURL(url);
-            root.unmount();
-            document.body.removeChild(tempDiv);
-            resolve(canvas);
-          };
-          img.onerror = () => {
-            URL.revokeObjectURL(url);
-            root.unmount();
-            document.body.removeChild(tempDiv);
-            reject(new Error('Failed to load QR image'));
-          };
-          img.src = url;
-        }, 100);
-      }).catch(error => {
-        document.body.removeChild(tempDiv);
-        reject(error);
+    setIsGeneratingBulk(true);
+    
+    try {
+      console.log('Sending request with:', {
+        artefacts: selectedArtefacts,
+        format: bulkDownloadType,
+        imageType: bulkImageType
       });
-    });
-  };
 
-  // Handle bulk download as images
-  const handleBulkDownloadImages = async () => {
-    const selectedArtefacts = getSelectedArtefacts();
-    if (selectedArtefacts.length === 0) return;
+      const response = await fetch('/api/lambda', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          artefacts: selectedArtefacts,
+          format: bulkDownloadType,
+          imageType: bulkImageType
+        })
+      });
 
-    setIsGeneratingBulk(true);
-    
-    try {
-      for (const artefact of selectedArtefacts) {
-        const canvas = await generateQRCanvas(artefact);
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error response text:', errorText);
         
-        // Determine MIME type and quality based on selected format
-        let mimeType = 'image/png';
-        let quality = 1;
-        let extension = 'png';
-        
-        if (bulkImageType === 'jpg' || bulkImageType === 'jpeg') {
-          mimeType = 'image/jpeg';
-          quality = 0.95;
-          extension = bulkImageType;
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch (e) {
+          error = { error: errorText };
         }
         
-        // Download the image
-        const imageUrl = canvas.toDataURL(mimeType, quality);
-        const downloadLink = document.createElement('a');
-        downloadLink.href = imageUrl;
-        downloadLink.download = `qr-code-${artefact.name.replace(/\s+/g, '-').toLowerCase()}.${extension}`;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-        
-        // Small delay between downloads to prevent browser blocking
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.error('Parsed error:', error);
+        throw new Error(error.error || error.details || error.message || 'Failed to generate QR codes');
       }
-    } catch (error) {
-      console.error('Error generating bulk QR codes:', error);
-      alert('Error generating QR codes. Please try again.');
-    }
-    
-    setIsGeneratingBulk(false);
-    setShowBulkQRPopup(false);
-  };
 
-  // Handle bulk download as PDF
-  const handleBulkDownloadPDF = async () => {
-    const selectedArtefacts = getSelectedArtefacts();
-    if (selectedArtefacts.length === 0) return;
-
-    setIsGeneratingBulk(true);
-    
-    try {
-      // You'll need to install jsPDF: npm install jspdf
-      // For now, I'll create a simple implementation
-      const { jsPDF } = await import('jspdf');
-      const pdf = new jsPDF();
+      const result = await response.json();
+      console.log('Success response:', result);
       
-      const pageWidth = pdf.internal.pageSize.width;
-      const pageHeight = pdf.internal.pageSize.height;
-      const qrSize = 60; // mm
-      const margin = 20; // mm
-      const qrsPerRow = Math.floor((pageWidth - 2 * margin) / (qrSize + 10));
-      const qrsPerCol = Math.floor((pageHeight - 2 * margin) / (qrSize + 20));
-      const qrsPerPage = qrsPerRow * qrsPerCol;
+      const { downloadUrl } = result;
       
-      for (let i = 0; i < selectedArtefacts.length; i++) {
-        const artefact = selectedArtefacts[i];
-        
-        // Add new page if needed
-        if (i > 0 && i % qrsPerPage === 0) {
-          pdf.addPage();
-        }
-        
-        const pageIndex = i % qrsPerPage;
-        const row = Math.floor(pageIndex / qrsPerRow);
-        const col = pageIndex % qrsPerRow;
-        
-        const x = margin + col * (qrSize + 10);
-        const y = margin + row * (qrSize + 20);
-        
-        // Generate QR code canvas
-        const canvas = await generateQRCanvas(artefact, 200);
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Add QR code to PDF
-        pdf.addImage(imgData, 'PNG', x, y, qrSize, qrSize);
-        
-        // Add artefact name below QR code
-        pdf.setFontSize(8);
-        pdf.text(artefact.name, x + qrSize/2, y + qrSize + 5, { align: 'center', maxWidth: qrSize });
-        
-        if (artefact.artist) {
-          pdf.setFontSize(6);
-          pdf.text(`by ${artefact.artist}`, x + qrSize/2, y + qrSize + 10, { align: 'center', maxWidth: qrSize });
-        }
+      if (!downloadUrl) {
+        throw new Error('No download URL received from server');
       }
       
-      // Download PDF
-      pdf.save(`qr-codes-bulk-${Date.now()}.pdf`);
+      // Download the file
+      const downloadLink = document.createElement('a');
+      downloadLink.href = downloadUrl;
+      downloadLink.download = `qr-codes-bulk-${Date.now()}.${bulkDownloadType === 'pdf' ? 'pdf' : 'zip'}`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+
+      setShowBulkQRPopup(false);
+      
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please make sure jsPDF is installed.');
+      console.error('Full error object:', error);
+      console.error('Error generating QR codes:', error);
+      
+      let errorMessage = 'Unknown error occurred';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      alert(`Error generating QR codes: ${errorMessage}`);
+    } finally {
+      setIsGeneratingBulk(false);
     }
-    
-    setIsGeneratingBulk(false);
-    setShowBulkQRPopup(false);
   };
 
   // Handle bulk QR download
@@ -1233,7 +1125,7 @@ export default function AdminHome() {
                 </Button>
                 <Button
                   variant="default"
-                  onClick={bulkDownloadType === "pdf" ? handleBulkDownloadPDF : handleBulkDownloadImages}
+                  onClick={handleBulkDownloadLambda}
                   className="flex-1 flex items-center justify-center gap-2 hover:cursor-pointer"
                   disabled={isGeneratingBulk}
                 >
