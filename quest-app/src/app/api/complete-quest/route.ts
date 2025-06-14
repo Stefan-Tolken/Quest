@@ -16,9 +16,12 @@ export async function POST(req: NextRequest) {
 
   try {
     // First, get the quest details to find the prize
-    const questResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/quests`);
-    const questsData = await questResponse.json();
-    const quest = questsData.quests?.find((q: any) => q.quest_id === questId);
+    const questParams = {
+      TableName: process.env.QUESTS_TABLE,
+      Key: { quest_id: questId }
+    };
+    const questResponse = await docClient.send(new GetCommand(questParams));
+    const quest = questResponse.Item;
 
     // Update quest progress to mark as completed
     const questProgressParams = {

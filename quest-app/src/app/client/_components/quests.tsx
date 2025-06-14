@@ -4,9 +4,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useData } from '@/context/dataContext';
 import { useQuest } from '@/context/questContext';
+import { useUserData } from '@/hooks/useUserData'; // Import the user data hook
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { CalendarDays, Trophy, MapPin } from 'lucide-react';
+import { CalendarDays, Trophy, MapPin, Gift } from 'lucide-react';
 import type { Hint, QuestProgress, MainQuest } from '@/lib/types';
 
 // Separate component for hints display to properly handle hooks
@@ -85,6 +86,7 @@ function isMainQuest(q: unknown): q is MainQuest {
 export default function Quests() {
   const { quests, loading, error } = useData();
   const { activeQuest, acceptQuest, cancelQuest, checkQuestCompletion } = useQuest();
+  const { userData } = useUserData(); // Get user data to check completed quests
   const [progress, setProgress] = useState<QuestProgress | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
@@ -110,7 +112,37 @@ export default function Quests() {
     });
   }, []);
 
+  // Check if a quest is completed by the user
+  const isQuestCompleted = useCallback((questId: string): boolean => {
+    return userData?.completed_quests?.some(completedQuest => 
+      completedQuest.questId === questId
+    ) ?? false;
+  }, [userData?.completed_quests]);
+
+  // Get completed quest data
+  const getCompletedQuestData = useCallback((questId: string) => {
+    return userData?.completed_quests?.find(completedQuest => 
+      completedQuest.questId === questId
+    );
+  }, [userData?.completed_quests]);
+
+  // Placeholder function for viewing prize
+  const handleViewPrize = useCallback((quest: MainQuest) => {
+    const completedQuestData = getCompletedQuestData(quest.quest_id);
+    alert(`Prize for "${quest.title}":\n${completedQuestData?.prize || quest.prize?.title || 'No prize information available'}`);
+  }, [getCompletedQuestData]);
+
   useEffect(() => {
+    // Debug logs to track quest completion flow
+    console.log('Quest completion check - Conditions:', {
+      isMainQuest: isMainQuest(activeQuest),
+      hasProgress: !!progress?.collectedArtefactIds,
+      notCompleted: !progress?.completed,
+      hasArtefacts: (activeQuest?.artefacts?.length ?? 0) > 0,
+      collectedCount: progress?.collectedArtefactIds?.length ?? 0,
+      totalArtefacts: activeQuest?.artefacts?.length ?? 0
+    });
+
     // Only run completion check when we have all necessary data
     if (
       isMainQuest(activeQuest) && 
@@ -121,8 +153,15 @@ export default function Quests() {
       const totalArtefacts = activeQuest.artefacts.length;
       const collectedCount = progress.collectedArtefactIds.length;
       
+      console.log('Checking completion:', {
+        totalArtefacts,
+        collectedCount,
+        shouldComplete: collectedCount >= totalArtefacts
+      });
+      
       // Only check completion if we have collected all artefacts
       if (collectedCount >= totalArtefacts) {
+        console.log('Calling checkQuestCompletion with:', progress.collectedArtefactIds);
         checkQuestCompletion(progress.collectedArtefactIds);
       }
     }
@@ -191,10 +230,10 @@ export default function Quests() {
     );
   }
 
-   if (error) {
+  if (error) {
     return (
       <div className="p-6">
-        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">Error Loading Quests: {error}</div>;
+        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">Error Loading Quests: {error}</div>
       </div>
     );
   }
@@ -202,7 +241,7 @@ export default function Quests() {
   if (!quests?.length) {
     return (
       <div className="p-6">
-        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">No quests available at this time</div>;
+        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">No quests available at this time</div>
       </div>
     );
   }
@@ -211,6 +250,7 @@ export default function Quests() {
   let questToShow: MainQuest | null = null;
   const ongoingQuests: MainQuest[] = [];
   const upcomingQuests: MainQuest[] = [];
+  const completedQuests: MainQuest[] = [];
 
   // Categorize quests
   for (const quest of quests) {
@@ -218,8 +258,11 @@ export default function Quests() {
       const from = parseDate(quest.dateRange?.from);
       const to = parseDate(quest.dateRange?.to);
       const isAccepted = activeQuest?.quest_id === quest.quest_id;
+      const isCompleted = isQuestCompleted(quest.quest_id);
 
-      if (isAccepted) {
+      if (isCompleted) {
+        completedQuests.push(quest);
+      } else if (isAccepted) {
         questToShow = quest;
       } else if (from && from > now) {
         upcomingQuests.push(quest);
@@ -240,7 +283,9 @@ export default function Quests() {
       }
     }
     return artefacts;
-  };  // Get hints to display for an artefact based on its hint display mode and attempts
+  };
+
+  // Get hints to display for an artefact based on its hint display mode and attempts
   const getHintsToDisplay = (artefact: MainQuest['artefacts'][0], attempts: number, progress: QuestProgress): Hint[] => {
     if (attempts === 0 || !progress.startTime) {
       return [];
@@ -322,6 +367,7 @@ export default function Quests() {
                   </div>
                 )}
               </div>              
+              
               {/* Hints Section */}
               {questToShow && progress && (
                 <div className="mt-4">
@@ -346,9 +392,7 @@ export default function Quests() {
                         <div 
                           key={artefact.artefactId}
                           className={`rounded-lg border p-4 ${
-                            isCollected 
-                              ? 'bg-green-50 border-green-200' 
-                              : isNextInSequence
+                            isNextInSequence
                               ? 'bg-blue-50 border-blue-200'
                               : 'bg-gray-50 border-gray-200'
                           }`}
@@ -356,9 +400,6 @@ export default function Quests() {
                           <div className="flex justify-between items-start mb-2">
                             <div>
                               <span className="font-medium">{artefact.name}</span>
-                              {isCollected && (
-                                <span className="ml-2 text-green-600 text-sm">✓ Found</span>
-                              )}
                               {isNextInSequence && !progress.completed && (
                                 <span className="ml-2 text-blue-600 text-sm">Current Target</span>
                               )}
@@ -409,16 +450,10 @@ export default function Quests() {
                 <div className="text-red-500">{progressError}</div>
               ) : progress ? (
                 <div className="w-full flex items-center gap-2">
-                  {progress.completed ? (
-                    <span className="text-green-600 font-semibold">Quest Completed! 🎉</span>
-                  ) : (
-                    <>
-                      <span className="font-medium">Artefacts found:</span>
-                      <span>
-                        {progress.collectedArtefactIds.length} / {questToShow.artefacts.length}
-                      </span>
-                    </>
-                  )}
+                  <span className="font-medium">Artefacts found:</span>
+                  <span>
+                    {progress.collectedArtefactIds.length} / {questToShow.artefacts.length}
+                  </span>
                 </div>
               ) : null}
 
@@ -538,6 +573,68 @@ export default function Quests() {
                 </CardFooter>
               </Card>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Completed Quests Section */}
+      {completedQuests.length > 0 && (
+        <div>
+          <h2 className="text-xl font-bold mb-4 text-green-700">Completed Quests</h2>
+          <div className="grid gap-6">
+            {completedQuests.map((quest) => {
+              const completedQuestData = getCompletedQuestData(quest.quest_id);
+              return (
+                <Card key={quest.quest_id} className="border-green-200 bg-green-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <span>{quest.title}</span>
+                      <span className="text-green-600 text-sm">✓ Completed</span>
+                    </CardTitle>
+                    <CardDescription>{quest.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    {completedQuestData && (
+                      <div className="flex items-start gap-3">
+                        <CalendarDays className="h-4 w-4 mt-0.5 text-green-600" />
+                        <div>
+                          <p className="font-medium">Completed On</p>
+                          <p className="text-green-700">
+                            {new Date(completedQuestData.completedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-4 w-4 mt-0.5 text-green-600" />
+                      <div>
+                        <p className="font-medium">Artefacts Found</p>
+                        <p className="text-green-700">{quest.artefacts.length} / {quest.artefacts.length}</p>
+                      </div>
+                    </div>
+                    {quest.prize && (
+                      <div className="flex items-start gap-3">
+                        <Trophy className="h-4 w-4 mt-0.5 text-green-600" />
+                        <div>
+                          <p className="font-medium">Prize Earned</p>
+                          <p className="text-green-700">{quest.prize.title}</p>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                  <CardFooter>
+                    <Button
+                      onClick={() => handleViewPrize(quest)}
+                      variant="outline"
+                      className="w-full sm:w-auto border-green-300 text-green-700 hover:bg-green-100"
+                    >
+                      <Gift className="h-4 w-4 mr-2" />
+                      View Prize
+                    </Button>
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
         </div>
       )}

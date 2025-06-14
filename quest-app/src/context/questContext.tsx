@@ -1,16 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import type { Quest } from '@/lib/types';
-
-type QuestContextType = {
-  activeQuest: Quest | null;
-  isLoading: boolean;
-  acceptQuest: (quest: Quest) => void;
-  cancelQuest: () => void;
-  submitArtefact: (artefactId: string) => boolean;
-  checkQuestCompletion: (collectedArtefactIds: string[]) => Promise<void>;
-};
+import { toast } from 'sonner';
+import type { Quest, QuestContextType } from '@/lib/types';
 
 const QuestContext = createContext<QuestContextType | undefined>(undefined);
 
@@ -77,11 +69,11 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
         setActiveQuest(quest);
       } else {
         console.error('Failed to start quest:', data.error || res.statusText);
-        alert('Failed to accept quest: ' + (data.error || res.statusText));
+        toast.error('Failed to accept quest: ' + (data.error || res.statusText));
       }
     } catch (err) {
       console.error('Error starting quest:', err);
-      alert('Error accepting quest. Please try again.');
+      toast.error('Error accepting quest. Please try again.');
     }
   };
 
@@ -121,17 +113,33 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     return activeQuest.artefacts.some((artefact) => artefact.artefactId === artefactId);
   };
 
+  // Helper function to delete quest progress
+  const deleteQuestProgress = async (questId: string, token: string | null) => {
+    try {
+      await fetch(`/api/user-quest-progress?questId=${questId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      console.log('Quest progress deleted successfully');
+    } catch (err) {
+      console.error('Error deleting quest progress:', err);
+    }
+  };
+
   // New function to check and handle quest completion
   const checkQuestCompletion = async (collectedArtefactIds: string[]) => {
-    if (!activeQuest) return;
+    if (!activeQuest) {
+      console.log('No active quest, returning early');
+      return;
+    }
 
     // Check if all artefacts have been collected
     const totalArtefacts = activeQuest.artefacts.length;
     const collectedCount = collectedArtefactIds.length;
     
     if (collectedCount >= totalArtefacts) {
-      console.log('Quest completed!', activeQuest.quest_id);
-      
       try {
         // Save quest completion - backend handles both quest progress and user profile
         let token = localStorage.getItem('token');
@@ -145,39 +153,13 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
               console.error('Error parsing OIDC user from sessionStorage');
             }
           }
-        }        console.log('Sending complete-quest request for quest:', activeQuest.quest_id);
-        
-        const response = await fetch('/api/complete-quest', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({ 
-            questId: activeQuest.quest_id
-          })
-        });
-
-        const data = await response.json();
-        console.log('Complete quest response:', data);
-
-        if (response.ok) {
-          // Clear active quest after successful completion
-          setActiveQuest(null);
-          
-          if (data.update?.completed_quests) {
-            console.log('Updated completed_quests:', data.update.completed_quests);
-          }
-          
-          // Show completion message
-          alert(`🎉 Quest "${activeQuest.title}" completed! ${activeQuest.prize ? `Prize: ${activeQuest.prize.title}` : ''}`);
-        } else {
-          console.error('Failed to complete quest:', data.error || 'Unknown error');
-          alert('Failed to complete quest. Please try again.');
         }
-        
+  
+        // Clear active quest after completion
+        setActiveQuest(null); 
       } catch (err) {
         console.error('Error completing quest:', err);
+        toast.error('Error completing quest. Please try again.');
       }
     }
   };

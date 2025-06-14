@@ -1,15 +1,18 @@
 import { ReactNode } from 'react'
 import { QuestProvider } from '@/context/questContext'
 import { DataProvider } from '@/context/dataContext'
+import { ToastProvider } from '@/components/ui/toast'
 
 export default function ClientLayout({ children }: { children: ReactNode }) {
   return (
     // <AuthGuard>
-    <QuestProvider>
+    <ToastProvider>
+      <QuestProvider>
         <DataProvider>
           {children}
         </DataProvider>
-    </QuestProvider>
+      </QuestProvider>
+    </ToastProvider>
     // </AuthGuard>
   )
 }
