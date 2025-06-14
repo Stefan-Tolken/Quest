@@ -1,15 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect } from 'react';
-import type { Quest } from '@/lib/types';
-
-type QuestContextType = {
-  activeQuest: Quest | null;
-  isLoading: boolean;
-  acceptQuest: (quest: Quest) => void;
-  cancelQuest: () => void;
-  submitArtefact: (artefactId: string) => boolean;
-};
+import { toast } from 'sonner';
+import type { Quest, QuestContextType } from '@/lib/types';
 
 const QuestContext = createContext<QuestContextType | undefined>(undefined);
 
@@ -76,11 +69,11 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
         setActiveQuest(quest);
       } else {
         console.error('Failed to start quest:', data.error || res.statusText);
-        alert('Failed to accept quest: ' + (data.error || res.statusText));
+        toast.error('Failed to accept quest: ' + (data.error || res.statusText));
       }
     } catch (err) {
       console.error('Error starting quest:', err);
-      alert('Error accepting quest. Please try again.');
+      toast.error('Error accepting quest. Please try again.');
     }
   };
 
@@ -120,8 +113,66 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     return activeQuest.artefacts.some((artefact) => artefact.artefactId === artefactId);
   };
 
+  // Helper function to delete quest progress
+  const deleteQuestProgress = async (questId: string, token: string | null) => {
+    try {
+      await fetch(`/api/user-quest-progress?questId=${questId}`, {
+        method: 'DELETE',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
+      console.log('Quest progress deleted successfully');
+    } catch (err) {
+      console.error('Error deleting quest progress:', err);
+    }
+  };
+
+  // New function to check and handle quest completion
+  const checkQuestCompletion = async (collectedArtefactIds: string[]) => {
+    if (!activeQuest) {
+      console.log('No active quest, returning early');
+      return;
+    }
+
+    // Check if all artefacts have been collected
+    const totalArtefacts = activeQuest.artefacts.length;
+    const collectedCount = collectedArtefactIds.length;
+    
+    if (collectedCount >= totalArtefacts) {
+      try {
+        // Save quest completion - backend handles both quest progress and user profile
+        let token = localStorage.getItem('token');
+        if (!token && typeof window !== 'undefined') {
+          const oidcKey = Object.keys(sessionStorage).find(k => k.startsWith('oidc.user:'));
+          if (oidcKey) {
+            try {
+              const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
+              token = oidcUser.id_token;
+            } catch {
+              console.error('Error parsing OIDC user from sessionStorage');
+            }
+          }
+        }
+  
+        // Clear active quest after completion
+        setActiveQuest(null); 
+      } catch (err) {
+        console.error('Error completing quest:', err);
+        toast.error('Error completing quest. Please try again.');
+      }
+    }
+  };
+
   return (
-    <QuestContext.Provider value={{ activeQuest, isLoading, acceptQuest, cancelQuest, submitArtefact }}>
+    <QuestContext.Provider value={{ 
+      activeQuest, 
+      isLoading, 
+      acceptQuest, 
+      cancelQuest, 
+      submitArtefact,
+      checkQuestCompletion
+    }}>
       {children}
     </QuestContext.Provider>
   );
