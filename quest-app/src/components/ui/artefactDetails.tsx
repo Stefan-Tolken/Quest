@@ -1,29 +1,16 @@
 // components/ui/artefactDetails.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { ArrowLeft, Info, Calendar, MapPin, Ruler, Box } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Ruler, Box } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import QRCodeGenerator from '@/components/QRGenerator';
 import { ComponentData } from '@/lib/types';
 import { useQuest } from '@/context/questContext';
-
-interface ArtefactDetailProps {
-  artefactId: string | null | undefined;
-  isOpen: boolean;
-  onClose: () => void;
-  onVisibilityChange?: (isVisible: boolean) => void;
-}
-
-interface QuestProgress {
-  collectedArtefactIds: string[];
-  completed: boolean;
-  completedAt?: string | null;
-  attempts: number;
-  lastAttemptedArtefactId?: string;
-}
-
+import { QuestProgress, ArtefactDetailProps } from '@/lib/types';
+import { Artefact } from '@/lib/types';
+import { useToast } from '@/components/ui/toast';
 
 // Separate component for image with points to avoid hook issues
 function ImageWithPoints({ component }: { component: ComponentData }) {
@@ -307,23 +294,32 @@ export default function ArtefactDetail({
   onClose,
   onVisibilityChange 
 }: ArtefactDetailProps) {
-  interface Artefact {
-    id: string;
-    name: string;
-    description: string;
-    image?: string;
-    createdAt?: string;
-    components?: ComponentData[];
-    // Add other fields as needed based on your artefact structure
-  }
-  
   const [artefact, setArtefact] = useState<Artefact | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<'idle'|'success'|'error'|'already'|null>(null);
   const [progress, setProgress] = useState<QuestProgress | null>(null);
-  
-  const { activeQuest } = useQuest();
+  const { showToast } = useToast();
+  const { activeQuest, checkQuestCompletion } = useQuest();  // Track whether we've shown the success message
+  const [hasShownSuccess, setHasShownSuccess] = useState(false);
+
+  // Handle success/error notifications and quest completion check
+  useEffect(() => {
+    if (!submitStatus) {
+      setHasShownSuccess(false);
+      return;
+    }
+
+    if (submitStatus === 'success' && progress?.collectedArtefactIds && !hasShownSuccess) {
+      // Only show toast on the first success
+      setHasShownSuccess(true);
+      const successMessage = `${artefact?.name} collected successfully!`;
+      showToast(successMessage, 'success', 10000);
+
+      console.log('Artifact successfully submitted, checking quest completion...');
+      checkQuestCompletion(progress.collectedArtefactIds);
+    }
+  }, [submitStatus, progress?.collectedArtefactIds, artefact?.name, checkQuestCompletion, showToast, hasShownSuccess]);
 
   // Fetch artefact from API
   useEffect(() => {
@@ -374,7 +370,8 @@ export default function ArtefactDetail({
             completed: data.completed || false,
             completedAt: data.completedAt,
             attempts: data.attempts || 0,
-            lastAttemptedArtefactId: data.lastAttemptedArtefactId
+            lastAttemptedArtefactId: data.lastAttemptedArtefactId,
+            displayedHints: data.displayedHints || {}
           };
           setProgress(progressData);
         } else {
@@ -411,7 +408,10 @@ export default function ArtefactDetail({
   };
 
   // Check if this is a sequential quest and if this is the next artefact
-  const questArtefacts = Array.isArray(activeQuest?.artefacts) ? activeQuest.artefacts : [];
+  const questArtefacts = useMemo(
+    () => (Array.isArray(activeQuest?.artefacts) ? activeQuest.artefacts : []),
+    [activeQuest?.artefacts]
+  );
   const hintDisplayMode = questArtefacts[0]?.hintDisplayMode || 'concurrent';
   const isSequential = hintDisplayMode === 'sequential';
   
@@ -425,6 +425,41 @@ export default function ArtefactDetail({
     const nextArtefactId = typeof nextArtefact === 'object' && nextArtefact !== null ? nextArtefact.artefactId ?? '' : nextArtefact ?? '';
     isNextSequential = !!(nextArtefactId && nextArtefactId === artefact?.id);
   }
+
+  // Function to get the next hint for sequential quests
+  const getNextHint = useCallback(() => {
+    if (!isSequential || !activeQuest?.artefacts || !progress) return null;
+    
+    const foundIds = Array.isArray(progress.collectedArtefactIds) ? progress.collectedArtefactIds : [];
+    const nextArtefact = questArtefacts.find((a: any) => {
+      const artefactId = typeof a === 'object' && a !== null ? a.artefactId ?? '' : a ?? '';
+      return !foundIds.includes(artefactId);
+    });
+    
+    if (!nextArtefact || typeof nextArtefact !== 'object') return null;
+    
+    const hints = nextArtefact.hints || [];
+    if (hints.length === 0) return null;
+    
+    // Get the number of attempts for this quest to determine which hint to show
+    const attempts = progress.attempts || 0;
+    
+    // Show hints based on attempts: first hint after first attempt (attempts >= 1)
+    // Cap at the last available hint
+    const hintIndex = Math.min(Math.max(0, attempts - 1), hints.length - 1);
+    
+    return hints[hintIndex];
+  }, [isSequential, activeQuest?.artefacts, progress, questArtefacts]);
+
+  // Show toast for sequential quest wrong artifact error with hint
+  useEffect(() => {
+    if (isSequential && !isNextSequential && submitStatus === 'error') {
+      const nextHint = getNextHint();
+      const hintText = nextHint ? `Hint: ${nextHint.description}` : 'Incorrect artefact for this step. Try another.';
+      showToast(hintText, 'warning', 10000);
+    }
+  }, [isSequential, isNextSequential, submitStatus, showToast, getNextHint]);
+
   // Submit artefact as quest answer
   const handleSubmit = async () => {
     if (!activeQuest || !artefact?.id) return;
@@ -439,9 +474,8 @@ export default function ArtefactDetail({
           try {
             const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
             token = oidcUser.id_token;
-          } catch {
-            console.warn('Failed to parse OIDC user from sessionStorage');
-            token = null;
+          } catch (error) {
+            console.error('Error parsing OIDC user:', error);
           }
         }
       }
@@ -456,8 +490,7 @@ export default function ArtefactDetail({
       });
       
       const data = await res.json();
-      
-      if (data.success) {
+        if (data.success) {
         if (data.alreadyCollected) {
           setSubmitStatus('already');
         } else {
@@ -468,9 +501,27 @@ export default function ArtefactDetail({
           completed: data.completed || false,
           completedAt: data.completedAt,
           attempts: data.attempts || 0,
-          lastAttemptedArtefactId: data.lastAttemptedArtefactId
+          lastAttemptedArtefactId: data.lastAttemptedArtefactId,
+          displayedHints: data.displayedHints || {}
         };
         setProgress(newProgress);
+
+        // If we have collected all artifacts, trigger quest completion
+        if (activeQuest.artefacts.length > 0 && 
+            data.collectedArtefactIds && 
+            !data.completed) {
+          console.log('Checking quest completion...', {
+            totalArtefacts: activeQuest.artefacts.length,
+            collectedArtefacts: data.collectedArtefactIds.length,
+            collectedIds: data.collectedArtefactIds
+          });
+          
+          if (data.collectedArtefactIds.length >= activeQuest.artefacts.length) {
+            console.log('All artifacts collected, triggering completion check');
+            // Force the quest completion check
+            checkQuestCompletion(data.collectedArtefactIds);
+          }
+        }
       } else if (!data.success && data.error) {
         // Handle incorrect answers (both wrong artefact and wrong sequence)
         setSubmitStatus('error');
@@ -478,11 +529,12 @@ export default function ArtefactDetail({
         // Update attempts counter from the response
         if (data.attempts !== undefined && data.progress) {
           const updatedProgress: QuestProgress = {
-            collectedArtefactIds: data.progress.collectedArtefactIds || progress?.collectedArtefactIds || [],
-            completed: data.progress.completed || false,
-            completedAt: data.progress.completedAt,
+            collectedArtefactIds: progress?.collectedArtefactIds || [],
+            completed: progress?.completed || false,
+            completedAt: progress?.completedAt,
             attempts: data.attempts,
-            lastAttemptedArtefactId: data.lastAttemptedArtefactId
+            lastAttemptedArtefactId: artefact.id,
+            displayedHints: progress?.displayedHints || {}
           };
           setProgress(updatedProgress);
         }
@@ -503,6 +555,7 @@ export default function ArtefactDetail({
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="p-6">

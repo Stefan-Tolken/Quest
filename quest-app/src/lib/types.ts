@@ -99,6 +99,22 @@ export type MainQuest = Omit<Quest, 'artefacts'> & {
   };
 };
 
+export interface ArtefactDetailProps {
+  artefactId: string | null | undefined;
+  isOpen: boolean;
+  onClose: () => void;
+  onVisibilityChange?: (isVisible: boolean) => void;
+}
+
+export type QuestContextType = {
+  activeQuest: Quest | null;
+  isLoading: boolean;
+  acceptQuest: (quest: Quest) => void;
+  cancelQuest: () => void;
+  submitArtefact: (artefactId: string) => boolean;
+  checkQuestCompletion: (collectedArtefactIds: string[]) => Promise<void>;
+};
+
 export interface UserQuestProgress {
   userId: string;
   questId: string;
