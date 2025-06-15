@@ -30,7 +30,7 @@ export default function RestorationTimeline({ component }: { component: Componen
 
   return (
     <div className="space-y-4">
-      <h3 className="font-semibold text-2xl">Restoration Timeline</h3>
+      <h3 className="font-semibold text-center text-2xl">Restoration Timeline</h3>
       {/* Current restoration details */}
       <div className="space-y-4">
         <div className="flex items-start justify-between">

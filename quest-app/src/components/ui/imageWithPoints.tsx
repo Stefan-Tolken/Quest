@@ -73,8 +73,6 @@ export default function ImageWithPoints({ component }: { component: ComponentDat
               ))}
           </div>
         </div>
-
-
       </div>
 
       {/* Controls */}        
