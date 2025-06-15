@@ -6,9 +6,10 @@ import { DraggableComponent } from "./draggableComponent";
 
 const basicComponents: ComponentData[] = [
   { id: "1", type: "heading", content: "Heading" },
-  { id: "2", type: "paragraph", content: "Paragraph" },
+  { id: "2", type: "subheading", content: "SubHeading" },
+  { id: "3", type: "paragraph", content: "Paragraph" },
   {
-    id: "3",
+    id: "4",
     type: "image",
     content: {
       url: "",
@@ -25,12 +26,11 @@ const basicComponents: ComponentData[] = [
       materials: ""
     },
   },
-  { id: "6", type: "subheading", content: "SubHeading" },
 ];
 
 const advancedComponents: ComponentData[] = [
   {
-    id: "4",
+    id: "6",
     type: "restoration",
     content: {
       restorations: [],
