@@ -130,7 +130,7 @@ function Calendar({
         <button
           key={day}
           className={cn(
-            buttonVariants({ variant: "ghost" }),
+            buttonVariants({ variant: "subtle" }),
             "size-8 p-0 font-normal",
             selected && "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground",
             today && !selected && "bg-accent text-accent-foreground",

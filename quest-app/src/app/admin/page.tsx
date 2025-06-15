@@ -242,7 +242,7 @@ export default function AdminHome() {
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -260,7 +260,7 @@ export default function AdminHome() {
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -322,13 +322,14 @@ export default function AdminHome() {
     },
   ];
 
+  // Fixed column definitions for quest table
   const questColumns: ColumnDef<Quest>[] = [
     {
       accessorKey: "title",
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer justify-start pl-6"
           >
@@ -347,7 +348,7 @@ export default function AdminHome() {
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -391,15 +392,12 @@ export default function AdminHome() {
       },
     },
     {
-      accessorKey: "dateRange.from",
-      id: "start_date",
+      id: "start_date", // Keep the ID but remove accessorKey since we're using accessorFn
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
-            onClick={() => {
-              column.toggleSorting(column.getIsSorted() === "asc");
-            }}
+            variant="subtle"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
             Start Date
@@ -423,47 +421,28 @@ export default function AdminHome() {
           });
         };
         
-        if (startDate) {
-          return (
-            <div className="text-sm text-gray-600 ml-3">
-              {formatDate(startDate)}
-            </div>
-          );
-        }
-        
-        return <div className="text-gray-400 text-sm ml-3">-</div>;
+        return (
+          <div className="text-sm text-gray-600 ml-3">
+            {formatDate(startDate)}
+          </div>
+        );
       },
+      // Use ONLY accessorFn, remove sortingFn to avoid conflicts
       accessorFn: (row) => {
-        // This is key - provide an accessor function for sorting
-        if (row.dateRange?.from) return new Date(row.dateRange.from).getTime();
-        return Infinity; // Put items without dates at the end
-      },
-      sortingFn: (rowA, rowB) => {
-        const getDateValue = (quest: Quest) => {
-          if (quest.dateRange?.from) return new Date(quest.dateRange.from).getTime();
-          return Infinity; // Items without dates go to the end
-        };
-
-        const dateA = getDateValue(rowA.original);
-        const dateB = getDateValue(rowB.original);
-
-        // Return -1, 0, or 1 for proper sorting
-        if (dateA < dateB) return -1;
-        if (dateA > dateB) return 1;
-        return 0;
+        if (row.dateRange?.from) {
+          return new Date(row.dateRange.from).getTime();
+        }
+        return -1; // Put items without dates at the beginning when sorting ascending
       },
       enableSorting: true,
     },
     {
-      accessorKey: "dateRange.to",
-      id: "end_date",
+      id: "end_date", // Keep the ID but remove accessorKey since we're using accessorFn
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
-            onClick={() => {
-              column.toggleSorting(column.getIsSorted() === "asc");
-            }}
+            variant="subtle"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
             End Date
@@ -487,33 +466,18 @@ export default function AdminHome() {
           });
         };
         
-        if (endDate) {
-          return (
-            <div className="text-sm ml-3 text-gray-600">
-              {formatDate(endDate)}
-            </div>
-          );
-        }
-        
-        return <div className="text-gray-400 text-sm ml-3">-</div>;
+        return (
+          <div className="text-sm ml-3 text-gray-600">
+            {formatDate(endDate)}
+          </div>
+        );
       },
+      // Use ONLY accessorFn, remove sortingFn to avoid conflicts
       accessorFn: (row) => {
-        if (row.dateRange?.to) return new Date(row.dateRange.to).getTime();
-        return Infinity; // Put items without dates at the end
-      },
-      sortingFn: (rowA, rowB) => {
-        const getDateValue = (quest: Quest) => {
-          if (quest.dateRange?.to) return new Date(quest.dateRange.to).getTime();
-          return Infinity; // Items without dates go to the end
-        };
-
-        const dateA = getDateValue(rowA.original);
-        const dateB = getDateValue(rowB.original);
-
-        // Return -1, 0, or 1 for proper sorting
-        if (dateA < dateB) return -1;
-        if (dateA > dateB) return 1;
-        return 0;
+        if (row.dateRange?.to) {
+          return new Date(row.dateRange.to).getTime();
+        }
+        return -1; // Put items without dates at the beginning when sorting ascending
       },
       enableSorting: true,
     },
