@@ -548,14 +548,7 @@ export default function ArtefactDetail({
   };
 
   if (!isOpen) return null;
-  if (loading) {
-    return (
-      <div className="p-6">
-        <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">Loading Artefact...</div>
-      </div>
-    );
-  }
-
+  
   if (error) {
     return (
       <div className="p-6">
