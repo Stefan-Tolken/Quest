@@ -1,5 +1,8 @@
 // lib/types.ts
-import { DateRange } from "react-day-picker";
+export type DateRange = {
+  from?: string;
+  to?: string;
+};
 
 export type Hint = {
   id?: string;
@@ -104,6 +107,18 @@ export interface ArtefactDetailProps {
   isOpen: boolean;
   onClose: () => void;
   onVisibilityChange?: (isVisible: boolean) => void;
+}
+
+export interface CalendarProps {
+  mode?: "single" | "range"
+  selected?: Date | { from?: Date; to?: Date }
+  onSelect?: (date: Date | undefined) => void
+  disabled?: (date: Date) => boolean
+  className?: string
+  initialFocus?: boolean
+  showOutsideDays?: boolean
+  defaultMonth?: Date
+  numberOfMonths?: number
 }
 
 export type QuestContextType = {

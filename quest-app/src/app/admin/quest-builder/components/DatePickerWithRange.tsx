@@ -3,7 +3,7 @@
 import * as React from "react";
 import { addDays, format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { DateRange } from "react-day-picker";
+import { DateRange } from "@/lib/types";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -24,66 +24,102 @@ export function DatePickerWithRange({
   dateRange,
   onDateRangeChange,
 }: DatePickerWithRangeProps) {
-  const [date, setDate] = React.useState<DateRange | undefined>(
-    dateRange || {
-      from: new Date(),
-      to: addDays(new Date(), 20),
+  const [from, setFrom] = React.useState<Date | undefined>(() => {
+    if (dateRange?.from) {
+      return new Date(dateRange.from);
     }
-  );
+    return new Date();
+  });
+  
+  const [to, setTo] = React.useState<Date | undefined>(() => {
+    if (dateRange?.to) {
+      return new Date(dateRange.to);
+    }
+    return addDays(new Date(), 20);
+  });
 
-  // Update local state when prop changes
+  // Update local state when props change
   React.useEffect(() => {
-    if (dateRange !== undefined) {
-      setDate(dateRange);
+    if (dateRange?.from) {
+      setFrom(new Date(dateRange.from));
+    }
+    if (dateRange?.to) {
+      setTo(new Date(dateRange.to));
     }
   }, [dateRange]);
 
-  // Handle date change
-  const handleDateChange = (newDate: DateRange | undefined) => {
-    setDate(newDate);
+  // Handle from date change
+  const handleFromDateChange = (newDate: Date | undefined) => {
+    setFrom(newDate);
     if (onDateRangeChange) {
-      onDateRangeChange(newDate);
+      const newRange: DateRange = {
+        from: newDate ? newDate.toISOString() : undefined,
+        to: to ? to.toISOString() : undefined,
+      };
+      onDateRangeChange(newRange);
+    }
+  };
+
+  // Handle to date change
+  const handleToDateChange = (newDate: Date | undefined) => {
+    setTo(newDate);
+    if (onDateRangeChange) {
+      const newRange: DateRange = {
+        from: from ? from.toISOString() : undefined,
+        to: newDate ? newDate.toISOString() : undefined,
+      };
+      onDateRangeChange(newRange);
     }
   };
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button
-            id="date"
-            variant="outline"
-            className={cn(
-              "w-full justify-start text-left font-normal",
-              !date && "text-muted-foreground"
-            )}
-          >
-            <CalendarIcon className="mr-2 h-4 w-4" />
-            {date?.from ? (
-              date.to ? (
-                <>
-                  {format(date.from, "LLL dd, y")} -{" "}
-                  {format(date.to, "LLL dd, y")}
-                </>
-              ) : (
-                format(date.from, "LLL dd, y")
-              )
-            ) : (
-              <span>Pick a date</span>
-            )}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <Calendar
-            initialFocus
-            mode="range"
-            defaultMonth={date?.from}
-            selected={date}
-            onSelect={handleDateChange}
-            numberOfMonths={2}
-          />
-        </PopoverContent>
-      </Popover>
+      <div className="flex gap-2">
+        {/* From Date Picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              data-empty={!from}
+              className="data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal"
+            >
+              <CalendarIcon />
+              {from ? format(from, "PPP") : <span>Pick start date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar 
+              mode="single" 
+              selected={from} 
+              onSelect={handleFromDateChange}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
+
+        {/* To Date Picker */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              data-empty={!to}
+              className="data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal"
+            >
+              <CalendarIcon />
+              {to ? format(to, "PPP") : <span>Pick end date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0">
+            <Calendar 
+              mode="single" 
+              selected={to} 
+              onSelect={handleToDateChange}
+              initialFocus
+              disabled={(date) => from ? date < from : false}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
     </div>
   );
 }
