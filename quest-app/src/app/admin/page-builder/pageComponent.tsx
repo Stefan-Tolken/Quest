@@ -9,6 +9,7 @@ import {
   ImageComponent,
   RestorationComponent,
 } from "./components";
+import { SubHeadingComponent } from "./components/subheadingComponent";
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { GripVertical, X } from "lucide-react";
 import { DetailsComponent } from "./components/detailsComponent";
@@ -67,6 +68,13 @@ export const PageComponent = ({
         <div className="p-6 pl-12">
           {component.type === "heading" && (
             <HeadingComponent
+              content={component.content as string}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {component.type === "subheading" && (
+            <SubHeadingComponent
               content={component.content as string}
               onUpdate={handleUpdate}
             />

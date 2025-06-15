@@ -25,6 +25,7 @@ const basicComponents: ComponentData[] = [
       materials: ""
     },
   },
+  { id: "6", type: "subheading", content: "SubHeading" },
 ];
 
 const advancedComponents: ComponentData[] = [

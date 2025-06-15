@@ -190,7 +190,7 @@ const PageBuilder = () => {
         if (c.type === "image" && typeof content !== "string" && 'url' in content) {
           return { ...c, content } as ComponentData;
         } else if (
-          (c.type === "heading" || c.type === "paragraph") &&
+          (c.type === "heading" || c.type === "paragraph" || c.type === "subheading") &&
           typeof content === "string"
         ) {
           return { ...c, content } as ComponentData;
