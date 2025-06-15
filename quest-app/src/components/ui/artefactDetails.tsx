@@ -340,8 +340,8 @@ export default function ArtefactDetail({
             {/* Main content grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               {/* Left column - Description and Components */}
-              <div className="lg:col-span-2 space-y-4">
-                <div className='glass p-6 rounded-xl space-y-4'>
+              <div className="lg:col-span-2 space-y-4 glass p-6 rounded-xl">
+                <div className='pace-y-4'>
                   <h1 className="text-3xl font-bold tracking-tight mb-2">
                     {artefact.name}
                   </h1>
@@ -367,34 +367,34 @@ export default function ArtefactDetail({
                           case 'details': {
                             const details = component.content as any;
                             return (
-                              <div key={component.id} className="border rounded-xl p-6">
-                                <h2 className="text-xl font-semibold mb-4">Details</h2>
+                              <div key={component.id} className="">
+                                <h3 className="text-2xl font-semibold mb-4">Details</h3>
                                 <div className="space-y-4">
                                   <div className="flex items-start gap-3">
-                                    <Calendar className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                                    <Calendar className="mt-0.5 h-5 w-5 text-foreground" />
                                     <div>
-                                      <h3 className="text-sm font-medium text-muted-foreground">Created</h3>
+                                      <h3 className="text-sm font-medium text-foreground">Created</h3>
                                       <p className="text-sm">{details.created || 'Not specified'}</p>
                                     </div>
                                   </div>
                                   <div className="flex items-start gap-3">
-                                    <MapPin className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                                    <MapPin className="mt-0.5 h-5 w-5 text-foreground" />
                                     <div>
-                                      <h3 className="text-sm font-medium text-muted-foreground">Origin</h3>
+                                      <h3 className="text-sm font-medium text-foreground">Origin</h3>
                                       <p className="text-sm">{details.origin || 'Not specified'}</p>
                                     </div>
                                   </div>
                                   <div className="flex items-start gap-3">
-                                    <Ruler className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                                    <Ruler className="mt-0.5 h-5 w-5 text-foreground" />
                                     <div>
-                                      <h3 className="text-sm font-medium text-muted-foreground">Dimensions</h3>
+                                      <h3 className="text-sm font-medium text-foreground">Dimensions</h3>
                                       <p className="text-sm">{details.dimensions || 'Not specified'}</p>
                                     </div>
                                   </div>
                                   <div className="flex items-start gap-3">
-                                    <Box className="mt-0.5 h-5 w-5 text-muted-foreground" />
+                                    <Box className="mt-0.5 h-5 w-5 text-foreground" />
                                     <div>
-                                      <h3 className="text-sm font-medium text-muted-foreground">Materials</h3>
+                                      <h3 className="text-sm font-medium text-foreground">Materials</h3>
                                       <p className="text-sm">{details.materials || 'Not specified'}</p>
                                     </div>
                                   </div>
