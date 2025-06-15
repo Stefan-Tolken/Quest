@@ -23,7 +23,7 @@ export interface ArtifactDetails {
 
 export type ComponentData = {
   id: string;
-  type: "heading" | "paragraph" | "image" | "restoration" | "details";
+  type: "heading" | "subheading" | "paragraph" | "image" | "restoration" | "details";
   content: string | ImageContent | RestorationContent | ArtifactDetails;
   image?: string;
   order?: number;

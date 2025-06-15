@@ -358,6 +358,8 @@ export default function ArtefactDetail({
                         switch (component.type) {
                           case 'heading':
                             return <h3 key={component.id} className="text-2xl font-bold">{typeof component.content === 'string' ? component.content : ''}</h3>;
+                          case 'subheading':
+                            return <h3 key={component.id} className="text-xl font-semibold">{typeof component.content === 'string' ? component.content : ''}</h3>;
                           case 'paragraph':
                             return <p key={component.id} className="text-base">{typeof component.content === 'string' ? component.content : ''}</p>;
                           case 'image':
