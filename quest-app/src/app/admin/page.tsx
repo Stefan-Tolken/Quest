@@ -242,7 +242,7 @@ export default function AdminHome() {
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -260,7 +260,7 @@ export default function AdminHome() {
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -328,7 +328,7 @@ export default function AdminHome() {
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer justify-start pl-6"
           >
@@ -347,7 +347,7 @@ export default function AdminHome() {
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -396,7 +396,7 @@ export default function AdminHome() {
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => {
               column.toggleSorting(column.getIsSorted() === "asc");
             }}
@@ -460,7 +460,7 @@ export default function AdminHome() {
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => {
               column.toggleSorting(column.getIsSorted() === "asc");
             }}
