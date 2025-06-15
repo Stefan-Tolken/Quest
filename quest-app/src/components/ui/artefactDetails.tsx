@@ -715,8 +715,6 @@ export default function ArtefactDetail({
       </div>
     </div>
   ) : (
-    <div className="text-center py-12">
-      <p className="text-muted-foreground">Artefact not found</p>
-    </div>
+    <></>
   );
 }
