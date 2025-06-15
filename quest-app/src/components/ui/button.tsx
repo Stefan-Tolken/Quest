@@ -10,7 +10,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary/70 text-primary-foreground shadow-xs glass",
+          "bg-primary/70 text-primary-foreground shadow-xs",
         destructive:
           "glass !text-destructive",
         outline:
