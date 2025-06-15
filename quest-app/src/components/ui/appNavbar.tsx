@@ -44,7 +44,7 @@ export default function AppNavbar({
     debounceTimer.current = setTimeout(() => {
       onNavSelect(closestIndex);
       isScrolling.current = false;
-    }, 100);
+    }, 300);
   }, [onNavSelect]);
 
   // Handle clicks on navigation items
@@ -60,7 +60,7 @@ export default function AppNavbar({
         // Wait for the scroll to center the item before navigating
         setTimeout(() => {
           onNavSelect(index);
-        }, 100); // ~300ms feels natural, adjust if needed
+        }, 300); // ~300ms feels natural, adjust if needed
       } else {
         onNavSelect(index); // Fallback just in case
       }
