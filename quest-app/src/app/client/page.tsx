@@ -5,7 +5,6 @@ import { AnimatePresence, motion } from 'framer-motion';
 import AppNavbar from '@/components/ui/appNavbar';
 import Quests from './_components/quests';
 import Scan from './_components/scan';
-import Artefacts from './_components/artefacts';
 import Profile from './_components/profile';
 import CameraBackground from '@/components/ui/cameraBackground';
 
@@ -68,7 +67,6 @@ export default function AppPage() {
   const pages = [
     <Quests key="quests" />,
     <Scan key="scan" setSwipeEnabled={setSwipeEnabled} />,
-    <Artefacts key="artefacts" setSwipeEnabled={setSwipeEnabled} />,
     <Profile key="profile" />,
   ];
 

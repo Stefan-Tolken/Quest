@@ -511,7 +511,7 @@ export default function Quests() {
                 <CardFooter>
                   <Button
                     onClick={() => acceptQuest(quest)}
-                    variant="default"
+                    variant="glass"
                     className="w-full sm:w-auto"
                   >
                     Accept Quest
