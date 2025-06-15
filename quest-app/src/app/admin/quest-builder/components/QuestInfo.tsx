@@ -1,6 +1,6 @@
 "use client";
 
-import { DateRange } from "react-day-picker";
+import { DateRange } from "@/lib/types";
 import { DatePickerWithRange } from "./DatePickerWithRange";
 
 type QuestInfoProps = {

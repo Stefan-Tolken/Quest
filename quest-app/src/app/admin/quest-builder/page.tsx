@@ -8,7 +8,7 @@ import { ArtefactList } from "./components/ArtefactList";
 import { ArtefactSearch } from "./components/ArtefactSearch";
 import { HintsSection } from "./components/HintSection";
 import { PrizeSection } from "./components/PrizeSection";
-import { DateRange } from "react-day-picker";
+import { DateRange } from "@/lib/types";
 import type { QuestArtefact, Quest } from "@/lib/types";
 import type { Artefact } from "@/lib/types";
 
