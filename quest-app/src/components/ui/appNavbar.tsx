@@ -8,7 +8,7 @@ interface AppNavbarProps {
   onNavSelect: (index: number) => void;
 }
 
-const navItems = ['Quests', 'Scan', 'Artefacts', 'Profile'];
+const navItems = ['Quests', 'Scan', 'Profile'];
 
 export default function AppNavbar({
   currentIndex, 
