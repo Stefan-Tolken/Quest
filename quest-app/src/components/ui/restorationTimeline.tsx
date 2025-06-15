@@ -42,14 +42,7 @@ export default function RestorationTimeline({ component }: { component: Componen
         </div>
 
         {currentRestoration.imageUrl && (
-          <div className="relative w-full max-w-full rounded-lg overflow-hidden bg-gray-100" style={{ aspectRatio: '16/9' }}>
-            <Image
-              src={currentRestoration.imageUrl}
-              alt={currentRestoration.name}
-              fill
-              className="object-contain"
-              sizes="(max-width: 768px) 100vw, 50vw"
-            />
+          <div className="w-full relative">
             <Image
               src={currentRestoration.imageUrl}
               alt={currentRestoration.name}
