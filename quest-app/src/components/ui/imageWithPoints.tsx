@@ -8,7 +8,6 @@ import { set } from 'date-fns';
 
 export default function ImageWithPoints({ component }: { component: ComponentData }) {
   const [showPoints, setShowPoints] = useState(true);
-  const [help, setHelp] = useState(false);
   const [activePoint, setActivePoint] = useState<number | null>(null);
   
   const imageContent = component.content as any;
@@ -29,10 +28,6 @@ export default function ImageWithPoints({ component }: { component: ComponentDat
     } else {
       setActivePoint(activePoint === 0 ? imageContent.points.length - 1 : activePoint - 1);
     }
-  };
-
-  const handleHelpToggle = () => {
-    setHelp(!help);
   };
 
   return (
@@ -82,38 +77,26 @@ export default function ImageWithPoints({ component }: { component: ComponentDat
 
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col justify-between gap-4">
-        <div className='flex justify-center'>
+      {/* Controls */}        
+      {imageContent.points?.length > 0 && (
+        <div className="flex items-center justify-evenly gap-3">
           <Button
-            onClick={() => setShowPoints(!showPoints)}
+            onClick={handlePrevPoint}
+            size={"icon"}
           >
-            {showPoints ? 'Hide Points' : 'Show Points'}
+            ←
           </Button>
-          <Button className='w-6 h-6 bg-foreground ring-2 ring-background rounded-full absolute right-6' variant={"default"} size={"icon"} onClick={handleHelpToggle}>?</Button>
-
+          <span className="text-sm font-medium min-w-[100px] text-center">
+            {activePoint !== null ? `Point ${activePoint + 1} of ${imageContent.points.length}` : 'Select Point'}
+          </span>
+          <Button
+            onClick={handleNextPoint}
+            size={"icon"}
+          >
+            →
+          </Button>
         </div>
-        
-        {imageContent.points?.length > 0 && (
-          <div className="flex items-center justify-evenly gap-3">
-            <Button
-              onClick={handlePrevPoint}
-              size={"icon"}
-            >
-              ←
-            </Button>
-            <span className="text-sm font-medium min-w-[100px] text-center">
-              {activePoint !== null ? `Point ${activePoint + 1} of ${imageContent.points.length}` : 'Select Point'}
-            </span>
-            <Button
-              onClick={handleNextPoint}
-              size={"icon"}
-            >
-              →
-            </Button>
-          </div>
-        )}
-      </div>
+      )}
       
       {/* Points list */}
       {imageContent.points?.length > 0 && (
@@ -122,32 +105,17 @@ export default function ImageWithPoints({ component }: { component: ComponentDat
           <div className="space-y-2">
             {activePoint !== null ? (
               <div className="flex gap-2 items-start p-4 rounded-lg shadow-sm">
-                {help ? (
-                    <p>
-                      This image contains {imageContent.points.length} point{imageContent.points.length !== 1 ? 's' : ''} of interest. 
-                      Click on the numbered points or use the controls below to explore them.
-                    </p>
-                ) : (
-                  <>
-                    <div className="w-6 h-6 bg-foreground ring-2 ring-background rounded-full flex-shrink-0 flex items-center justify-center text-background text-sm font-bold">
-                      {activePoint + 1}
-                    </div>
-                    <p className="text-md text-foreground">{imageContent.points[activePoint].text}</p>
-                  </>
-                )}
+                <div className="w-6 h-6 bg-foreground ring-2 ring-background rounded-full flex-shrink-0 flex items-center justify-center text-background text-sm font-bold">
+                  {activePoint + 1}
+                </div>
+                <p className="text-md text-foreground">{imageContent.points[activePoint].text}</p>
               </div>
             ) : (
               <div className="flex gap-2 items-start p-4 rounded-lg shadow-sm">
-                {help ? (
-                  <p>
-                    This image contains {imageContent.points.length} point{imageContent.points.length !== 1 ? 's' : ''} of interest. 
-                    Click on the numbered points or use the controls below to explore them.
-                  </p>
-                ) : (
-                  <p>
-                    Select a point to view its description
-                  </p>
-                )}
+                <p>
+                  This image contains {imageContent.points.length} point{imageContent.points.length !== 1 ? 's' : ''} of interest. 
+                  Click on the numbered points or use the controls below to explore them.
+                </p>
               </div>
             )}
           </div>

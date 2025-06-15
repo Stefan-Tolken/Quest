@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { Calendar } from 'lucide-react';
 import { ComponentData } from '@/lib/types';
+import { Button } from '@/components/ui/button';
 
 export default function RestorationTimeline({ component }: { component: ComponentData }) {
   const [activeIndex, setActiveIndex] = useState<number>(0);
@@ -25,95 +26,20 @@ export default function RestorationTimeline({ component }: { component: Componen
     setActiveIndex(index);
   };
 
-  if (!restorations.length) {
-    return (
-      <div className="border rounded-lg p-4">
-        <h4 className="font-semibold mb-2">Restoration Timeline</h4>
-        <p className="text-muted-foreground">No restoration data available</p>
-      </div>
-    );
-  }
-
   const currentRestoration = restorations[activeIndex];
 
   return (
-    <div className="border rounded-lg p-6 space-y-6">
-      <h4 className="font-semibold text-xl">Restoration Timeline</h4>
-      
-      {/* Timeline visualization */}
-      <div className="relative">
-        <div className="flex items-center justify-between relative">
-          {/* Timeline line */}
-          <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-300 -translate-y-1/2"></div>
-          
-          {/* Timeline points */}
-          {restorations.map((_: any, index: number) => (
-            <div key={index} className="relative flex flex-col items-center">
-              <button
-                onClick={() => handleTimelineClick(index)}
-                className={`w-4 h-4 rounded-full border-2 bg-white transition-all duration-200 hover:scale-110 ${
-                  index === activeIndex 
-                    ? 'border-blue-500 bg-blue-500' 
-                    : index < activeIndex 
-                      ? 'border-green-500 bg-green-500' 
-                      : 'border-gray-300'
-                }`}
-              />
-              <span className="text-xs text-gray-500 mt-2 max-w-16 text-center">
-                {restorations[index].date}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Navigation controls */}
-      <div className="flex items-center justify-between bg-gray-100 p-4 rounded-lg">
-        <button
-          onClick={handlePrev}
-          disabled={restorations.length <= 1}
-          className="p-2 bg-white rounded-lg border hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          ←
-        </button>
-        
-        <div className="text-center">
-          <span className="text-sm font-medium">
-            Step {activeIndex + 1} of {restorations.length}
-          </span>
-        </div>
-        
-        <button
-          onClick={handleNext}
-          disabled={restorations.length <= 1}
-          className="p-2 bg-white rounded-lg border hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          →
-        </button>
-      </div>
-
+    <div className="space-y-4">
+      <h3 className="font-semibold text-2xl">Restoration Timeline</h3>
       {/* Current restoration details */}
-      <div className="bg-white border rounded-lg p-6 space-y-4">
+      <div className="space-y-4">
         <div className="flex items-start justify-between">
-          <div>
-            <h5 className="font-semibold text-lg text-blue-600">
-              {currentRestoration.name}
-            </h5>
-            <p className="text-sm text-gray-500 flex items-center gap-1">
-              <Calendar className="w-4 h-4" />
-              {currentRestoration.date}
+          {currentRestoration && (
+            <p>
+              {currentRestoration.name} was done by the {currentRestoration.organization} on {currentRestoration.date} by {currentRestoration.description}
             </p>
-          </div>
-          {currentRestoration.organization && (
-            <div className="text-sm text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-              {currentRestoration.organization}
-            </div>
           )}
         </div>
-
-        <p className="text-gray-700 leading-relaxed">
-          {currentRestoration.description}
-        </p>
 
         {currentRestoration.imageUrl && (
           <div className="relative w-full max-w-full rounded-lg overflow-hidden bg-gray-100" style={{ aspectRatio: '16/9' }}>
@@ -124,21 +50,76 @@ export default function RestorationTimeline({ component }: { component: Componen
               className="object-contain"
               sizes="(max-width: 768px) 100vw, 50vw"
             />
+            <Image
+              src={currentRestoration.imageUrl}
+              alt={currentRestoration.name}
+              width={1280}
+              height={720}
+              className="rounded-lg object-cover w-full h-auto"
+              sizes="(max-width: 640px) 95vw, 100vw"
+            />
           </div>
         )}
       </div>
 
-      {/* Progress indicator */}
-      <div className="flex items-center justify-center gap-2">
-        {restorations.map((_: any, index: number) => (
-          <button
-            key={index}
-            onClick={() => handleTimelineClick(index)}
-            className={`w-2 h-2 rounded-full transition-colors ${
-              index === activeIndex ? 'bg-blue-500' : 'bg-gray-300'
-            }`}
-          />
-        ))}
+      {/* <div className="text-center mt-10">
+        <span className="glass font-medium text-md py-2 px-3 rounded-lg">
+          {restorations[activeIndex].date}
+        </span>
+      </div>
+       */}
+      {/* Timeline visualization */}
+      <div className="relative m-0">
+        <div className="flex items-start justify-between relative py-6">
+          {/* Timeline line */}
+          <div className="absolute left-0 right-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-foreground z-0" />
+
+          {/* Timeline points */}
+          {restorations.map((item: any, index: number) => (
+            <div key={index} className="flex flex-col items-center relative z-10">
+              <Button
+                onClick={() => handleTimelineClick(index)}
+                aria-label={`View restoration from ${item.date}`}
+                size="icon"
+                className={`w-4 h-4 rounded-full flex items-center justify-center text-background text-sm font-semibold cursor-pointer transition-colors ${
+                  index === activeIndex
+                    ? 'bg-foreground ring-2 ring-background'
+                    : 'bg-foreground'
+                }`}
+              />
+              {/* <span className="text-xs text-gray-500 mt-2 max-w-16 text-center">
+                {item.date}
+              </span> */}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Navigation controls */}
+      <div className="flex items-center justify-evenly p-4 rounded-lg">
+        <Button
+          onClick={handlePrev}
+          disabled={restorations.length <= 1}
+          variant={"default"}
+          size={"icon"}
+        >
+          ←
+        </Button>
+        
+        <div className="">
+          <span className="flex items-center justify-center gap-2 text-md font-medium w-[150px]">
+            <Calendar/> {restorations[activeIndex].date}
+          </span>
+        </div>
+        
+        <Button
+          onClick={handleNext}
+          disabled={restorations.length <= 1}
+          variant={"default"}
+          size={"icon"}
+        >
+          →
+        </Button>
       </div>
     </div>
   );
