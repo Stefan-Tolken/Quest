@@ -342,7 +342,7 @@ export default function ArtefactDetail({
               {/* Left column - Description and Components */}
               <div className="lg:col-span-2 space-y-4 glass p-6 rounded-xl">
                 <div className='pace-y-4'>
-                  <h1 className="text-3xl font-bold tracking-tight mb-2">
+                  <h1 className="text-3xl text-center font-bold tracking-tight mb-2">
                     {artefact.name}
                   </h1>
                   <div className="prose max-w-none">
@@ -357,7 +357,9 @@ export default function ArtefactDetail({
                       {artefact.components?.map((component: ComponentData) => {
                         switch (component.type) {
                           case 'heading':
-                            return <h3 key={component.id} className="text-2xl font-bold">{typeof component.content === 'string' ? component.content : ''}</h3>;
+                            return <h3 key={component.id} className="text-center text-2xl font-bold">{typeof component.content === 'string' ? component.content : ''}</h3>;
+                          case 'subheading':
+                            return <h3 key={component.id} className="text-lg font-semibold">{typeof component.content === 'string' ? component.content : ''}</h3>;
                           case 'paragraph':
                             return <p key={component.id} className="text-base">{typeof component.content === 'string' ? component.content : ''}</p>;
                           case 'image':
@@ -368,7 +370,7 @@ export default function ArtefactDetail({
                             const details = component.content as any;
                             return (
                               <div key={component.id} className="">
-                                <h3 className="text-2xl font-semibold mb-4">Details</h3>
+                                <h3 className="text-2xl text-center font-semibold mb-4">Details</h3>
                                 <div className="space-y-4">
                                   <div className="flex items-start gap-3">
                                     <Calendar className="mt-0.5 h-5 w-5 text-foreground" />
