@@ -26,14 +26,6 @@ const basicComponents: ComponentData[] = [
   { id: "3", type: "paragraph", content: "Paragraph" },
   {
     id: "4",
-    type: "image",
-    content: {
-      url: "",
-      points: [],
-    },
-  },
-  {
-    id: "5",
     type: "details",
     content: {
       created: "",
@@ -46,6 +38,14 @@ const basicComponents: ComponentData[] = [
 ];
 
 const advancedComponents: ComponentData[] = [
+  {
+    id: "5",
+    type: "image",
+    content: {
+      url: "",
+      points: [],
+    },
+  },
   {
     id: "6",
     type: "restoration",

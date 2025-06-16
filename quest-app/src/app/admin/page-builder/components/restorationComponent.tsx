@@ -300,7 +300,7 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                   <span className={formData.name ? "font-semibold text-gray-900" : "text-gray-400"}>
                     {formData.name || "[Restoration Name]"}
                   </span>
-                  {" was done by the "}
+                  {" was done by "}
                   <span className={formData.organization ? "font-semibold text-gray-900" : "text-gray-400"}>
                     {formData.organization || "[Organization]"}
                   </span>
@@ -467,7 +467,9 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
             </div>
           </div>
         </div>
-      )}      {/* Hover State Enhancement */}
+      )}      
+      
+      {/* Hover State Enhancement */}
       <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-red-50 to-orange-50 opacity-0 group-hover:opacity-100 transition-all duration-200 -z-10" />
     </div>
   );
