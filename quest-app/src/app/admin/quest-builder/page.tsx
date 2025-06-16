@@ -1,16 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, CheckCircle } from "lucide-react";
+import { Plus, CheckCircle, ArrowLeft, Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuestInfo } from "./components/QuestInfo";
 import { ArtefactList } from "./components/ArtefactList";
 import { ArtefactSearch } from "./components/ArtefactSearch";
 import { HintsSection } from "./components/HintSection";
 import { PrizeSection } from "./components/PrizeSection";
-import { DateRange } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 import type { QuestArtefact, Quest } from "@/lib/types";
-import type { Artefact } from "@/lib/types";
+import type { Artefact, DateRange } from "@/lib/types";
 
 const QuestBuild = () => {
   const router = useRouter();
@@ -18,7 +18,7 @@ const QuestBuild = () => {
   const editId = searchParams.get("edit");
   const isEditMode = !!editId;
   const [quest, setQuest] = useState<Quest>({
-    quest_id: editId || crypto.randomUUID(), // Use editId if editing, otherwise generate new UUID
+    quest_id: editId || crypto.randomUUID(),
     title: "",
     description: "",
     artefacts: [],
@@ -41,6 +41,7 @@ const QuestBuild = () => {
     displayAfterAttempts: 1,
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load quest data when in edit mode
@@ -108,14 +109,14 @@ const QuestBuild = () => {
               
               if (!artefactResponse.ok) {
                 console.error('Failed to fetch artefact details for:', artefact.artefactId);
-                return artefact; // Return original if details fetch fails
+                return artefact;
               }
               
               const artefactData = await artefactResponse.json();
               console.log('Artefact details:', artefactData);
               return {
                 ...artefact,
-                details: artefactData.artefact || artefactData.artefacts?.[0] // Handle both single and array responses
+                details: artefactData.artefact || artefactData.artefacts?.[0]
               };
             } catch (error) {
               console.error('Error fetching artefact details:', error);
@@ -265,7 +266,6 @@ const QuestBuild = () => {
     setSearchQuery("");
     setSearchResults([]);
 
-    // Validate artefacts count
     validateArtefactsCount([...quest.artefacts, newArtefact]);
   };
 
@@ -328,18 +328,6 @@ const QuestBuild = () => {
     setActiveArtefactIndex(activeArtefactIndex === index ? null : index);
     setCurrentHint({ description: "", displayAfterAttempts: 1 });
   };
-
-  // const toggleHintDisplayMode = (artefactIndex: number) => {
-  //   setQuest((prev) => {
-  //     const updatedArtefacts = [...prev.artefacts];
-  //     const currentMode = updatedArtefacts[artefactIndex].hintDisplayMode;
-  //     updatedArtefacts[artefactIndex] = {
-  //       ...updatedArtefacts[artefactIndex],
-  //       hintDisplayMode: currentMode === "sequential" ? "random" : "sequential",
-  //     };
-  //     return { ...prev, artefacts: updatedArtefacts };
-  //   });
-  // };
 
   const handleAddHint = (artefactIndex: number) => {
     if (!currentHint.description.trim()) return;
@@ -517,9 +505,9 @@ const QuestBuild = () => {
     }
 
     try {
+      setIsSaving(true);
       const formData = new FormData();
       
-      // Append image file if present
       if (imageFile) {
         formData.append("prizeImage", imageFile);
       }
@@ -529,7 +517,6 @@ const QuestBuild = () => {
         prize: quest.prize || undefined,
       };
 
-      // If editing, include quest_id
       if (editId) {
         questData["quest_id"] = editId;
       }
@@ -553,6 +540,8 @@ const QuestBuild = () => {
       alert(
         `Failed to save quest: ${error instanceof Error ? error.message : "Unknown error"}`
       );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -561,161 +550,201 @@ const QuestBuild = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
-      {isLoading ? (
-        <div className="text-center py-8">Loading quest data...</div>
-      ) : (
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-6 text-indigo-700">
+    <div className="min-h-screen bg-gray-50">
+      <div className="w-full max-w-5xl mx-auto bg-white shadow-sm">
+        {/* Header */}
+        <div className="flex items-center gap-4 p-6 border-b border-gray-200">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCancel}
+            className="flex items-center gap-2 hover:cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Admin
+          </Button>
+          <h1 className="text-2xl font-semibold">
             {isEditMode ? "Edit Quest" : "Create New Quest"}
           </h1>
+        </div>
 
-          <QuestInfo
-            title={quest.title}
-            description={quest.description}
-            dateRange={quest.dateRange}
-            validationErrors={validationErrors}
-            onTitleChange={handleSetTitle}
-            onDescriptionChange={handleSetDescription}
-            onDateRangeChange={handleDateRangeChange}
-          />
-
-          {/* Artefacts Section */}
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-800">
-                Artefacts to Collect
-              </h2>
-              <button
-                className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-                onClick={() => setShowSearch(!showSearch)}
-              >
-                <Plus size={18} />
-                Add Artefact
-              </button>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading quest data...</p>
             </div>
-
-            {showSearch && (
-              <ArtefactSearch
-                searchQuery={searchQuery}
-                searchResults={searchResults}
-                onSearchChange={setSearchQuery}
-                onAddArtifact={addArtefact}
-              />
-            )}
-
-            {/* Quest Type Selection */}
-            {quest.artefacts.length > 0 && (
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Quest Type
-                </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      className="h-4 w-4 text-indigo-600"
-                      checked={quest.questType === "sequential"}
-                      onChange={() => setQuestType("sequential")}
-                    />
-                    <span className="ml-2">Sequential (Story-based order)</span>
-                  </label>
-                  <label
-                    className={`flex items-center cursor-pointer ${
-                      quest.artefacts.length < 3 ? "opacity-50" : ""
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      className="h-4 w-4 text-indigo-600"
-                      checked={quest.questType === "concurrent"}
-                      onChange={() => setQuestType("concurrent")}
-                      disabled={quest.artefacts.length < 3}
-                    />
-                    <span className="ml-2">Concurrent (Any order)</span>
-                    {quest.artefacts.length < 3 && (
-                      <span className="ml-2 text-xs text-gray-500">
-                        (Requires 3+ artefacts)
-                      </span>
-                    )}
-                  </label>
-                </div>
-                {validationErrors.questType && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {validationErrors.questType}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <ArtefactList
-              artifacts={quest.artefacts}
-              questType={quest.questType}
-              activeArtifactIndex={activeArtefactIndex}
-              validationErrors={validationErrors}
-              onRemoveArtifact={removeArtefact}
-              onMoveArtifact={moveArtefact}
-              onToggleDetails={toggleArtefactDetails}
-              onReorderArtifacts={reorderArtefacts}
-            >
-              {activeArtefactIndex !== null && (
-                <HintsSection
-                  hints={quest.artefacts[activeArtefactIndex].hints}
-                  hintDisplayMode={
-                    quest.artefacts[activeArtefactIndex].hintDisplayMode
-                  }
-                  currentHint={currentHint}
-                  // onToggleDisplayMode={() =>
-                  //   toggleHintDisplayMode(activeArtefactIndex)
-                  // }
-                  onAddHint={() => handleAddHint(activeArtefactIndex)}
-                  onRemoveHint={(hintIndex) =>
-                    removeHint(activeArtefactIndex, hintIndex)
-                  }
-                  onMoveHint={(hintIndex, direction) =>
-                    moveHint(activeArtefactIndex, hintIndex, direction)
-                  }
-                  onCurrentHintChange={(value) =>
-                    setCurrentHint({ ...currentHint, description: value })
-                  }
-                  onReorderHints={(newOrder) =>
-                    reorderHints(activeArtefactIndex, newOrder)
-                  }
-                />
-              )}
-            </ArtefactList>
           </div>
+        ) : (
+          <div className="p-6">
+            <div className="space-y-8">
+              {/* Quest Information */}
+              <div>
+                <h2 className="text-2xl font-semibold mb-4">Quest Information <span className="text-red-500">*</span></h2>
+                <QuestInfo
+                  title={quest.title}
+                  description={quest.description}
+                  dateRange={quest.dateRange}
+                  validationErrors={validationErrors}
+                  onTitleChange={handleSetTitle}
+                  onDescriptionChange={handleSetDescription}
+                  onDateRangeChange={handleDateRangeChange}
+                />
+              </div>
 
-          <PrizeSection
-            showPrize={showPrize}
-            prize={quest.prize ?? { title: "", description: "", image: "" }}
-            imagePreview={imagePreview}
-            fileInputRef={fileInputRef}
-            onTogglePrize={() => setShowPrize(!showPrize)}
-            onSetPrize={handleSetPrize}
-            onImageUpload={handleImageUpload}
-            onRemoveImage={removeImage}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          />
+              {/* Artefacts Section */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-semibold">
+                    Artefacts to Collect <span className="text-red-500">*</span>
+                  </h2>
+                  <Button
+                    onClick={() => setShowSearch(!showSearch)}
+                    className="flex items-center gap-2 hover:cursor-pointer"
+                  >
+                    <Plus size={18} />
+                    Add Artefact
+                  </Button>
+                </div>
 
+                {showSearch && (
+                  <ArtefactSearch
+                    searchQuery={searchQuery}
+                    searchResults={searchResults}
+                    onSearchChange={setSearchQuery}
+                    onAddArtifact={addArtefact}
+                  />
+                )}
+
+                {/* Quest Type Selection */}
+                {quest.artefacts.length > 0 && (
+                  <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+                    <label className="block text-lg font-medium text-gray-700 mb-3">
+                      Quest Type
+                    </label>
+                    <div className="flex gap-6">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          checked={quest.questType === "sequential"}
+                          onChange={() => setQuestType("sequential")}
+                        />
+                        <span className="ml-3 text-base">Sequential (Story-based order)</span>
+                      </label>
+                      <label
+                        className={`flex items-center cursor-pointer ${
+                          quest.artefacts.length < 3 ? "opacity-50" : ""
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                          checked={quest.questType === "concurrent"}
+                          onChange={() => setQuestType("concurrent")}
+                          disabled={quest.artefacts.length < 3}
+                        />
+                        <span className="ml-3 text-base">Concurrent (Any order)</span>
+                        {quest.artefacts.length < 3 && (
+                          <span className="ml-2 text-sm text-gray-500">
+                            (Requires 3+ artefacts)
+                          </span>
+                        )}
+                      </label>
+                    </div>
+                    {validationErrors.questType && (
+                      <p className="mt-2 text-sm text-red-600">
+                        {validationErrors.questType}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                <ArtefactList
+                  artifacts={quest.artefacts}
+                  questType={quest.questType}
+                  activeArtifactIndex={activeArtefactIndex}
+                  validationErrors={validationErrors}
+                  onRemoveArtifact={removeArtefact}
+                  onMoveArtifact={moveArtefact}
+                  onToggleDetails={toggleArtefactDetails}
+                  onReorderArtifacts={reorderArtefacts}
+                >
+                  {activeArtefactIndex !== null && (
+                    <HintsSection
+                      hints={quest.artefacts[activeArtefactIndex].hints}
+                      hintDisplayMode={
+                        quest.artefacts[activeArtefactIndex].hintDisplayMode
+                      }
+                      currentHint={currentHint}
+                      onAddHint={() => handleAddHint(activeArtefactIndex)}
+                      onRemoveHint={(hintIndex) =>
+                        removeHint(activeArtefactIndex, hintIndex)
+                      }
+                      onMoveHint={(hintIndex, direction) =>
+                        moveHint(activeArtefactIndex, hintIndex, direction)
+                      }
+                      onCurrentHintChange={(value) =>
+                        setCurrentHint({ ...currentHint, description: value })
+                      }
+                      onReorderHints={(newOrder) =>
+                        reorderHints(activeArtefactIndex, newOrder)
+                      }
+                    />
+                  )}
+                </ArtefactList>
+              </div>
+
+              {/* Prize Section */}
+              <div>
+                <h2 className="text-2xl font-semibold mb-4">Prize Details <span className="text-xs text-gray-400">(Optional)</span></h2>
+                <PrizeSection
+                  showPrize={showPrize}
+                  prize={quest.prize ?? { title: "", description: "", image: "" }}
+                  imagePreview={imagePreview}
+                  fileInputRef={fileInputRef}
+                  onTogglePrize={() => setShowPrize(!showPrize)}
+                  onSetPrize={handleSetPrize}
+                  onImageUpload={handleImageUpload}
+                  onRemoveImage={removeImage}
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons - Fixed at bottom */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-6 mt-8">
           <div className="flex justify-end gap-4">
-            <button
-              className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition flex items-center gap-2"
+            <Button
+              variant="outline"
               onClick={handleCancel}
+              className="px-6 py-2 hover:cursor-pointer"
             >
               Cancel
-            </button>
-            <button
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+            </Button>
+            <Button
               onClick={handleSaveQuest}
+              disabled={isSaving}
+              className="px-6 py-2 hover:cursor-pointer disabled:cursor-not-allowed flex items-center gap-2"
             >
-              <CheckCircle size={18} />
-              {isEditMode ? "Save Changes" : "Create Quest"}
-            </button>
+              {isSaving ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Check size={18} />
+                  {isEditMode ? "Save Changes" : "Create Quest"}
+                </>
+              )}
+            </Button>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

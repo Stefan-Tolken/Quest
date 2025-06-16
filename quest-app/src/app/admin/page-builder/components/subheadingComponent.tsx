@@ -1,14 +1,14 @@
-// app/admin/page-builder/components/HeadingComponent.tsx
+// app/admin/page-builder/components/SubHeadingComponent.tsx
 "use client";
 import { useState } from "react";
 import { Type } from "lucide-react";
 
-interface HeadingProps {
+interface SubHeadingProps {
   content: string;
   onUpdate: (content: string) => void;
 }
 
-export const HeadingComponent = ({ content, onUpdate }: HeadingProps) => {
+export const SubHeadingComponent = ({ content, onUpdate }: SubHeadingProps) => {
   const [localContent, setLocalContent] = useState(content);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -20,7 +20,7 @@ export const HeadingComponent = ({ content, onUpdate }: HeadingProps) => {
           <Type size={16} className="text-blue-600" />
         </div>
         <div className="flex-1">
-          <h5 className="font-medium text-gray-900 text-sm">Heading</h5>
+          <h5 className="font-medium text-gray-900 text-sm">Subheading</h5>
         </div>
       </div>
 
@@ -34,10 +34,10 @@ export const HeadingComponent = ({ content, onUpdate }: HeadingProps) => {
             setIsFocused(false);
           }}
           onFocus={() => setIsFocused(true)}
-          className={`text-2xl font-bold w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
+          className={`text-xl font-semibold w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 ${
             isFocused ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'
           }`}
-          placeholder="Enter heading..."
+          placeholder="Enter subheading..."
         />
       </div>
 
