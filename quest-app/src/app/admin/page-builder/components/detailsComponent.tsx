@@ -1,6 +1,6 @@
 // app/admin/page-builder/components/detailsComponent.tsx
-import React from 'react';
-import { Calendar, MapPin, Ruler, Package } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, MapPin, Ruler, Package, Info, Eye, EyeOff } from 'lucide-react';
 import { ArtifactDetails } from '@/lib/types';
 
 interface DetailsComponentProps {
@@ -9,6 +9,8 @@ interface DetailsComponentProps {
 }
 
 export const DetailsComponent = ({ content, onUpdate }: DetailsComponentProps) => {
+  const [showPreview, setShowPreview] = useState(true);
+
   const handleInputChange = (field: keyof ArtifactDetails, value: string) => {
     onUpdate({
       ...content,
@@ -16,115 +18,118 @@ export const DetailsComponent = ({ content, onUpdate }: DetailsComponentProps) =
     });
   };
 
+  const fieldConfig = [
+    {
+      key: 'created' as keyof ArtifactDetails,
+      label: 'Created',
+      icon: Calendar,
+      placeholder: 'e.g., May 24, 2025 or 15th century',
+      color: 'blue'
+    },
+    {
+      key: 'origin' as keyof ArtifactDetails,
+      label: 'Origin',
+      icon: MapPin,
+      placeholder: 'e.g., Ancient Rome, Egypt',
+      color: 'green'
+    },
+    {
+      key: 'currentLocation' as keyof ArtifactDetails,
+      label: 'Current Location',
+      icon: MapPin,
+      placeholder: 'e.g., British Museum, London',
+      color: 'purple'
+    },
+    {
+      key: 'dimensions' as keyof ArtifactDetails,
+      label: 'Dimensions',
+      icon: Ruler,
+      placeholder: 'e.g., 15 x 10 x 5 cm',
+      color: 'orange'
+    },
+    {
+      key: 'materials' as keyof ArtifactDetails,
+      label: 'Materials',
+      icon: Package,
+      placeholder: 'e.g., Clay, Bronze, Stone',
+      color: 'red'
+    }
+  ];
+
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Artifact Details</h3>
+    <div>
+      {/* Component Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center group-hover:bg-orange-100 transition-colors">
+            <Info size={16} className="text-orange-600" />
+          </div>
+          <div className="flex-1">
+            <h5 className="font-medium text-gray-900 text-sm">Artifact Details</h5>
+          </div>
+        </div>
+        
+        {/* Preview Toggle */}
+        <button
+          onClick={() => setShowPreview(!showPreview)}
+          className="flex ml-5 items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 font-medium"
+        >
+          {showPreview ? (
+            <>
+              <EyeOff size={16} />
+              Hide Preview
+            </>
+          ) : (
+            <>
+              <Eye size={16} />
+              Show Preview
+            </>
+          )}
+        </button>
+      </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Created Date */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <Calendar className="w-4 h-4 text-gray-500" />
-            Created
-          </label>
-          <input
-            type="text"
-            value={content.created || ''}
-            onChange={(e) => handleInputChange('created', e.target.value)}
-            placeholder="e.g., May 24, 2025 or 15th century"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>        {/* Origin Location */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <MapPin className="w-4 h-4 text-gray-500" />
-            Origin
-          </label>
-          <input
-            type="text"
-            value={content.origin || ''}
-            onChange={(e) => handleInputChange('origin', e.target.value)}
-            placeholder="e.g., Ancient Rome, Egypt"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Current Location */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <MapPin className="w-4 h-4 text-gray-500" />
-            Current Location
-          </label>
-          <input
-            type="text"
-            value={content.currentLocation || ''}
-            onChange={(e) => handleInputChange('currentLocation', e.target.value)}
-            placeholder="e.g., British Museum, London"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Dimensions */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <Ruler className="w-4 h-4 text-gray-500" />
-            Dimensions
-          </label>
-          <input
-            type="text"
-            value={content.dimensions || ''}
-            onChange={(e) => handleInputChange('dimensions', e.target.value)}
-            placeholder="e.g., 15 x 10 x 5 cm"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        {/* Materials */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-            <Package className="w-4 h-4 text-gray-500" />
-            Materials
-          </label>
-          <input
-            type="text"
-            value={content.materials || ''}
-            onChange={(e) => handleInputChange('materials', e.target.value)}
-            placeholder="e.g., Clay, Bronze, Stone"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      {/* Input Fields */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        {fieldConfig.map(({ key, label, icon: Icon, placeholder, color }) => (
+          <div key={key} className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <Icon className={`w-4 h-4 text-gray-700`} />
+              {label}
+            </label>
+            <input
+              type="text"
+              value={content[key] || ''}
+              onChange={(e) => handleInputChange(key, e.target.value)}
+              placeholder={placeholder}
+              className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition-all duration-200 text-gray-700`}
+            />
+          </div>
+        ))}
       </div>
 
       {/* Preview Section */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h4 className="font-medium text-gray-900 mb-3">Preview</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4" />
-            <span className="font-medium">Created:</span>
-            <span>{content.created || 'Not specified'}</span>
-          </div>          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            <span className="font-medium">Origin:</span>
-            <span>{content.origin || 'Not specified'}</span>
+      {showPreview && (
+        <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            <Eye size={16} className="text-gray-600" />
+            <h4 className="font-medium text-gray-900">Live Preview</h4>
           </div>
-          <div className="flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            <span className="font-medium">Current Location:</span>
-            <span>{content.currentLocation || 'Not specified'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Ruler className="w-4 h-4" />
-            <span className="font-medium">Dimensions:</span>
-            <span>{content.dimensions || 'Not specified'}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Package className="w-4 h-4" />
-            <span className="font-medium">Materials:</span>
-            <span>{content.materials || 'Not specified'}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {fieldConfig.map(({ key, label, icon: Icon }) => (
+              <div key={key} className="flex items-center gap-2 text-sm">
+                <Icon className="w-4 h-4 text-gray-700" />
+                <span className="font-medium text-gray-700">{label}:</span>
+                <span className="text-gray-600 truncate">
+                  {content[key] || 'Not specified'}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Hover State Enhancement */}
+      <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-orange-50 to-red-50 opacity-0 group-hover:opacity-100 transition-all duration-200 -z-10" />
     </div>
   );
 };

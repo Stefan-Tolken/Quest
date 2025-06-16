@@ -29,6 +29,20 @@ export type ComponentData = {
   order?: number;
 };
 
+export interface Point {
+  id: string;
+  x: number;
+  y: number;
+  text: string;
+}
+
+export interface ImageEditorProps {
+  imageUrl: string;
+  points: Point[];
+  onSave: (points: Point[]) => void;
+  onClose: () => void;
+}
+
 export type ImageContent = {
   url: string;
   points: Array<{
