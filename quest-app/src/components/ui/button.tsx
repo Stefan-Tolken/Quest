@@ -12,7 +12,7 @@ const buttonVariants = cva(
         default:
           "bg-primary/90 text-primary-foreground shadow-xs",
         destructive:
-          "glass !text-destructive",
+          "bg-destructive text-primary-foreground shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40",
         outline:
           "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
         secondary:
@@ -25,6 +25,10 @@ const buttonVariants = cva(
           "text-primary underline-offset-4 hover:underline",
         glass:
           "glass",
+        glassDark:
+          "glass !bg-foreground/70 !text-white",
+        glassDestructive:
+          "glass !bg-destructive/70 !text-primary-foreground",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

@@ -100,7 +100,6 @@ export default function ImageWithPoints({ component }: { component: ComponentDat
                   {activePoint + 1}
                 </div>
                 <p className="text-md text-foreground">{imageContent.points[activePoint].text}</p>
-                <p className="text-md text-foreground">x:{imageContent.points[activePoint].x} y:{imageContent.points[activePoint].y}</p>
               </div>
             ) : (
               <div className="flex gap-2 items-start p-4 rounded-lg shadow-sm">
