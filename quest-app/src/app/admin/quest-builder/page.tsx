@@ -4,13 +4,11 @@ import { useState, useEffect, useRef } from "react";
 import { Plus, CheckCircle, ArrowLeft, Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuestInfo } from "./components/QuestInfo";
-import { ArtefactList } from "./components/ArtefactList";
-import { ArtefactSearch } from "./components/ArtefactSearch";
+import { UnifiedArtefactSection } from "./components/UnifiedArtefactSection";
 import { HintsSection } from "./components/HintSection";
 import { PrizeSection } from "./components/PrizeSection";
 import { Button } from "@/components/ui/button";
-import type { QuestArtefact, Quest } from "@/lib/types";
-import type { Artefact, DateRange } from "@/lib/types";
+import type { QuestArtefact, Quest, Artefact, DateRange, Hint } from "@/lib/types";
 
 const QuestBuild = () => {
   const router = useRouter();
@@ -33,10 +31,10 @@ const QuestBuild = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Artefact[]>([]);
-  const [showSearch, setShowSearch] = useState(false);
+  const [allArtefacts, setAllArtefacts] = useState<Artefact[]>([]);
   const [showPrize, setShowPrize] = useState(false);
   const [activeArtefactIndex, setActiveArtefactIndex] = useState<number | null>(null);
-  const [currentHint, setCurrentHint] = useState({
+  const [currentHint, setCurrentHint] = useState<Omit<Hint, "id" | "displayedHint">>({
     description: "",
     displayAfterAttempts: 1,
   });
@@ -114,10 +112,17 @@ const QuestBuild = () => {
               
               const artefactData = await artefactResponse.json();
               console.log('Artefact details:', artefactData);
-              return {
+              
+              // Make sure we're just adding name if needed
+              const artefactWithName = {
                 ...artefact,
-                details: artefactData.artefact || artefactData.artefacts?.[0]
+                name: artefact.name || 
+                      (artefactData.artefact?.name || 
+                       artefactData.artefacts?.[0]?.name || 
+                       "Unnamed Artefact")
               };
+              
+              return artefactWithName;
             } catch (error) {
               console.error('Error fetching artefact details:', error);
               return artefact;
@@ -161,28 +166,49 @@ const QuestBuild = () => {
 
     if (editId) loadQuestData();
     else setIsLoading(false);
+    
+    return () => {
+      abortController.abort();
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
   }, [editId]);
+
+  // Load all artefacts on component mount
+  useEffect(() => {
+    const loadAllArtefacts = async () => {
+      try {
+        const artefacts = await fetchArtefacts();
+        setAllArtefacts(artefacts);
+      } catch (error) {
+        console.error('Error loading all artefacts:', error);
+      }
+    };
+    
+    loadAllArtefacts();
+  }, []);
 
   // Search artefacts whenever search query changes
   useEffect(() => {
     if (searchQuery.trim() === "") {
-      setSearchResults([]);
+      // Show random artefacts when search is empty
+      const randomArtefacts = getRandomArtefacts(3);
+      setSearchResults(randomArtefacts);
       return;
     }
 
-    const searchArtefacts = async () => {
-      const artefacts = await fetchArtefacts();
-      const filteredResults = artefacts.filter(
-        (artefact: Artefact) =>
+    const addedArtefactIds = quest.artefacts.map(a => a.artefactId);
+    const filteredResults = allArtefacts.filter(
+      (artefact: Artefact) =>
+        !addedArtefactIds.includes(artefact.id) &&
+        (
           artefact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (artefact.description &&
-            artefact.description.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-      setSearchResults(filteredResults);
-    };
-
-    searchArtefacts();
-  }, [searchQuery]);
+          (artefact.artist && artefact.artist.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (artefact.date && artefact.date.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (artefact.description && artefact.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        )
+    );
+    setSearchResults(filteredResults);
+  }, [searchQuery, allArtefacts, quest.artefacts]);
 
   const fetchArtefacts = async () => {
     try {
@@ -194,6 +220,20 @@ const QuestBuild = () => {
       console.error('Error fetching artefacts:', error);
       return [];
     }
+  };
+
+  const getRandomArtefacts = (count: number = 3): Artefact[] => {
+    const addedArtefactIds = quest.artefacts.map(a => a.artefactId);
+    const availableArtefacts = allArtefacts.filter(
+      artefact => !addedArtefactIds.includes(artefact.id)
+    );
+    
+    if (availableArtefacts.length <= count) {
+      return availableArtefacts;
+    }
+    
+    const shuffled = [...availableArtefacts].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
   };
 
   const handleSetTitle = (title: string) => {
@@ -234,15 +274,19 @@ const QuestBuild = () => {
   };
 
   const validateDateRange = (dateRange?: DateRange) => {
-    setValidationErrors((prev) => ({
-      ...prev,
-      dateRange:
-        !dateRange?.from || !dateRange?.to
-          ? "Date range is required"
-          : dateRange.from > dateRange.to
-          ? "End date must be after start date"
-          : "",
-    }));
+    setValidationErrors((prev) => {
+      const newErrors = { ...prev };
+      
+      if (!dateRange?.from || !dateRange?.to) {
+        newErrors.dateRange = "Date range is required";
+      } else if (dateRange.from > dateRange.to) {
+        newErrors.dateRange = "End date must be after start date";
+      } else {
+        delete newErrors.dateRange;
+      }
+      
+      return newErrors;
+    });
   };
 
   const addArtefact = (artefact: Artefact) => {
@@ -262,9 +306,9 @@ const QuestBuild = () => {
       artefacts: [...prev.artefacts, newArtefact],
     }));
 
-    setShowSearch(false);
-    setSearchQuery("");
-    setSearchResults([]);
+    // Update search results to show new random artefacts excluding the one just added
+    const updatedRandomArtefacts = getRandomArtefacts(3);
+    setSearchResults(updatedRandomArtefacts);
 
     validateArtefactsCount([...quest.artefacts, newArtefact]);
   };
@@ -287,6 +331,26 @@ const QuestBuild = () => {
     const updatedArtefacts = quest.artefacts.filter((_, i) => i !== index);
     setQuest((prev) => ({ ...prev, artefacts: updatedArtefacts }));
     validateArtefactsCount(updatedArtefacts);
+
+    // Update search results to include newly available artefacts
+    if (searchQuery.trim() === "") {
+      const updatedRandomArtefacts = getRandomArtefacts(3);
+      setSearchResults(updatedRandomArtefacts);
+    } else {
+      // Re-run search to include the removed artefact if it matches
+      const addedArtefactIds = updatedArtefacts.map(a => a.artefactId);
+      const filteredResults = allArtefacts.filter(
+        (artefact: Artefact) =>
+          !addedArtefactIds.includes(artefact.id) &&
+          (
+            artefact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (artefact.artist && artefact.artist.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (artefact.date && artefact.date.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (artefact.description && artefact.description.toLowerCase().includes(searchQuery.toLowerCase()))
+          )
+      );
+      setSearchResults(filteredResults);
+    }
 
     if (activeArtefactIndex === index) {
       setActiveArtefactIndex(null);
@@ -340,7 +404,8 @@ const QuestBuild = () => {
           ...updatedArtefacts[artefactIndex].hints,
           {
             ...currentHint,
-            displayAfterAttempts: updatedArtefacts[artefactIndex].hints.length + 1,
+            id: crypto.randomUUID(),
+            displayAfterAttempts: currentHint.displayAfterAttempts,
           },
         ],
       };
@@ -359,14 +424,9 @@ const QuestBuild = () => {
         (_, i) => i !== hintIndex
       );
 
-      const reorderedHints = newHints.map((hint, i) => ({
-        ...hint,
-        displayAfterAttempts: i + 1,
-      }));
-
       updatedArtefacts[artefactIndex] = {
         ...updatedArtefacts[artefactIndex],
-        hints: reorderedHints,
+        hints: newHints,
       };
 
       return { ...prev, artefacts: updatedArtefacts };
@@ -392,14 +452,9 @@ const QuestBuild = () => {
       hints[hintIndex] = hints[newHintIndex];
       hints[newHintIndex] = temp;
 
-      const reorderedHints = hints.map((hint, i) => ({
-        ...hint,
-        displayAfterAttempts: i + 1,
-      }));
-
       updatedArtefacts[artefactIndex] = {
         ...updatedArtefacts[artefactIndex],
-        hints: reorderedHints,
+        hints: hints,
       };
 
       return { ...prev, artefacts: updatedArtefacts };
@@ -408,19 +463,14 @@ const QuestBuild = () => {
 
   const reorderHints = (
     artefactIndex: number,
-    newHintsOrder: { description: string; displayAfterAttempts: number }[]
+    newHintsOrder: Hint[]
   ) => {
     setQuest((prev) => {
       const updatedArtefacts = [...prev.artefacts];
 
-      const reorderedHints = newHintsOrder.map((hint, i) => ({
-        ...hint,
-        displayAfterAttempts: i + 1,
-      }));
-
       updatedArtefacts[artefactIndex] = {
         ...updatedArtefacts[artefactIndex],
-        hints: reorderedHints,
+        hints: newHintsOrder,
       };
 
       return { ...prev, artefacts: updatedArtefacts };
@@ -462,7 +512,7 @@ const QuestBuild = () => {
   const removeImage = () => {
     setImageFile(null);
     setImagePreview("");
-    URL.revokeObjectURL(imagePreview);
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
     setQuest((prev) => ({
       ...prev,
       prize: { ...prev.prize!, image: "" },
@@ -518,7 +568,7 @@ const QuestBuild = () => {
       };
 
       if (editId) {
-        questData["quest_id"] = editId;
+        questData.quest_id = editId;
       }
 
       formData.append("quest", JSON.stringify(questData));
@@ -592,108 +642,45 @@ const QuestBuild = () => {
                 />
               </div>
 
-              {/* Artefacts Section */}
-              <div>
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-2xl font-semibold">
-                    Artefacts to Collect <span className="text-red-500">*</span>
-                  </h2>
-                  <Button
-                    onClick={() => setShowSearch(!showSearch)}
-                    className="flex items-center gap-2 hover:cursor-pointer"
-                  >
-                    <Plus size={18} />
-                    Add Artefact
-                  </Button>
-                </div>
-
-                {showSearch && (
-                  <ArtefactSearch
-                    searchQuery={searchQuery}
-                    searchResults={searchResults}
-                    onSearchChange={setSearchQuery}
-                    onAddArtifact={addArtefact}
+              {/* Unified Artefacts Section */}
+              <UnifiedArtefactSection
+                searchQuery={searchQuery}
+                searchResults={searchResults}
+                onSearchChange={setSearchQuery}
+                onAddArtifact={addArtefact}
+                questArtefacts={quest.artefacts}
+                questType={quest.questType}
+                activeArtefactIndex={activeArtefactIndex}
+                validationErrors={validationErrors}
+                onRemoveArtifact={removeArtefact}
+                onMoveArtifact={moveArtefact}
+                onToggleDetails={toggleArtefactDetails}
+                onReorderArtifacts={reorderArtefacts}
+                onSetQuestType={setQuestType}
+              >
+                {activeArtefactIndex !== null && (
+                  <HintsSection
+                    hints={quest.artefacts[activeArtefactIndex].hints}
+                    hintDisplayMode={
+                      quest.artefacts[activeArtefactIndex].hintDisplayMode
+                    }
+                    currentHint={currentHint}
+                    onAddHint={() => handleAddHint(activeArtefactIndex)}
+                    onRemoveHint={(hintIndex) =>
+                      removeHint(activeArtefactIndex, hintIndex)
+                    }
+                    onMoveHint={(hintIndex, direction) =>
+                      moveHint(activeArtefactIndex, hintIndex, direction)
+                    }
+                    onCurrentHintChange={(value) =>
+                      setCurrentHint({ ...currentHint, description: value })
+                    }
+                    onReorderHints={(newOrder) =>
+                      reorderHints(activeArtefactIndex, newOrder)
+                    }
                   />
                 )}
-
-                {/* Quest Type Selection */}
-                {quest.artefacts.length > 0 && (
-                  <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
-                    <label className="block text-lg font-medium text-gray-700 mb-3">
-                      Quest Type
-                    </label>
-                    <div className="flex gap-6">
-                      <label className="flex items-center cursor-pointer">
-                        <input
-                          type="radio"
-                          className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                          checked={quest.questType === "sequential"}
-                          onChange={() => setQuestType("sequential")}
-                        />
-                        <span className="ml-3 text-base">Sequential (Story-based order)</span>
-                      </label>
-                      <label
-                        className={`flex items-center cursor-pointer ${
-                          quest.artefacts.length < 3 ? "opacity-50" : ""
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                          checked={quest.questType === "concurrent"}
-                          onChange={() => setQuestType("concurrent")}
-                          disabled={quest.artefacts.length < 3}
-                        />
-                        <span className="ml-3 text-base">Concurrent (Any order)</span>
-                        {quest.artefacts.length < 3 && (
-                          <span className="ml-2 text-sm text-gray-500">
-                            (Requires 3+ artefacts)
-                          </span>
-                        )}
-                      </label>
-                    </div>
-                    {validationErrors.questType && (
-                      <p className="mt-2 text-sm text-red-600">
-                        {validationErrors.questType}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                <ArtefactList
-                  artifacts={quest.artefacts}
-                  questType={quest.questType}
-                  activeArtifactIndex={activeArtefactIndex}
-                  validationErrors={validationErrors}
-                  onRemoveArtifact={removeArtefact}
-                  onMoveArtifact={moveArtefact}
-                  onToggleDetails={toggleArtefactDetails}
-                  onReorderArtifacts={reorderArtefacts}
-                >
-                  {activeArtefactIndex !== null && (
-                    <HintsSection
-                      hints={quest.artefacts[activeArtefactIndex].hints}
-                      hintDisplayMode={
-                        quest.artefacts[activeArtefactIndex].hintDisplayMode
-                      }
-                      currentHint={currentHint}
-                      onAddHint={() => handleAddHint(activeArtefactIndex)}
-                      onRemoveHint={(hintIndex) =>
-                        removeHint(activeArtefactIndex, hintIndex)
-                      }
-                      onMoveHint={(hintIndex, direction) =>
-                        moveHint(activeArtefactIndex, hintIndex, direction)
-                      }
-                      onCurrentHintChange={(value) =>
-                        setCurrentHint({ ...currentHint, description: value })
-                      }
-                      onReorderHints={(newOrder) =>
-                        reorderHints(activeArtefactIndex, newOrder)
-                      }
-                    />
-                  )}
-                </ArtefactList>
-              </div>
+              </UnifiedArtefactSection>
 
               {/* Prize Section */}
               <div>
