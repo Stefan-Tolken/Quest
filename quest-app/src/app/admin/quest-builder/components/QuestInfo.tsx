@@ -155,4 +155,4 @@ export const QuestInfo = ({
       </div>
     </div>
   );
-}})
+}
