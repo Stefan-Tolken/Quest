@@ -8,7 +8,7 @@ interface AppNavbarProps {
   onNavSelect: (index: number) => void;
 }
 
-const navItems = ['Quests', 'Scan', 'Artefacts', 'Profile'];
+const navItems = ['Quests', 'Scan', 'Profile'];
 
 export default function AppNavbar({
   currentIndex, 
@@ -44,7 +44,7 @@ export default function AppNavbar({
     debounceTimer.current = setTimeout(() => {
       onNavSelect(closestIndex);
       isScrolling.current = false;
-    }, 100);
+    }, 300);
   }, [onNavSelect]);
 
   // Handle clicks on navigation items
@@ -60,7 +60,7 @@ export default function AppNavbar({
         // Wait for the scroll to center the item before navigating
         setTimeout(() => {
           onNavSelect(index);
-        }, 100); // ~300ms feels natural, adjust if needed
+        }, 300); // ~300ms feels natural, adjust if needed
       } else {
         onNavSelect(index); // Fallback just in case
       }
@@ -96,17 +96,16 @@ export default function AppNavbar({
   return (
     <nav
       ref={navRef}
-      className="navbar w-full fixed bottom-0 bg-black/20 border-none z-50 overflow-x-auto no-scrollbar flex snap-x snap-mandatory px-4 pb-2 pt-3 pl-[50%] pr-[50%]"
+      className="navbar w-full fixed bottom-0 border-none z-50 overflow-x-auto no-scrollbar flex px-4 pb-2 pt-3 pl-[38%] pr-[38%]"
     >
       {navItems.map((label, i) => (
         <Button
           key={label}
-          variant={highlightedIndex === i ? "secondary" : "ghost"}
+          variant={highlightedIndex === i ? "glass" : "ghost"}
           className={clsx(
             "snap-center shrink-0 transition-all mx-2 text-center min-w-[80px]",
             {
               "font-bold text-lg": highlightedIndex === i,
-              "text-muted-foreground": highlightedIndex !== i,
             }
           )}
           onClick={() => handleNavClick(i)}

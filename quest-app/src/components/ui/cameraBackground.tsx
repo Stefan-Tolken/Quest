@@ -35,7 +35,7 @@ export default function CameraBackground() {
         playsInline
         className="fixed top-0 left-0 w-full h-full object-cover z-[-10]"
       />
-      <div className="fixed top-0 left-0 w-full h-full z-[-9] backdrop-blur-md bg-black/20" />
+      <div className="fixed top-0 left-0 w-full h-full z-[-9] backdrop-blur-md bg-gradient-to-br from-background/20 to-primary/70 " />
     </>
   );
 }
