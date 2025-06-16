@@ -17,7 +17,7 @@ const getComponentIcon = (type: string) => {
     case "paragraph":
       return <FileText size={16} className="text-green-600" />;
     case "image":
-      return <Image size={16} className="text-purple-600" />;
+  return <Image size={16} className="text-purple-600" />;
     case "details":
       return <Info size={16} className="text-orange-600" />;
     case "restoration":

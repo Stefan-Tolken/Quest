@@ -2,14 +2,14 @@
 "use client";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { ComponentData, ImageContent, RestorationContent } from "@/lib/types";
+import { ComponentData, ImageContent, RestorationContent, Model3DContent } from "@/lib/types";
 import { SortableComponent } from "./sortableComponent";
 import { ArtifactDetails } from "@/lib/types";
 
 interface DropZoneProps {
   components: ComponentData[];
   onDelete: (id: string) => void;
-  onUpdate: (id: string, content: string | ImageContent | RestorationContent | ArtifactDetails) => void;
+  onUpdate: (id: string, content: string | ImageContent | RestorationContent | ArtifactDetails | Model3DContent) => void;
   onEditPoints: (component: ComponentData) => void;
   isDragging?: boolean;
 }

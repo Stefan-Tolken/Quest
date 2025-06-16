@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, CheckCircle, ArrowLeft, Check } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuestInfo } from "./components/QuestInfo";
@@ -166,12 +166,11 @@ const QuestBuild = () => {
 
     if (editId) loadQuestData();
     else setIsLoading(false);
-    
-    return () => {
+      return () => {
       abortController.abort();
       if (imagePreview) URL.revokeObjectURL(imagePreview);
     };
-  }, [editId]);
+  }, [editId, imagePreview]);
 
   // Load all artefacts on component mount
   useEffect(() => {
@@ -186,6 +185,31 @@ const QuestBuild = () => {
     
     loadAllArtefacts();
   }, []);
+  const getRandomArtefacts = useCallback((count: number = 3): Artefact[] => {
+    const addedArtefactIds = quest.artefacts.map(a => a.artefactId);
+    const availableArtefacts = allArtefacts.filter(
+      artefact => !addedArtefactIds.includes(artefact.id)
+    );
+    
+    if (availableArtefacts.length <= count) {
+      return availableArtefacts;
+    }
+    
+    const shuffled = [...availableArtefacts].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  }, [quest.artefacts, allArtefacts]);
+
+  const fetchArtefacts = async () => {
+    try {
+      const response = await fetch('/api/get-artefacts');
+      if (!response.ok) throw new Error('Failed to fetch artefacts');
+      const data = await response.json();
+      return data.artifacts || [];
+    } catch (error) {
+      console.error('Error fetching artefacts:', error);
+      return [];
+    }
+  };
 
   // Search artefacts whenever search query changes
   useEffect(() => {
@@ -206,35 +230,8 @@ const QuestBuild = () => {
           (artefact.date && artefact.date.toLowerCase().includes(searchQuery.toLowerCase())) ||
           (artefact.description && artefact.description.toLowerCase().includes(searchQuery.toLowerCase()))
         )
-    );
-    setSearchResults(filteredResults);
-  }, [searchQuery, allArtefacts, quest.artefacts]);
-
-  const fetchArtefacts = async () => {
-    try {
-      const response = await fetch('/api/get-artefacts');
-      if (!response.ok) throw new Error('Failed to fetch artefacts');
-      const data = await response.json();
-      return data.artifacts || [];
-    } catch (error) {
-      console.error('Error fetching artefacts:', error);
-      return [];
-    }
-  };
-
-  const getRandomArtefacts = (count: number = 3): Artefact[] => {
-    const addedArtefactIds = quest.artefacts.map(a => a.artefactId);
-    const availableArtefacts = allArtefacts.filter(
-      artefact => !addedArtefactIds.includes(artefact.id)
-    );
-    
-    if (availableArtefacts.length <= count) {
-      return availableArtefacts;
-    }
-    
-    const shuffled = [...availableArtefacts].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count);
-  };
+    );    setSearchResults(filteredResults);
+  }, [searchQuery, allArtefacts, quest.artefacts, getRandomArtefacts]);
 
   const handleSetTitle = (title: string) => {
     setQuest((prev) => ({ ...prev, title }));
