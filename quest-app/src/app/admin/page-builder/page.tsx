@@ -59,6 +59,16 @@ function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+// Helper function to get display name for component types
+const getDisplayName = (type: string) => {
+  switch (type) {
+    case "restoration":
+      return "Restoration";
+    default:
+      return capitalize(type);
+  }
+};
+
 const PageBuilder = () => {
   const [components, setComponents] = useState<ComponentData[]>([]);
   const [artefact, setartefactName] = useState("");
@@ -76,6 +86,9 @@ const PageBuilder = () => {
   const [createdAt, setCreatedAt] = useState<string>("");
   const [showSuccess, setShowSuccess] = useState(false);
   const [activeComponent, setActiveComponent] = useState<ComponentData | null>(null);
+  const [dragType, setDragType] = useState<'new' | 'existing' | null>(null);
+  const [draggedComponent, setDraggedComponent] = useState<ComponentData | null>(null);
+  const [tempComponents, setTempComponents] = useState<ComponentData[]>([]);
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const router = useRouter();
@@ -185,13 +198,45 @@ const PageBuilder = () => {
     // Set dragging state
     setIsDragging(true);
     
-    // If it's a new component being dragged from the sidebar
+    // Check if it's a new component from sidebar or existing component from canvas
     if (active.data.current?.isNew) {
-      // Find the component template
+      setDragType('new');
+      // Find the component template for new components
       const componentTemplate = [...basicComponents, ...advancedComponents].find(
         comp => comp.id === active.id
       );
       setActiveComponent(componentTemplate || null);
+    } else {
+      setDragType('existing');
+      // Find the existing component being dragged
+      const existingComponent = components.find(comp => comp.id === active.id);
+      if (existingComponent) {
+        // Store the full component data
+        setDraggedComponent(existingComponent);
+        
+        // Remove from displayed components
+        const remainingComponents = components.filter(comp => comp.id !== active.id);
+        setTempComponents(remainingComponents);
+        
+        // Create a simplified version for the drag overlay that looks like a component list item
+        const simplifiedComponent: ComponentData = {
+          id: existingComponent.id,
+          type: existingComponent.type,
+          content: existingComponent.type === "heading" ? "Heading" :
+                  existingComponent.type === "subheading" ? "SubHeading" :
+                  existingComponent.type === "paragraph" ? "Paragraph" :
+                  existingComponent.type === "image" ? { url: "", points: [] } :
+                  existingComponent.type === "restoration" ? { restorations: [] } :
+                  existingComponent.type === "details" ? {
+                    created: "",
+                    origin: "",
+                    currentLocation: "",
+                    dimensions: "",
+                    materials: ""
+                  } : ""
+        };
+        setActiveComponent(simplifiedComponent);
+      }
     }
   };
 
@@ -202,11 +247,81 @@ const PageBuilder = () => {
     // Clear dragging state and active component
     setIsDragging(false);
     setActiveComponent(null);
+    
+    // If we were dragging an existing component, we need to handle it
+    if (dragType === 'existing' && draggedComponent) {
+      if (!over?.id) {
+        // No valid drop target - restore the component to its original position
+        setTempComponents([]);
+        setDraggedComponent(null);
+        setDragType(null);
+        return;
+      }
+
+      // Handle insertion points (insert-0, insert-1, etc.)
+      if (typeof over.id === 'string' && over.id.startsWith('insert-')) {
+        const insertIndex = parseInt(over.id.replace('insert-', ''));
+        const newComponents = [...tempComponents];
+        newComponents.splice(insertIndex, 0, draggedComponent);
+        
+        // Re-assign order after insertion
+        const finalComponents = newComponents.map((component, index) => ({
+          ...component,
+          order: index
+        }));
+        
+        setComponents(finalComponents);
+        setTempComponents([]);
+        setDraggedComponent(null);
+        setDragType(null);
+        return;
+      }
+
+      // Handle main dropzone (add to end)
+      if (over.id === "dropzone") {
+        const newComponents = [...tempComponents, { ...draggedComponent, order: tempComponents.length }];
+        setComponents(newComponents);
+        setTempComponents([]);
+        setDraggedComponent(null);
+        setDragType(null);
+        return;
+      }
+
+      // Handle dropping on another component (reorder)
+      const targetIndex = tempComponents.findIndex((c) => c.id === over.id);
+      if (targetIndex !== -1) {
+        const newComponents = [...tempComponents];
+        newComponents.splice(targetIndex, 0, draggedComponent);
+        
+        // Re-assign order after insertion
+        const finalComponents = newComponents.map((component, index) => ({
+          ...component,
+          order: index
+        }));
+        
+        setComponents(finalComponents);
+        setTempComponents([]);
+        setDraggedComponent(null);
+        setDragType(null);
+        return;
+      }
+
+      // If we get here, restore to original position
+      setTempComponents([]);
+      setDraggedComponent(null);
+      setDragType(null);
+      return;
+    }
+
+    // Reset drag type and dragged component for new components
+    setDragType(null);
+    setDraggedComponent(null);
+    setTempComponents([]);
 
     if (!over?.id) return;
 
-    // Handle reordering existing components
-    if (active.id !== over.id) {
+    // Handle reordering existing components (this shouldn't happen with our new approach)
+    if (active.id !== over.id && dragType !== 'new') {
       const oldIndex = components.findIndex((c) => c.id === active.id);
       const newIndex = components.findIndex((c) => c.id === over.id);
       if (oldIndex !== -1 && newIndex !== -1) {
@@ -574,7 +689,7 @@ const PageBuilder = () => {
               <ComponentList />
               <div className="flex-1 h-full min-h-full flex flex-col overflow-y-auto">
                 <DropZone
-                  components={components}
+                  components={isDragging && dragType === 'existing' ? tempComponents : components}
                   onDelete={handleDelete}
                   onUpdate={handleUpdate}
                   onEditPoints={setEditingImage}
@@ -585,13 +700,15 @@ const PageBuilder = () => {
           </div>
         )}
 
-        {/* DragOverlay - This renders the dragged component above everything */}
+        {/* DragOverlay - Enhanced to show component list style for both new and existing components */}
         <DragOverlay>
           {activeComponent ? (
-            <div className="transform rotate-2 opacity-95 shadow-2xl">
+            <div className={`transform opacity-95 shadow-2xl ${
+              dragType === 'existing' ? 'rotate-2' : 'rotate-2'
+            }`}>
               <DraggableComponent
                 component={activeComponent}
-                displayName={capitalize(activeComponent.type)}
+                displayName={getDisplayName(activeComponent.type)}
               />
             </div>
           ) : null}

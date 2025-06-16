@@ -73,7 +73,7 @@ export const ComponentList = () => {
                 <DraggableComponent
                   key={component.id}
                   component={component}
-                  displayName={"Restoration"}
+                  displayName={component.type === "restoration" ? "Restoration" : capitalize(component.type)}
                 />
               ))}
             </div>
