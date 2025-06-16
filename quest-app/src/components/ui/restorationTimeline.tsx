@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Calendar } from 'lucide-react';
 import { ComponentData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export default function RestorationTimeline({ component }: { component: ComponentData }) {
   const [activeIndex, setActiveIndex] = useState<number>(0);
@@ -96,7 +97,7 @@ export default function RestorationTimeline({ component }: { component: Componen
           variant={"default"}
           size={"icon"}
         >
-          ←
+          <ArrowLeft size={24} />
         </Button>
         
         <div className="">
@@ -111,7 +112,7 @@ export default function RestorationTimeline({ component }: { component: Componen
           variant={"default"}
           size={"icon"}
         >
-          →
+          <ArrowRight size={24} />
         </Button>
       </div>
     </div>

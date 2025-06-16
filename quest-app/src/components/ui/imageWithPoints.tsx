@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { ComponentData } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { set } from 'date-fns';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 export default function ImageWithPoints({ component }: { component: ComponentData }) {
   const [showPoints, setShowPoints] = useState(true);
@@ -32,13 +32,6 @@ export default function ImageWithPoints({ component }: { component: ComponentDat
 
   return (
     <div className="space-y-4">
-      {/* Help text */}
-
-      <div className='absolute z-50 right-0 m-10 flex flex-col gap-2 justify-end'>
-        
-      </div>
-
-      
       <div className="w-full relative">
         <div className="relative w-full max-w-[95vw] mx-auto rounded-lg overflow-hidden">
           {/* Image wrapper maintains its own aspect ratio and lets Image fill the width */}
@@ -82,7 +75,7 @@ export default function ImageWithPoints({ component }: { component: ComponentDat
             onClick={handlePrevPoint}
             size={"icon"}
           >
-            ←
+            <ArrowLeft size={24} />
           </Button>
           <span className="text-sm font-medium min-w-[100px] text-center">
             {activePoint !== null ? `Point ${activePoint + 1} of ${imageContent.points.length}` : 'Select Point'}
@@ -91,7 +84,7 @@ export default function ImageWithPoints({ component }: { component: ComponentDat
             onClick={handleNextPoint}
             size={"icon"}
           >
-            →
+            <ArrowRight size={24} />
           </Button>
         </div>
       )}
@@ -107,6 +100,7 @@ export default function ImageWithPoints({ component }: { component: ComponentDat
                   {activePoint + 1}
                 </div>
                 <p className="text-md text-foreground">{imageContent.points[activePoint].text}</p>
+                <p className="text-md text-foreground">x:{imageContent.points[activePoint].x} y:{imageContent.points[activePoint].y}</p>
               </div>
             ) : (
               <div className="flex gap-2 items-start p-4 rounded-lg shadow-sm">
