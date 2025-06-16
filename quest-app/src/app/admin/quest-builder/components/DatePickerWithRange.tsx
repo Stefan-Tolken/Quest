@@ -81,9 +81,9 @@ export function DatePickerWithRange({
             <Button
               variant="outline"
               data-empty={!from}
-              className="data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal"
+              className="data-[empty=true]:text-muted-foreground h-10 text-base w-[280px] justify-start text-left font-normal"
             >
-              <CalendarIcon />
+              <CalendarIcon className="ml-1" />
               {from ? format(from, "PPP") : <span>Pick start date</span>}
             </Button>
           </PopoverTrigger>
@@ -103,9 +103,9 @@ export function DatePickerWithRange({
             <Button
               variant="outline"
               data-empty={!to}
-              className="data-[empty=true]:text-muted-foreground w-[280px] justify-start text-left font-normal"
+              className="data-[empty=true]:text-muted-foreground h-10 text-base w-[280px] justify-start text-left font-normal"
             >
-              <CalendarIcon />
+              <CalendarIcon className="ml-1" />
               {to ? format(to, "PPP") : <span>Pick end date</span>}
             </Button>
           </PopoverTrigger>

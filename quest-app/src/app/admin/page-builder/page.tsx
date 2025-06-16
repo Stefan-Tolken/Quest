@@ -15,7 +15,7 @@ import { useSearchParams } from "next/navigation";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DraggableComponent } from "./draggableComponent";
 
@@ -530,6 +530,7 @@ const PageBuilder = () => {
                     }}
                     className="px-6 py-2 hover:cursor-pointer"
                   >
+                    <Check />
                     Continue to Page Builder
                   </Button>
                 </div>
@@ -563,6 +564,7 @@ const PageBuilder = () => {
                   disabled={isSaving}
                   className="px-6 py-2 hover:cursor-pointer disabled:cursor-not-allowed"
                 >
+                  <Check />
                   {isSaving ? "Saving..." : "Save artefact"}
                 </Button>
               </div>
