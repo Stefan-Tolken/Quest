@@ -4,3 +4,4 @@ export * from "./paragraphComponent";
 export * from "./imageComponent";
 export * from "./imageEditor";
 export * from "./restorationComponent";
+export * from "./Model3DSelector";

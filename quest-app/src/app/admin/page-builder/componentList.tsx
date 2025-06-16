@@ -35,7 +35,16 @@ const advancedComponents: ComponentData[] = [
       restorations: [],
     },
   },
+  {
+    id: "6",
+    type: "3DModel",
+    content: {
+      url: "",
+    },
+  },
 ];
+
+
 
 export const ComponentList = () => {
   return (
@@ -61,7 +70,7 @@ export const ComponentList = () => {
               <DraggableComponent
                 key={component.id}
                 component={component}
-                displayName={"Restoration"}
+                displayName={capitalize(component.type)}
               />
             ))}
           </div>

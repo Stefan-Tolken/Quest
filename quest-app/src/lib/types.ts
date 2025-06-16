@@ -19,8 +19,8 @@ export interface ArtifactDetails {
 
 export type ComponentData = {
   id: string;
-  type: "heading" | "paragraph" | "image" | "restoration" | "details";
-  content: string | ImageContent | RestorationContent | ArtifactDetails;
+  type: "heading" | "paragraph" | "image" | "restoration" | "details" | "3DModel";
+  content: string | ImageContent | RestorationContent | ArtifactDetails | Model3DContent;
   image?: string;
   order?: number;
 };
@@ -80,4 +80,8 @@ export type Quest = {
     imagePreview?: string;
   };
   createdAt: string;
+};
+
+export type Model3DContent = {
+  url: string;
 };
