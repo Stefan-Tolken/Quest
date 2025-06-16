@@ -26,6 +26,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 
 type ArtefactListProps = {
   artifacts: any[];
@@ -37,11 +38,9 @@ type ArtefactListProps = {
   onToggleDetails: (index: number) => void;
   onReorderArtifacts: (newOrder: any[]) => void;
   children: ReactNode;
-  // Add this prop to pass the artifact lookup data
   artifactLookup?: Record<string, { name: string; description?: string }>;
 };
 
-// Define type for SortableArtifact props
 type SortableArtifactProps = {
   artifact: any;
   index: number;
@@ -55,7 +54,6 @@ type SortableArtifactProps = {
   artifactLookup?: Record<string, { name: string; description?: string }>;
 };
 
-// Sortable artifact item component
 const SortableArtifact = ({
   artifact,
   index,
@@ -84,7 +82,6 @@ const SortableArtifact = ({
     zIndex: isDragging ? 10 : 1,
   };
 
-  // Get the artifact name from lookup or fallback
   const artifactName = artifactLookup?.[artifact.artefactId]?.name || 
                       artifact.name || 
                       `Artifact ${index + 1}`;
@@ -93,70 +90,80 @@ const SortableArtifact = ({
     <div
       ref={setNodeRef}
       style={style}
-      className={`border border-gray-200 rounded-lg overflow-hidden ${
-        isDragging ? "border-indigo-400 shadow-lg" : ""
+      className={`border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm ${
+        isDragging ? "border-blue-400 shadow-lg" : ""
       }`}
     >
-      <div className="flex justify-between items-center p-4 bg-gray-50">
-        <div className="flex items-center gap-2">
+      <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-100">
+        <div className="flex items-center gap-3">
           {questType === "sequential" && (
             <>
               <div
                 {...attributes}
                 {...listeners}
-                className="cursor-grab hover:text-indigo-600 mr-1"
+                className="cursor-grab hover:text-blue-600 transition-colors p-1 -m-1 rounded"
               >
                 <GripVertical size={18} />
               </div>
-              <div className="flex flex-col items-center">
-                <button
-                  className={`text-gray-500 hover:text-indigo-600 ${
-                    index === 0 ? "opacity-50 cursor-not-allowed" : ""
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-6 w-6 p-0 ${
+                    index === 0 ? "opacity-30 cursor-not-allowed" : "hover:bg-blue-100"
                   }`}
                   onClick={() => onMoveArtifact(index, "up")}
                   disabled={index === 0}
                 >
-                  <ArrowUp size={15} />
-                </button>
-                <button
-                  className={`text-gray-500 hover:text-indigo-600 ${
+                  <ArrowUp size={14} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-6 w-6 p-0 ${
                     index === artifactsLength - 1
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
+                      ? "opacity-30 cursor-not-allowed"
+                      : "hover:bg-blue-100"
                   }`}
                   onClick={() => onMoveArtifact(index, "down")}
                   disabled={index === artifactsLength - 1}
                 >
-                  <ArrowDown size={15} />
-                </button>
+                  <ArrowDown size={14} />
+                </Button>
               </div>
-              <span className="text-gray-500">#{index + 1}</span>
+              <span className="text-sm font-medium text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                #{index + 1}
+              </span>
             </>
           )}
           <h3
-            className="font-medium cursor-pointer"
+            className="font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors text-base"
             onClick={() => onToggleDetails(index)}
           >
             {artifactName}
           </h3>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
             {artifact.hints?.length || 0}{" "}
             {(artifact.hints?.length || 0) === 1 ? "hint" : "hints"}
           </span>
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onRemoveArtifact(index)}
-            className="text-red-500 hover:text-red-700"
+            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
           >
-            <Trash size={18} />
-          </button>
-          <button
+            <Trash size={16} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => onToggleDetails(index)}
-            className="text-gray-500 hover:text-gray-700"
+            className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
           >
             {isActive ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          </button>
+          </Button>
         </div>
       </div>
       {isActive && children}
@@ -176,11 +183,10 @@ export const ArtefactList = ({
   children,
   artifactLookup,
 }: ArtefactListProps) => {
-  // Set up sensors for drag and drop
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // Minimum drag distance before activation
+        distance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -188,7 +194,6 @@ export const ArtefactList = ({
     })
   );
 
-  // Handle the end of a drag event
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -201,21 +206,20 @@ export const ArtefactList = ({
       );
 
       if (oldIndex !== -1 && newIndex !== -1) {
-        // Create a new array with the updated order
         const newArtifactsOrder = arrayMove(artifacts, oldIndex, newIndex);
-
-        // Call the provided reorder function with the new array
         onReorderArtifacts(newArtifactsOrder);
       }
     }
   };
 
   return (
-    <div className="mb-8">
+    <div className="space-y-4">
       {validationErrors.artifacts && (
-        <p className="mb-4 text-sm text-red-500">
-          {validationErrors.artifacts}
-        </p>
+        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-sm text-red-600">
+            {validationErrors.artifacts}
+          </p>
+        </div>
       )}
 
       {artifacts.length > 0 ? (
@@ -249,47 +253,48 @@ export const ArtefactList = ({
               </SortableContext>
             </DndContext>
           ) : (
-            // For random/non-sequential mode, no need for drag and drop functionality
             artifacts.map((artifact, index) => {
-              const artifactName = artifactLookup?.[artifact.artefactId]?.name || 
-                                  artifact.name || 
-                                  `Artifact ${index + 1}`;
+              const artifactName = artifactLookup?.[artifact.artefactId]?.name || artifact.name || `Artifact ${index + 1}`;
               
               return (
                 <div
                   key={artifact.artefactId || artifact.id}
-                  className="border border-gray-200 rounded-lg overflow-hidden"
+                  className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm"
                 >
-                  <div className="flex justify-between items-center p-4 bg-gray-50">
-                    <div className="flex items-center gap-2">
+                  <div className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
                       <h3
-                        className="font-medium cursor-pointer"
+                        className="font-medium text-gray-900 cursor-pointer hover:text-blue-600 transition-colors text-base"
                         onClick={() => onToggleDetails(index)}
                       >
                         {artifactName}
                       </h3>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
                         {artifact.hints?.length || 0}{" "}
                         {(artifact.hints?.length || 0) === 1 ? "hint" : "hints"}
                       </span>
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => onRemoveArtifact(index)}
-                        className="text-red-500 hover:text-red-700"
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
-                        <Trash size={18} />
-                      </button>
-                      <button
+                        <Trash size={16} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => onToggleDetails(index)}
-                        className="text-gray-500 hover:text-gray-700"
+                        className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
                       >
                         {activeArtifactIndex === index ? (
                           <ChevronUp size={18} />
                         ) : (
                           <ChevronDown size={18} />
                         )}
-                      </button>
+                      </Button>
                     </div>
                   </div>
                   {activeArtifactIndex === index && children}
@@ -299,10 +304,20 @@ export const ArtefactList = ({
           )}
         </div>
       ) : (
-        <div className="text-center py-8 border border-dashed border-gray-300 rounded-lg">
-          <p className="text-gray-500">
-            No artifacts added yet. Click &#39;Add Artifact&#39; to begin.
-          </p>
+        <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+          <div className="flex flex-col items-center justify-center space-y-3">
+            <div className="w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+            </div>
+            <p className="text-gray-600 font-medium">
+              No artefacts added yet
+            </p>
+            <p className="text-sm text-gray-500">
+              Click &#39;Add Artefact&#39; to begin building your quest.
+            </p>
+          </div>
         </div>
       )}
     </div>

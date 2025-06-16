@@ -18,21 +18,8 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash, BadgeInfo } from "lucide-react";
-
-interface Point {
-  id: string;
-  x: number;
-  y: number;
-  text: string;
-}
-
-interface ImageEditorProps {
-  imageUrl: string;
-  points: Point[];
-  onSave: (points: Point[]) => void;
-  onClose: () => void;
-}
+import { GripVertical, Trash, BadgeInfo, X, Edit, Plus } from "lucide-react";
+import { Point, ImageEditorProps } from "@/lib/types";
 
 export const ImageEditor = ({
   imageUrl,
@@ -45,6 +32,7 @@ export const ImageEditor = ({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [currentText, setCurrentText] = useState("");
   const [draggedPointIndex, setDraggedPointIndex] = useState<number | null>(null);
+  const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
   const modalRef = useRef<HTMLDivElement>(null);
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -81,6 +69,15 @@ export const ImageEditor = ({
     }
   };
 
+  // Handle image load to get dimensions
+  const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.target as HTMLImageElement;
+    setImageDimensions({
+      width: img.offsetWidth,
+      height: img.offsetHeight
+    });
+  };
+
   // Modified point rendering with drag handles and delete buttons
   const SortablePoint = ({ point, index }: { point: Point; index: number }) => {
     const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: point.id });
@@ -95,7 +92,7 @@ export const ImageEditor = ({
         ref={setNodeRef}
         style={style}
         className={`p-4 flex items-start justify-between hover:cursor-pointer transition-colors ${
-          selectedIndex === index ? "bg-blue-50 border-l-4 border-blue-500" : "hover:bg-gray-50"
+          selectedIndex === index ? "bg-purple-50 border-l-4 border-purple-500" : "hover:bg-gray-50"
         }`}
         onClick={() => {
           setSelectedIndex(index);
@@ -103,10 +100,10 @@ export const ImageEditor = ({
         }}
       >
         <div className="flex items-start space-x-3 flex-1">
-          <div {...attributes} {...listeners} className="cursor-grab hover:text-blue-600 active:cursor-grabbing">
-            <GripVertical size={16} />
+          <div {...attributes} {...listeners} className="cursor-grab hover:text-purple-600 active:cursor-grabbing">
+            {GripVertical && <GripVertical size={16} />}
           </div>
-          <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
+          <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-0.5">
             {index + 1}
           </div>
           <div className="flex-1 min-w-0">
@@ -120,23 +117,24 @@ export const ImageEditor = ({
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="text-red-400 hover:cursor-pointer hover:text-red-900 transition-colors"
+            className="text-gray-400 hover:text-purple-600 transition-colors p-1"
             onClick={(e) => {
               e.stopPropagation();
               handleDeletePoint(index);
             }}
             title="Delete point"
           >
-            <Trash size={16} />
+            {Trash && <Trash size={14} />}
           </button>
           <button
-            className="text-blue-500 hover:cursor-pointer hover:text-blue-700 px-2 py-1 text-sm font-medium transition-colors"
+            className="text-gray-400 hover:text-blue-600 transition-colors p-1"
             onClick={(e) => {
               e.stopPropagation();
               handleEditText(index);
             }}
+            title="Edit point"
           >
-            Edit
+            {Edit && <Edit size={14} />}
           </button>
         </div>
       </div>
@@ -168,7 +166,7 @@ export const ImageEditor = ({
     return (
       <div className="relative inline-block group">
         <span className="text-gray-400 hover:text-gray-500 cursor-help">
-          <BadgeInfo  size={25} color="#3496fe"/>
+          {BadgeInfo && <BadgeInfo size={18} className="text-purple-500 hover:text-purple-600" />}
         </span>
         <div className="absolute invisible group-hover:visible z-[99999] top-full left-1/2 -translate-x-1/2 mt-2 px-4 py-2 text-sm text-gray-700 bg-white border border-gray-200 rounded-lg shadow-lg w-64 transition-opacity duration-200">
           {text}
@@ -270,42 +268,44 @@ export const ImageEditor = ({
   return (
     <>
       {/* Main modal backdrop */}
-      
-      <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm transition-all">
-
-        {/* Heading */}
-        <div className="bg-white rounded-xl shadow-2xl w-full h-full max-w-[80vw] max-h-[80vh] min-w-[1000px] min-h-[700px] flex flex-col overflow-hidden">
-          <div className="p-6 border-b bg-gray-50">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-gray-800">Image Editor</h1>
-                <Tooltip text="Click anywhere on the image to create a point of interest. Each point can have a detailed description that you can edit. You can drag points around the image to reposition them, reorder points in the list using the drag handles, and delete individual points using the trash icon." />
+      <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 transition-all">
+        {/* Main editor container */}
+        <div className="bg-white rounded-lg shadow-xl w-full h-full max-w-[80vw] max-h-[80vh] min-w-[1000px] min-h-[700px] flex flex-col overflow-hidden animate-fade-in">
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-white">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                {Plus && <Plus size={16} className="text-purple-600" />}
               </div>
-              <button
-                onClick={onClose}
-                className="text-gray-500 hover:text-gray-700 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-semibold text-gray-900">Image Points Editor</h1>
+                <Tooltip text="Click anywhere on the image to create a point of interest. Each point can have a detailed description. You can drag points around the image, reorder points in the list, or delete individual points." />
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              {X && <X size={24} />}
+            </button>
           </div>
 
           {/* Main content area - now with 3 columns */}
           <div className="flex-1 flex overflow-hidden">
             {/* Left sidebar - Preview */}
-            <div className="w-80 border-r bg-gray-50 p-6 flex flex-col">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold mb-4 text-gray-800">Point Preview</h2>
-                <Tooltip text="When you select a point from the image or list, its content will appear here for quick reference. Empty points will show 'No content to preview'." />
+            <div className="w-80 border-r border-gray-200 bg-white p-6 flex flex-col">
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-sm font-medium text-gray-900">Point Preview</h2>
+                <Tooltip text="When you select a point, its content will appear here for quick reference." />
               </div>
               
-              <div className="flex-1 border rounded-lg bg-white overflow-hidden">
+              <div className="flex-1 border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
                 {selectedIndex !== null ? (
                   <div className="p-4 h-full">
                     <div className="mb-2 text-sm font-medium text-gray-700">
                       Point {selectedIndex + 1} Content:
                     </div>
-                    <div className="p-3 border rounded bg-gray-50 h-[calc(100%-60px)] overflow-y-auto text-sm">
+                    <div className="p-3 border rounded bg-white h-[calc(100%-60px)] overflow-y-auto text-sm">
                       {currentPoints[selectedIndex]?.text || (
                         <p className="text-gray-400 italic">No content to preview</p>
                       )}
@@ -314,7 +314,9 @@ export const ImageEditor = ({
                 ) : (
                   <div className="p-8 text-center text-gray-500 h-full flex items-center justify-center">
                     <div>
-                      <div className="text-4xl mb-2">📝</div>
+                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-gray-400 text-lg">📝</span>
+                      </div>
                       <p className="text-sm">Select a point to preview</p>
                     </div>
                   </div>
@@ -322,31 +324,40 @@ export const ImageEditor = ({
               </div>
             </div>
 
-            {/* Image section - updated to be taller */}
+            {/* Image section */}
             <div className="flex-1 p-6 flex flex-col">
+              {/* Outer container with red border - keeps the same size */}
               <div 
-                ref={imageContainerRef}
-                className="flex-1 relative border-2 border-dashed border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center cursor-crosshair"
+                className="flex-1 flex items-center justify-center"
                 style={{ minHeight: "500px" }}
               >
+                {/* Image container that sizes to the actual image with gray background */}
                 <div 
-                  className="relative w-full h-full flex items-center justify-center"
-                  onClick={handleImageClick}
+                  ref={imageContainerRef}
+                  className="relative inline-block border-2 border-dashed rounded-lg"
                 >
                   <Image
                     src={imageUrl}
                     alt="Edit points"
-                    width={800}
-                    height={600}
-                    className="object-contain max-w-full max-h-full pointer-events-none"
-                    style={{ minWidth: "300px", minHeight: "300px" }}
+                    width={0}
+                    height={0}
+                    sizes="100vw"
+                    className="object-contain max-h-[500px] max-w-full min-w-[300px] min-h-[200px] w-auto h-auto block rounded-lg"
+                    onLoad={handleImageLoad}
                   />
-                  {/* Updated point display with highlighting */}
+                  
+                  {/* Clickable overlay that exactly matches the image size */}
+                  <div 
+                    className="absolute inset-0 cursor-crosshair"
+                    onClick={handleImageClick}
+                  />
+                  
+                  {/* Points */}
                   {currentPoints.map((point, index) => (
                     <div
                       key={point.id}
                       className={`absolute w-6 h-6 border-2 border-white rounded-full shadow-lg cursor-grab active:cursor-grabbing transition-colors ${
-                        selectedIndex === index ? "bg-blue-500 hover:bg-blue-600" : "bg-red-500 hover:bg-red-600"
+                        selectedIndex === index ? "bg-purple-600 hover:bg-purple-700" : "bg-purple-500 hover:bg-purple-600"
                       }`}
                       style={{ 
                         left: `${point.x}%`, 
@@ -374,13 +385,13 @@ export const ImageEditor = ({
             </div>
 
             {/* Right sidebar - Points list with drag and drop */}
-            <div className="w-80 border-l bg-gray-50 p-6 flex flex-col">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold mb-4 text-gray-800">Points ({currentPoints.length})</h2>
-                <Tooltip text="Drag and drop points to reorder them using the grip icon (⋮⋮). Use the trash icon (🗑) to delete points. Click 'Edit' to modify descriptions." />
+            <div className="w-80 border-l border-gray-200 bg-white p-6 flex flex-col">
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-sm font-medium text-gray-900">Points ({currentPoints.length})</h2>
+                <Tooltip text="Drag points to reorder them. Use the trash icon to delete points. Click 'Edit' to modify descriptions." />
               </div>
 
-              <div className="flex-1 border rounded-lg bg-white overflow-hidden">
+              <div className="flex-1 border border-gray-200 rounded-lg bg-gray-50 overflow-hidden">
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentPoints.map(p => p.id)} strategy={verticalListSortingStrategy}>
                     <div className="divide-y max-h-full overflow-y-auto">
@@ -389,7 +400,9 @@ export const ImageEditor = ({
                       ))}
                       {currentPoints.length === 0 && (
                         <div className="p-8 text-center text-gray-500">
-                          <div className="text-4xl mb-2">📍</div>
+                          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <span className="text-gray-400 text-lg">📍</span>
+                          </div>
                           <p className="text-sm">No points added yet</p>
                           <p className="text-xs text-gray-400 mt-1">Click on the image to add points</p>
                         </div>
@@ -402,17 +415,18 @@ export const ImageEditor = ({
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t bg-gray-50 flex justify-end gap-4">
+          <div className="p-6 border-t border-gray-200 bg-white flex justify-end gap-3">
             <button
-              className="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
               onClick={onClose}
             >
               Cancel
             </button>
             <button
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
               onClick={() => onSave(currentPoints)}
             >
+              {Plus && <Plus size={16} />}
               Save Changes
             </button>
           </div>
@@ -421,56 +435,57 @@ export const ImageEditor = ({
 
       {/* Text editing modal */}
       {isTextModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4 backdrop-blur-sm transition-all">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center backdrop-blur-sm bg-black/40 transition-all">
           <div
             ref={modalRef}
-            className="bg-white rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] w-full max-w-2xl max-h-[90vh] overflow-hidden transform transition-all"
+            className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden animate-fade-in"
           >
             {/* Header Section */}
-            <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  Points
-                  <span className="text-gray-500 font-medium text-base">
-                    ({currentPoints.length})
-                  </span>
-                </h2>
-                <Tooltip text="Write a detailed description for this point. The text will be associated with the numbered marker on the image. If you leave this empty, the point will be deleted." />
+                <div className="flex-shrink-0 w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                  {Edit && <Edit size={16} className="text-purple-600" />}
+                </div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Edit Point {selectedIndex !== null ? selectedIndex + 1 : ''}
+                  </h2>
+                  <Tooltip text="Write a detailed description for this point. The text will be associated with the numbered marker on the image." />
+                </div>
               </div>
+              <button
+                onClick={handleCancelText}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {X && <X size={24} />}
+              </button>
             </div>
 
             {/* Content Area */}
-            <div className="p-6 overflow-y-auto" style={{ maxHeight: "calc(90vh - 160px)" }}>
+            <div className="p-6">
               <textarea
                 ref={textareaRef}
                 value={currentText}
                 onChange={handleTextChange}
-                className="w-full p-4 border border-gray-200 rounded-lg min-h-[220px] 
-                          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent 
-                          resize-none transition-all duration-150 placeholder-gray-400 
-                          leading-relaxed text-gray-700"
+                className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 min-h-[220px] resize-none text-sm"
                 placeholder="Enter a detailed description for this point..."
                 autoFocus
               />
             </div>
 
             {/* Footer Actions */}
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-white">
               <button
-                className="px-5 py-2.5 text-gray-600 bg-white border border-gray-200 rounded-lg 
-                          hover:bg-gray-50 transition-colors duration-150 font-medium
-                          hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 onClick={handleCancelText}
               >
                 Cancel
               </button>
               <button
-                className="px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-                          transition-colors duration-150 font-medium focus:outline-none 
-                          focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm hover:shadow-md"
+                className="px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
                 onClick={handleSaveText}
               >
-                Save Changes
+                Save Description
               </button>
             </div>
           </div>

@@ -3,43 +3,74 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '../utils/utils';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand, GetCommand, UpdateCommandInput } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand, GetCommand, UpdateCommandInput, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { Quest, QuestArtefact, UserQuestProgress, Hint } from '@/lib/types';
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
 
-interface Hint {
-  description: string;
-  displayAfterAttempts: number;
-  id: string;  // To uniquely identify hints
-}
+// Function to complete the quest in user profile
+async function completeQuestInProfile(userId: string, questId: string, quest: Quest) {
+  try {
+    // First check if user exists in the user table
+    const getUserParams = {
+      TableName: process.env.USER_TABLE,
+      Key: { userId },
+    };
 
-interface QuestArtefact {
-  artefactId: string;
-  hints?: Array<Hint>;
-  hintDisplayMode?: 'sequential' | 'random';
-}
+    const userResponse = await docClient.send(new GetCommand(getUserParams));
+    if (!userResponse.Item) {
+      const createUserParams = {
+        TableName: process.env.USER_TABLE,
+        Item: {
+          userId,
+          completed_quests: [],
+          artefacts_collected: [],
+          createdAt: new Date().toISOString(),
+        },
+      };
+      await docClient.send(new PutCommand(createUserParams));
+    }
 
-interface Quest {
-  quest_id: string;
-  title: string;
-  description: string;
-  artefacts: Array<QuestArtefact>;
-  questType: "sequential" | "concurrent";
-}
+    // Update user profile with completed quest
+    const timestamp = new Date().toISOString();
+    const completedQuest = {
+      questId: questId,
+      completedAt: timestamp,
+      prize: quest?.prize?.title || null
+    };
 
-// Structure for user's quest progress
-interface UserQuestProgress {
-  userId: string;
-  questId: string;
-  collectedArtefactIds: string[];
-  completed: boolean;
-  completedAt?: string;
-  attempts: number;
-  startTime: string;
-  endTime?: string;
-  lastAttemptedArtefactId?: string;
-  displayedHints: Record<string, boolean>;
+    const userProfileParams = {
+      TableName: process.env.USER_TABLE,
+      Key: { userId },
+      UpdateExpression: 'SET completed_quests = list_append(if_not_exists(completed_quests, :empty_list), :quest)',
+      ExpressionAttributeValues: {
+        ':empty_list': [],
+        ':quest': [completedQuest],
+        ':questId': questId
+      },
+      ReturnValues: "ALL_NEW" as const,      ExpressionAttributeNames: {
+        '#cq': 'completed_quests'
+      },
+      // Check if completed_quests doesn't exist or if this quest isn't in it
+      ConditionExpression: 'attribute_not_exists(#cq) OR NOT contains(#cq, :questId)',
+    };
+
+    try {
+      const updateResult = await docClient.send(new UpdateCommand(userProfileParams));
+      return { success: true, update: updateResult.Attributes };
+    } catch (conditionalError) {
+      // Check if it's a conditional check failure (quest already completed)
+      if ((conditionalError as any)?.name === 'ConditionalCheckFailedException') {
+        return { success: true, message: 'Quest was already marked as completed' };
+      }
+
+      throw conditionalError;
+    }
+  } catch (error) {
+    console.error('Error completing quest in profile:', error);
+    throw error;
+  }
 }
 
 // Determine which hints should be displayed based on attempts
@@ -161,7 +192,7 @@ export async function POST(req: NextRequest) {
         attempts: result.Attributes?.attempts || 0,
         lastAttemptedArtefactId: result.Attributes?.lastAttemptedArtefactId,
         progress: result.Attributes
-      }, { status: 200 }); // Changed from 404 to 200
+      }, { status: 200 });
     }
 
     // Check if already collected
@@ -306,6 +337,20 @@ export async function POST(req: NextRequest) {
       return hint ? { id: hintId, description: hint.description } : null;
     }).filter(Boolean);
 
+    // *** NEW: If the quest is complete, also update the user's completed quests ***
+    let questCompletionResult: 
+      | { success: boolean; update?: Record<string, any>; message?: string }
+      | null = null;
+    if (isComplete) {
+      try {
+        questCompletionResult = await completeQuestInProfile(userId, questId, quest);
+        console.log('Quest completion result:', questCompletionResult);
+      } catch (error) {
+        console.error('Failed to complete quest in profile, but artifact collection succeeded:', error);
+        // Don't fail the entire request if quest completion fails
+      }
+    }
+
     return NextResponse.json({ 
       success: true,
       collectedArtefactIds: result.Attributes?.collectedArtefactIds,
@@ -315,7 +360,10 @@ export async function POST(req: NextRequest) {
       lastAttemptedArtefactId: result.Attributes?.lastAttemptedArtefactId,
       displayedHints: result.Attributes?.displayedHints || {},
       newlyAvailableHints,
-      progress: result.Attributes
+      progress: result.Attributes,
+      // Include quest completion info if applicable
+      questCompleted: isComplete,
+      questCompletionResult: questCompletionResult
     });
   } catch (e) {
     console.error('Error in collect-artifact:', e);

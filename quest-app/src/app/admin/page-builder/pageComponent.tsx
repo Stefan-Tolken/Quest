@@ -10,6 +10,7 @@ import {
   RestorationComponent,
   Model3DSelector
 } from "./components";
+import { SubHeadingComponent } from "./components/subheadingComponent";
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { GripVertical, X } from "lucide-react";
 import { DetailsComponent } from "./components/detailsComponent";
@@ -41,34 +42,42 @@ export const PageComponent = ({
   };
 
   return (
-    <div className="group relative">
-      {/* Delete Button - Outside container, top right */}
+    <div className="group relative mb-6">
+      {/* Delete Button - Positioned outside top-right */}
       <button
-        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 flex items-center justify-center hover:scale-110 shadow-lg"
+        className="absolute -top-3 -right-3 w-8 h-8 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-105"
         onClick={() => onDelete(component.id)}
         aria-label="Delete component"
         title="Delete component"
       >
-        <X size={14} />
+        <X size={16} />
       </button>
 
       {/* Main Component Container */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-gray-300 transition-all duration-200">
-        {/* Drag Handle - Inside container, left side */}
+      <div className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200 overflow-hidden">
+        
+        {/* Drag Handle - Top left corner */}
         <div
-          className="absolute top-4 left-4 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
+          className="absolute top-4 left-4 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 p-1 rounded hover:bg-gray-100"
           {...dragAttributes}
           {...dragListeners}
           aria-label="Drag to reorder"
           title="Drag to reorder"
         >
-          <GripVertical size={20} className="text-gray-400 hover:text-gray-600" />
+          <GripVertical size={18} className="text-gray-400 hover:text-gray-600" />
         </div>
 
-        {/* Component Content */}
-        <div className="p-6 pl-12">
+        {/* Component Content - Matching page.tsx padding and spacing */}
+        <div className="p-6 pl-12 pr-16">
           {component.type === "heading" && (
             <HeadingComponent
+              content={component.content as string}
+              onUpdate={handleUpdate}
+            />
+          )}
+
+          {component.type === "subheading" && (
+            <SubHeadingComponent
               content={component.content as string}
               onUpdate={handleUpdate}
             />
@@ -131,3 +140,7 @@ export const PageComponent = ({
     </div>
   );
 };
+
+function capitalize(str: string) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}

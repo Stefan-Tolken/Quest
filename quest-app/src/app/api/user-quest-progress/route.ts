@@ -3,23 +3,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '../utils/utils';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, UpdateCommand, UpdateCommandInput } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, UpdateCommand, UpdateCommandInput, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { UserQuestProgress } from '@/lib/types';
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
-
-interface UserQuestProgress {
-  userId: string;
-  questId: string;
-  collectedArtefactIds: string[];
-  completed: boolean;
-  completedAt?: string;
-  attempts: number;
-  startTime?: string;
-  endTime?: string;
-  lastAttemptedArtefactId?: string;
-  displayedHints: Record<string, boolean>;
-}
 
 export async function GET(req: NextRequest) {
   const userId = await getUserIdFromRequest(req);
@@ -140,5 +128,38 @@ export async function PATCH(req: NextRequest) {
   } catch (e) {
     console.error('Error updating quest progress:', e);
     return NextResponse.json({ error: 'Failed to update quest progress' }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const questId = req.nextUrl.searchParams.get('questId');
+    if (!questId) {
+      return NextResponse.json({ error: 'Missing questId' }, { status: 400 });
+    }
+
+    // Delete the quest progress record
+    const deleteParams = {
+      TableName: process.env.USER_QUEST_PROGRESS_TABLE,
+      Key: {
+        userId,
+        questId
+      }
+    };
+
+    await docClient.send(new DeleteCommand(deleteParams));
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Quest progress deleted successfully' 
+    });
+  } catch (e) {
+    console.error('Error deleting quest progress:', e);
+    return NextResponse.json({ error: 'Failed to delete quest progress' }, { status: 500 });
   }
 }
