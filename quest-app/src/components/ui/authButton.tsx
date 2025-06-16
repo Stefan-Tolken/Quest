@@ -11,9 +11,9 @@ export default function AuthButton() {
   return isAuthenticated ? (
     <Button variant={"destructive"} onClick={() => signout()}>Sign out</Button>
   ) : (
-    <div className="flex gap-4">
-      <Button variant={"default"} onClick={() => signin()}>Sign in</Button>
-      <Button variant={"secondary"} onClick={() => signup()}>Sign up</Button>
+    <div className="flex flex-col w-full gap-4">
+      <Button variant={"glassDark"} onClick={() => signin()}>Sign in</Button>
+      <Button variant={"glass"} onClick={() => signup()}>Sign up</Button>
     </div>
   );
 }

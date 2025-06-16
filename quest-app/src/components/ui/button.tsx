@@ -25,6 +25,8 @@ const buttonVariants = cva(
           "text-primary underline-offset-4 hover:underline",
         glass:
           "glass",
+        glassDark:
+          "glass !bg-foreground/70 !text-white",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",
