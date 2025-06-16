@@ -1,7 +1,9 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
+import { Wrench, Calendar, Building, FileText, Image as ImageIcon, Upload, Plus, Trash2, X, Eye, EyeOff } from "lucide-react";
 import { RestorationContent } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 
 interface RestorationProps {
   content: RestorationContent;
@@ -9,21 +11,29 @@ interface RestorationProps {
 }
 
 interface RestorationStep {
+  id: string;
   name: string;
   date: string;
   description: string;
   imageUrl: string;
-  organization?: string;
+  organization: string;
 }
 
 export const RestorationComponent = ({ content, onUpdate }: RestorationProps) => {
-  console.log('RestorationComponent rendered with content:', content);
-  const [isInitialModalOpen, setIsInitialModalOpen] = useState(!content.restorations?.length);
-  const [numberOfRestorations, setNumberOfRestorations] = useState(1);
-  const [isStepsModalOpen, setIsStepsModalOpen] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [steps, setSteps] = useState<RestorationStep[]>(content.restorations || []);
-  const [currentStepData, setCurrentStepData] = useState<RestorationStep>({
+  // Add a ref to track initial mount and prevent initial update
+  const initialMount = useRef(true);
+  
+  const [restorations, setRestorations] = useState<RestorationStep[]>(
+    (content.restorations || []).map(r => ({
+      ...r,
+      organization: r.organization ?? ""
+    }))
+  );
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+  const [editingRestoration, setEditingRestoration] = useState<RestorationStep | null>(null);
+  const [formData, setFormData] = useState<RestorationStep>({
+    id: "",
     name: "",
     date: "",
     description: "",
@@ -31,264 +41,436 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
     organization: "",
   });
 
+  // Fix the infinite loop by adding proper dependency checks
   useEffect(() => {
-    if (content.restorations?.length) {
-      setSteps(content.restorations);
-      setIsInitialModalOpen(false);
-      setIsStepsModalOpen(false);
+    // Skip the initial update to prevent the cycle
+    if (initialMount.current) {
+      initialMount.current = false;
+      return;
     }
-  }, [content.restorations]);
+    
+    // Compare current restorations with content.restorations to avoid unnecessary updates
+    const currentRestorationsString = JSON.stringify(restorations);
+    const contentRestorationsString = JSON.stringify(content.restorations || []);
+    
+    if (currentRestorationsString !== contentRestorationsString) {
+      onUpdate({ restorations });
+    }
+  }, [restorations, onUpdate, content.restorations]);
 
-  const handleInitialSubmit = () => {
-    setIsInitialModalOpen(false);
-    setIsStepsModalOpen(true);
-    setSteps(new Array(numberOfRestorations).fill(null).map(() => ({
+  const openAddModal = () => {
+    setFormData({
+      id: crypto.randomUUID(),
       name: "",
       date: "",
       description: "",
       imageUrl: "",
       organization: "",
-    })));
+    });
+    setEditingRestoration(null);
+    setShowAddModal(true);
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCurrentStepData({
-          ...currentStepData,
-          imageUrl: reader.result as string,
-        });
-      };
-      reader.readAsDataURL(file);
-    }
+  const openEditModal = (restoration: RestorationStep) => {
+    setFormData({ ...restoration });
+    setEditingRestoration(restoration);
+    setShowAddModal(true);
   };
 
-  const handleStepSubmit = () => {
-    const newSteps = [...steps];
-    newSteps[currentStep] = { ...currentStepData };
-    setSteps(newSteps);
+  const closeModal = () => {
+    setShowAddModal(false);
+    setEditingRestoration(null);
+    setFormData({
+      id: "",
+      name: "",
+      date: "",
+      description: "",
+      imageUrl: "",
+      organization: "",
+    });
+  };
 
-    if (currentStep < numberOfRestorations - 1) {
-      setCurrentStep(currentStep + 1);
-      setCurrentStepData({
-        name: "",
-        date: "",
-        description: "",
-        imageUrl: "",
-        organization: "",
-      });
+  const handleSave = () => {
+    let updatedRestorations;
+    if (editingRestoration) {
+      // Update existing restoration
+      updatedRestorations = restorations.map(r => 
+        r.id === editingRestoration.id ? formData : r
+      );
     } else {
-      setIsStepsModalOpen(false);
-      const updatedContent = { 
-        restorations: newSteps.map((step, index) => ({ 
-          ...step, 
-          id: `${index}` 
-        }))
-      };
-      console.log('Final steps array:', newSteps);
-      console.log('Updating restoration content:', updatedContent);
-      onUpdate(updatedContent);
+      // Add new restoration
+      updatedRestorations = [...restorations, formData];
     }
+    
+    setRestorations(updatedRestorations);
+    // Don't call onUpdate here as the useEffect will handle it
+    closeModal();
   };
 
-  const handleStepBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-      setCurrentStepData(steps[currentStep - 1]);
-    }
+  const deleteRestoration = (id: string) => {
+    const updatedRestorations = restorations.filter(restoration => restoration.id !== id);
+    setRestorations(updatedRestorations);
+    // Don't call onUpdate here as the useEffect will handle it
   };
 
-  if (isInitialModalOpen) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-          <h2 className="text-xl font-bold mb-4">Number of Restorations</h2>
-          <input
-            type="number"
-            min="1"
-            value={numberOfRestorations}
-            onChange={(e) => setNumberOfRestorations(Math.max(1, parseInt(e.target.value) || 1))}
-            className="w-full p-2 border rounded mb-4"
-          />
+  const handleImageUpload = (file: File) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData({ ...formData, imageUrl: reader.result as string });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const isFormValid = formData.name && formData.organization && formData.description;
+
+  return (
+    <div>
+      {/* Component Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center group-hover:bg-red-100 transition-colors">
+            {Wrench && <Wrench size={16} className="text-red-600" />}
+          </div>
+          <div className="flex-1">
+            <h5 className="font-medium text-gray-900 text-sm">Restoration Timeline</h5>
+            <p className="text-xs text-gray-600">Track restoration history</p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {/* Preview Toggle */}
           <button
-            onClick={handleInitialSubmit}
-            className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
+            onClick={() => setShowPreview(!showPreview)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 font-medium"
           >
-            Next
+            {showPreview ? (
+              <>
+                {EyeOff && <EyeOff size={16} />}
+                Hide Preview
+              </>
+            ) : (
+              <>
+                {Eye && <Eye size={16} />}
+                Show Preview
+              </>
+            )}
+          </button>
+
+          {/* Add Restoration Button */}
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-all duration-200 font-medium border border-red-200 hover:border-red-300"
+          >
+            {Plus && <Plus size={16} />}
+            Add Restoration
           </button>
         </div>
       </div>
-    );
-  }
 
-  if (isStepsModalOpen) {
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full">
-          {/* Progress Indicator */}
-          <div className="flex items-center justify-center mb-6">
-            {Array.from({ length: numberOfRestorations }).map((_, index) => (
-              <div key={index} className="flex items-center">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center cursor-pointer
-                    ${index === currentStep ? "bg-blue-500 text-white" : 
-                      index < currentStep ? "bg-green-500 text-white" : "bg-gray-200"}`}
-                  onClick={() => {
-                    if (index < currentStep) {
-                      setCurrentStep(index);
-                      setCurrentStepData(steps[index]);
-                    }
-                  }}
-                >
-                  {index + 1}
+      {/* Restorations List */}
+      <div className="space-y-4">
+        {restorations.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            {Wrench && <Wrench size={32} className="mx-auto mb-2 text-gray-400" />}
+            <p>No restorations added yet.</p>
+            <p className="text-sm">Click &quot;Add Restoration&quot; to get started.</p>
+          </div>
+        ) : (
+          restorations.map((restoration, index) => (
+            <div key={restoration.id} className="relative">
+              {/* Timeline connector */}
+              {index < restorations.length - 1 && (
+                <div className="absolute left-4 top-12 w-0.5 h-16 bg-gray-200 z-0"></div>
+              )}
+              
+              <div className="flex gap-4 relative z-10">
+                {/* Timeline dot */}
+                <div className="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mt-2">
+                  <div className="w-3 h-3 bg-red-600 rounded-full"></div>
                 </div>
-                {index < numberOfRestorations - 1 && (
-                  <div className="w-12 h-1 bg-gray-200">
-                    <div
-                      className="h-full bg-green-500"
-                      style={{
-                        width: `${index < currentStep ? "100%" : "0%"}`,
-                      }}
-                    />
+                
+                {/* Content Card */}
+                <div className="flex-1 bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-all duration-200">
+                  <div className="flex items-start justify-between mb-3">
+                    <h6 className="font-medium text-gray-900">{restoration.name || "Untitled Restoration"}</h6>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => openEditModal(restoration)}
+                        className="text-gray-400 hover:text-blue-600 transition-colors p-1"
+                        title="Edit restoration"
+                      >
+                        {FileText && <FileText size={14} />}
+                      </button>
+                      <button
+                        onClick={() => deleteRestoration(restoration.id)}
+                        className="text-gray-400 hover:text-red-600 transition-colors p-1"
+                        title="Delete restoration"
+                      >
+                        {Trash2 && <Trash2 size={14} />}
+                      </button>
+                    </div>
                   </div>
-                )}
+
+                  {/* Restoration Sentence */}
+                  <p className="text-sm text-gray-700 mb-3">
+                    <span className="font-medium">{restoration.name || "[Restoration name]"}</span>
+                    {" was done by the "}
+                    <span className="font-medium">{restoration.organization || "[Organization]"}</span>
+                    {" on "}
+                    <span className="font-medium">
+                      {restoration.date === "unknown" ? "an unknown date" : (restoration.date || "[Date]")}
+                    </span>
+                    {". "}
+                    <span className="text-gray-600">
+                      {restoration.description || "[Description will appear here]"}
+                    </span>
+                  </p>
+
+                  {/* Image */}
+                  {restoration.imageUrl && (
+                    <div className="relative h-90 w-full rounded-md overflow-hidden bg-gray-100">
+                      <Image
+                        src={restoration.imageUrl}
+                        alt={restoration.name}
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Preview Section */}
+      {showPreview && restorations.length > 0 && (
+        <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 transition-all duration-300">
+          <div className="flex items-center gap-2 mb-3">
+            {Eye && <Eye size={16} className="text-gray-600" />}
+            <h4 className="font-medium text-gray-900">Live Preview</h4>
+          </div>
+          <div className="space-y-3">
+            {restorations.map((restoration, index) => (
+              <div key={restoration.id} className="flex items-start gap-3 text-sm">
+                <div className="flex-shrink-0 w-6 h-6 bg-red-100 rounded-full flex items-center justify-center mt-0.5">
+                  <span className="text-xs font-medium text-red-600">{index + 1}</span>
+                </div>
+                <p className="text-gray-700">
+                  <span className="font-medium text-gray-900">{restoration.name}</span>
+                  {" was done by the "}
+                  <span className="font-medium text-gray-900">{restoration.organization}</span>
+                  {" on "}
+                  <span className="font-medium text-gray-900">
+                    {restoration.date === "unknown" ? "an unknown date" : restoration.date}
+                  </span>
+                  {". "}
+                  {restoration.description}
+                </p>
               </div>
             ))}
           </div>
-
-          <h2 className="text-xl font-bold mb-4">Restoration {currentStep + 1}</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block mb-1">Name of Restoration*</label>
-              <input
-                type="text"
-                value={currentStepData.name}
-                onChange={(e) => setCurrentStepData({ ...currentStepData, name: e.target.value })}
-                className="w-full p-2 border rounded"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1">Date</label>
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  value={currentStepData.date === "unknown" ? "" : currentStepData.date}
-                  onChange={(e) => setCurrentStepData({ ...currentStepData, date: e.target.value })}
-                  className="flex-1 p-2 border rounded"
-                  disabled={currentStepData.date === "unknown"}
-                />
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={currentStepData.date === "unknown"}
-                    onChange={(e) => setCurrentStepData({
-                      ...currentStepData,
-                      date: e.target.checked ? "unknown" : ""
-                    })}
-                  />
-                  Unknown
-                </label>
-              </div>
-            </div>
-
-            <div>
-              <label className="block mb-1">Description*</label>
-              <textarea
-                value={currentStepData.description}
-                onChange={(e) => setCurrentStepData({ ...currentStepData, description: e.target.value })}
-                className="w-full p-2 border rounded"
-                rows={4}
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1">Image*</label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="w-full p-2 border rounded"
-                required
-              />
-              {currentStepData.imageUrl && (
-                <div className="mt-2 relative h-40 w-full">
-                  <Image
-                    src={currentStepData.imageUrl}
-                    alt="Preview"
-                    fill
-                    className="object-cover rounded"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div>
-              <label className="block mb-1">Organization (Optional)</label>
-              <input
-                type="text"
-                value={currentStepData.organization}
-                onChange={(e) => setCurrentStepData({ ...currentStepData, organization: e.target.value })}
-                className="w-full p-2 border rounded"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-between mt-6">
-            <button
-              onClick={handleStepBack}
-              className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300"
-              disabled={currentStep === 0}
-            >
-              Back
-            </button>
-            <button
-              onClick={handleStepSubmit}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              disabled={!currentStepData.name || !currentStepData.description || !currentStepData.imageUrl}
-            >
-              {currentStep === numberOfRestorations - 1 ? "Finish" : "Next"}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Display the timeline
-  return (
-    <div className="space-y-6">
-      {content.restorations?.length > 0 ? (
-        content.restorations.map((restoration) => (
-          <div key={restoration.id} className="border rounded-lg p-4">
-            <h3 className="text-lg font-bold">{restoration.name}</h3>
-            <p className="text-sm text-gray-500">
-              {restoration.organization && `${restoration.organization} - `}
-              {restoration.date}
-            </p>
-            <p className="my-2">{restoration.description}</p>
-            {restoration.imageUrl && (
-              <div className="relative h-48 w-full mt-2">
-                <Image
-                  src={restoration.imageUrl}
-                  alt={restoration.name}
-                  fill
-                  className="object-cover rounded"
-                />
-              </div>
-            )}
-          </div>
-        ))
-      ) : (
-        <div className="text-center text-gray-500">
-          <p>No restoration history available.</p>
         </div>
       )}
+
+      {/* Add/Edit Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden animate-fade-in">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-xl font-semibold text-gray-800">
+                {editingRestoration ? "Edit Restoration" : "Add New Restoration"}
+              </h3>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {X && <X size={24} />}
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[70vh]">
+              {/* Live Preview */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-sm font-medium text-gray-700 mb-2">Live Preview:</p>
+                <p className="text-gray-800">
+                  <span className={formData.name ? "font-semibold text-gray-900" : "text-gray-400"}>
+                    {formData.name || "[Restoration Name]"}
+                  </span>
+                  {" was done by "}
+                  <span className={formData.organization ? "font-semibold text-gray-900" : "text-gray-400"}>
+                    {formData.organization || "[Organization]"}
+                  </span>
+                  {" on "}
+                  <span className={formData.date ? "font-semibold text-gray-900" : "text-gray-400"}>
+                    {formData.date === "unknown" ? "an unknown date" : (formData.date || "[Date]")}
+                  </span>
+                  {". "}
+                  <span className={formData.description ? "text-gray-700" : "text-gray-400"}>
+                    {formData.description || "[Description will appear here]"}
+                  </span>
+                </p>
+              </div>
+
+              {/* Form Fields */}
+              <div className="space-y-6">
+                {/* Restoration Name */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Restoration Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Frame restoration, Canvas cleaning"
+                    className="w-full h-10 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+
+                {/* Organization */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Organization <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.organization}
+                    onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                    placeholder="e.g., National Gallery Conservation Lab"
+                    className="w-full h-10 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  />
+                </div>
+
+                {/* Date */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Date <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      value={formData.date === "unknown" ? "" : formData.date}
+                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                      placeholder="e.g., 1995, March 2024, 19th century"
+                      disabled={formData.date === "unknown"}
+                      className="flex-1 h-10 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-500"
+                    />
+                    <label className="flex items-center gap-2 text-sm text-gray-600">
+                      <input
+                        type="checkbox"
+                        checked={formData.date === "unknown"}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          date: e.target.checked ? "unknown" : ""
+                        })}
+                        className="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      Unknown date
+                    </label>
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Description/Method <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Describe the restoration method, techniques used, or process details..."
+                    className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-vertical"
+                  />
+                  <div className="flex justify-end mt-1">
+                    <span className="text-xs text-gray-500">
+                      {formData.description.length} characters
+                    </span>
+                  </div>
+                </div>
+
+                {/* Image Upload */}
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">
+                    Restoration Image
+                  </label>
+                  <div
+                    className={`relative w-full border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                      formData.imageUrl
+                        ? "border-gray-200 aspect-video"
+                        : "border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 p-6"
+                    }`}
+                    onClick={() => document.getElementById('restoration-file-input')?.click()}
+                  >
+                    <input
+                      id="restoration-file-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleImageUpload(file);
+                      }}
+                      className="hidden"
+                    />
+                    
+                    {formData.imageUrl ? (
+                      <div className="relative w-full h-full">
+                        <Image
+                          src={formData.imageUrl}
+                          alt="Restoration preview"
+                          fill
+                          className="object-contain rounded-md"
+                        />
+                        {/* Overlay on hover */}
+                        <div className="absolute opacity-0 inset-0 bg-transparent hover:opacity-100 hover:bg-black/20 transition-all duration-200 rounded-md flex items-center justify-center group">
+                          <div className="invisible group-hover:visible bg-white rounded-lg p-2 shadow-lg">
+                            {Upload && <Upload size={20} className="text-gray-600" />}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-3 text-gray-500">
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                          {ImageIcon && <ImageIcon size={24} className="text-gray-400" />}
+                        </div>
+                        <div className="text-center">
+                          <p className="font-medium text-gray-700">Click to select restoration image</p>
+                          <p className="text-sm text-gray-500 mt-1">Before/after photos or process documentation</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-white">
+              <Button
+                variant="outline"
+                onClick={closeModal}
+                className="flex-1 sm:flex-none"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={!isFormValid}
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2"
+              >
+                {Wrench && <Wrench size={16} />}
+                {editingRestoration ? "Update Restoration" : "Add Restoration"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}      
+      
+      {/* Hover State Enhancement */}
+      <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-red-50 to-orange-50 opacity-0 group-hover:opacity-100 transition-all duration-200 -z-10" />
     </div>
   );
 };
