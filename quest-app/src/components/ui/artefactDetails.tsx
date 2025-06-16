@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import QRCodeGenerator from '@/components/QRGenerator';
 import { ComponentData } from '@/lib/types';
 import { useQuest } from '@/context/questContext';
+import Model3DViewer from '@/components/3dModel/3dModel';
 import { QuestProgress, ArtefactDetailProps } from '@/lib/types';
 import { Artefact } from '@/lib/types';
 import { useToast } from '@/components/ui/toast';
@@ -403,7 +404,32 @@ export default function ArtefactDetail({
                                 </div>
                               </div>
                             );
-                          }
+                          },
+                          case '3DModel': {
+                            const model = component.content as any;
+                            // Model3DViewer expects a modelUrl prop
+                            // Defensive: if model is a string, treat as URL; if object, use model.url
+                            let modelUrl = '';
+                            if (typeof model === 'string') {
+                              modelUrl = model;
+                            } else if (model && typeof model.url === 'string') {
+                              modelUrl = model.url;
+                            }
+                            // Import Model3DViewer at the top if not already imported
+                            // Render the 3D model viewer
+                            return (
+                              <div key={component.id} className="border rounded-xl p-6">
+                                {modelUrl ? (
+                                  <Model3DViewer modelUrl={modelUrl} />
+                                ) : (
+                                  <p className="text-sm">Not specified</p>
+                                )}
+                              </div>
+                            );
+                        }
+                        default:
+                          return null;
+                      }
                           default:
                             return null;
                         }

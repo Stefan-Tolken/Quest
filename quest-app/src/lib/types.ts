@@ -23,8 +23,8 @@ export interface ArtifactDetails {
 
 export type ComponentData = {
   id: string;
-  type: "heading" | "paragraph" | "image" | "restoration" | "details" | "subheading";
-  content: string | ImageContent | RestorationContent | ArtifactDetails;
+  type: "heading" | "paragraph" | "image" | "restoration" | "details" | "3DModel" | "subheading";
+  content: string | ImageContent | RestorationContent | ArtifactDetails | Model3DContent;
   image?: string;
   order?: number;
 };
@@ -98,6 +98,10 @@ export type Quest = {
   };
   createdAt: string;
 };
+
+export type Model3DContent = {
+  url: string;
+}
 
 export type MainQuest = Omit<Quest, 'artefacts'> & {
   artefacts: Array<{

@@ -37,7 +37,16 @@ const advancedComponents: ComponentData[] = [
       restorations: [],
     },
   },
+  {
+    id: "6",
+    type: "3DModel",
+    content: {
+      url: "",
+    },
+  },
 ];
+
+
 
 export const ComponentList = () => {
   return (

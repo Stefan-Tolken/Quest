@@ -8,12 +8,14 @@ import {
   ParagraphComponent,
   ImageComponent,
   RestorationComponent,
+  Model3DSelector
 } from "./components";
 import { SubHeadingComponent } from "./components/subheadingComponent";
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { GripVertical, X } from "lucide-react";
 import { DetailsComponent } from "./components/detailsComponent";
 import { ArtifactDetails } from "@/lib/types";
+import { Model3DContent } from "@/lib/types";
 
 interface PageComponentProps {
   component: ComponentData;
@@ -124,6 +126,13 @@ export const PageComponent = ({
                 }
               }
               onUpdate={handleUpdate}
+            />
+          )}
+
+          {component.type === "3DModel" && (
+            <Model3DSelector
+              selectedModelId={typeof component.content === 'object' && component.content !== null && 'modelId' in component.content ? (component.content as any).modelId || "" : ""}
+              onSelectModel={modelId => handleUpdate({ modelId })}
             />
           )}
         </div>
