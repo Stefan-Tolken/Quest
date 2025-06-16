@@ -7,6 +7,7 @@ import CameraBackground from '@/components/ui/cameraBackground';
 import Link from 'next/link';
 import React from 'react';
 import Image from 'next/image';
+import { Button } from "@/components/ui/button";
 
 const ProfilePage = () => {
   const { user } = useAuthState();
@@ -73,10 +74,11 @@ const ProfilePage = () => {
             <div className="flex flex-col gap-3 w-full">
               {isAdmin && (
                 <Link 
-                  href="/admin" 
-                  className="flex justify-center items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  href="/admin"
                 >
-                  Admin View
+                  <Button variant={"glassDark"} className="w-full">
+                    Admin Dashboard
+                  </Button>
                 </Link>
               )}
               <AuthButton />
