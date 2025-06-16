@@ -6,6 +6,7 @@ import AuthButton from '@/components/ui/authButton';
 import CameraBackground from '@/components/ui/cameraBackground';
 import Link from 'next/link';
 import React from 'react';
+import Image from 'next/image';
 
 const ProfilePage = () => {
   const { user } = useAuthState();
@@ -52,35 +53,53 @@ const ProfilePage = () => {
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center">
       <CameraBackground />
-      <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-        <div className="glass rounded-xl shadow-lg p-6 flex flex-col items-center gap-4 max-w-md w-full">
-          <div className="w-24 h-24 rounded-full bg-foreground/20 flex items-center justify-center">
-            <svg className="w-16 h-16 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.25a7.75 7.75 0 0115 0v.25a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.25z" />
-            </svg>
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">{name}</h1>
-          <p className="text-foreground">{email}</p>
-          
-          {/* Display user data info */}
-          <div className="text-sm text-foreground text-center">
-            <p>Artefacts collected: {artefactsCollected}</p>
-            <p>Quests completed: {questsCompleted}</p>
-          </div>
-          
-          <div className="flex flex-col gap-3 w-full">
-            {isAdmin && (
-              <Link 
-                href="/admin" 
-                className="flex justify-center items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Admin View
-              </Link>
-            )}
-            <AuthButton />
+      {user ? (
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+          <div className="glass rounded-xl shadow-lg p-6 flex flex-col items-center gap-4 max-w-md w-full">
+            <div className="w-24 h-24 rounded-full bg-foreground/20 flex items-center justify-center">
+              <svg className="w-16 h-16 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.25a7.75 7.75 0 0115 0v.25a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.25z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">{name}</h1>
+            <p className="text-foreground">{email}</p>
+            
+            {/* Display user data info */}
+            <div className="text-sm text-foreground text-center">
+              <p>Artefacts collected: {artefactsCollected}</p>
+              <p>Quests completed: {questsCompleted}</p>
+            </div>
+            
+            <div className="flex flex-col gap-3 w-full">
+              {isAdmin && (
+                <Link 
+                  href="/admin" 
+                  className="flex justify-center items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                >
+                  Admin View
+                </Link>
+              )}
+              <AuthButton />
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="min-h-screen w-full flex flex-col items-center justify-center p-6">
+          <main className="flex flex-col items-center gap-8 max-w-xl w-full">
+              <Image
+                src="/icons/icon-512x512.png"
+                alt="Quest App Logo"
+                width={256}
+                height={256}
+                className="mb-2"
+                priority
+              />
+          </main>
+          <footer className="flex flex-col gap-6 w-full absolute bottom-0 left-0 p-6 pb-20 text-background/70 text-sm text-center">
+            <AuthButton />
+          </footer>
+        </div>
+      )}
     </div>
   );
 };
