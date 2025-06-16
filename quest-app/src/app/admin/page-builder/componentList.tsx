@@ -38,7 +38,7 @@ const advancedComponents: ComponentData[] = [
     },
   },
   {
-    id: "6",
+    id: "7",
     type: "3DModel",
     content: {
       url: "",

@@ -14,13 +14,12 @@ import { SubHeadingComponent } from "./components/subheadingComponent";
 import { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities";
 import { GripVertical, X } from "lucide-react";
 import { DetailsComponent } from "./components/detailsComponent";
-import { ArtifactDetails } from "@/lib/types";
-import { Model3DContent } from "@/lib/types";
+import { ArtifactDetails, Model3DContent } from "@/lib/types";
 
 interface PageComponentProps {
   component: ComponentData;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, content: string | ImageContent | RestorationContent | ArtifactDetails) => void;
+  onUpdate: (id: string, content: string | ImageContent | RestorationContent | ArtifactDetails | Model3DContent) => void;
   dragAttributes?: React.HTMLAttributes<HTMLDivElement>;
   dragListeners?: SyntheticListenerMap;
   onEditPoints: (component: ComponentData) => void;
@@ -36,7 +35,7 @@ export const PageComponent = ({
 }: PageComponentProps) => {
   console.log('PageComponent rendered with:', component);
   
-  const handleUpdate = (content: string | ImageContent | RestorationContent | ArtifactDetails) => {
+  const handleUpdate = (content: string | ImageContent | RestorationContent | ArtifactDetails | Model3DContent) => {
     console.log('handleUpdate called with:', content);
     onUpdate(component.id, content);
   };
@@ -132,7 +131,7 @@ export const PageComponent = ({
           {component.type === "3DModel" && (
             <Model3DSelector
               selectedModelId={typeof component.content === 'object' && component.content !== null && 'modelId' in component.content ? (component.content as any).modelId || "" : ""}
-              onSelectModel={modelId => handleUpdate({ modelId })}
+              onSelectModel={url => handleUpdate({ url })}
             />
           )}
         </div>

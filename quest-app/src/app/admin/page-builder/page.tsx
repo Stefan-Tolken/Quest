@@ -53,6 +53,13 @@ const advancedComponents: ComponentData[] = [
       restorations: [],
     },
   },
+  {
+    id: "7",
+    type: "3DModel",
+    content: {
+      url: "",
+    },
+  },
 ];
 
 function capitalize(str: string) {

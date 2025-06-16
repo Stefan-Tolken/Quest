@@ -404,7 +404,7 @@ export default function ArtefactDetail({
                                 </div>
                               </div>
                             );
-                          },
+                          }
                           case '3DModel': {
                             const model = component.content as any;
                             // Model3DViewer expects a modelUrl prop
@@ -429,9 +429,6 @@ export default function ArtefactDetail({
                         }
                         default:
                           return null;
-                      }
-                          default:
-                            return null;
                         }
                       })}
                     </div>
