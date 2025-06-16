@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from 'next/image';
 import { ComponentList } from "./componentList";
 import { DropZone } from "./dropZone";
-import { ComponentData, RestorationContent } from "@/lib/types";
+import { ComponentData, RestorationContent, Model3DContent } from "@/lib/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import AuthGuard from "@/components/authGuard";
 import { ImageContent } from "@/lib/types";
@@ -401,7 +401,7 @@ const PageBuilder = () => {
     });
   };
 
-  const handleUpdate = useCallback((id: string, content: string | ImageContent | RestorationContent | ArtifactDetails) => {
+  const handleUpdate = useCallback((id: string, content: string | ImageContent | RestorationContent | ArtifactDetails | Model3DContent) => {
     console.log('Updating component:', id, content);
     setComponents((prev) =>
       prev.map((c) => {
@@ -419,6 +419,9 @@ const PageBuilder = () => {
           return { ...c, content } as ComponentData;
         } else if (c.type === "details" && typeof content !== "string" && 'created' in content) {
           console.log('Updating details component with:', content);
+          return { ...c, content } as ComponentData;
+        }else if( c.type === "3DModel" && typeof content !== "string" && 'url' in content) {
+          console.log('Updating 3D model component with:', content);
           return { ...c, content } as ComponentData;
         }
 
