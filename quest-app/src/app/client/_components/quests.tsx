@@ -92,6 +92,10 @@ export default function Quests() {
   const [progress, setProgress] = useState<QuestProgress | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
+  // Filter state
+  const [ongoing, setOngoing] = useState(true);
+  const [upcoming, setUpcoming] = useState(false);
+  const [completed, setCompleted] = useState(false);
   
   // Get the single attempts number
   const getAttempts = useCallback((): number => {
@@ -216,18 +220,8 @@ export default function Quests() {
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <h1 className="text-2xl font-bold">Quests</h1>
-        <div className="grid gap-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="border rounded-lg p-6 space-y-4">
-              <div className="h-6 w-3/4 bg-gray-200 animate-pulse rounded"></div>
-              <div className="h-4 w-full bg-gray-200 animate-pulse rounded"></div>
-              <div className="h-4 w-2/3 bg-gray-200 animate-pulse rounded"></div>
-              <div className="h-10 w-32 bg-gray-200 animate-pulse rounded"></div>
-            </div>
-          ))}
-        </div>
+      <div className="w-full h-full p-6 flex justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-black"></div>
       </div>
     );
   }
@@ -323,11 +317,6 @@ export default function Quests() {
     // For sequential hints, return all eligible hints in order
     return eligibleHints;
   };
-
-  // Filter state
-  const [ongoing, setOngoing] = useState(true);
-  const [upcoming, setUpcoming] = useState(false);
-  const [completed, setCompleted] = useState(false);
 
   const handleOngoing = () => {
     setOngoing(true);
