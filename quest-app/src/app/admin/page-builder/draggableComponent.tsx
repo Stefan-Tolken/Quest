@@ -2,7 +2,7 @@
 "use client";
 import { useDraggable } from "@dnd-kit/core";
 import { ComponentData } from "@/lib/types";
-import { Plus, Type, Image, FileText, Info, Wrench } from "lucide-react";
+import { Plus, Type, Image, FileText, Info, Wrench, Box } from "lucide-react";
 
 interface DraggableComponentProps {
   component: ComponentData;
@@ -17,11 +17,13 @@ const getComponentIcon = (type: string) => {
     case "paragraph":
       return <FileText size={16} className="text-green-600" />;
     case "image":
-  return <Image size={16} className="text-purple-600" />;
+      return <Image size={16} className="text-purple-600" />;
     case "details":
       return <Info size={16} className="text-orange-600" />;
     case "restoration":
       return <Wrench size={16} className="text-red-600" />;
+    case "3DModel":
+      return <Box size={16} className="text-indigo-600" />;
     default:
       return <Plus size={16} className="text-gray-600" />;
   }
@@ -41,6 +43,8 @@ const getComponentDescription = (type: string) => {
       return "Used for all of the artefacts main information";
     case "restoration":
       return "Used for describing the restoration timeline";
+    case "3DModel":
+      return "Used for interactive 3D models of certain artefacts";
     default:
       return "Component";
   }
