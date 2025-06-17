@@ -24,6 +24,7 @@ function parseItem(item: DynamoDBItem) {
     id: item.id?.S ?? '',
     name: item.name?.S ?? '',
     artist: item.artist?.S ?? undefined,
+    type: item.type?.S ?? undefined,
     date: item.date?.S ?? undefined,
     description: item.description?.S ?? '',
     image: item.image?.S ?? '',

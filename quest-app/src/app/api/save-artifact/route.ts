@@ -154,6 +154,7 @@ export async function POST(request: Request) {
         id: { S: artifactData.id },
         name: { S: artifactData.name },
         artist: artifactData.artist ? { S: artifactData.artist } : { NULL: true },
+        type: artifactData.type ? { S: artifactData.type } : { NULL: true },
         date: artifactData.date ? { S: artifactData.date } : { NULL: true },
         description: { S: artifactData.description },
         image: { S: typeof imageUrl === "string" ? imageUrl : "" },

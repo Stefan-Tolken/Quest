@@ -1,7 +1,7 @@
 import { Suspense, useRef, useState, useEffect } from "react";
 import { Canvas, useFrame, useLoader, useThree, ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Html, useProgress, Center, Text3D} from "@react-three/drei";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";//check this 
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
 
 // Use the same type as in page.tsx for consistency
@@ -18,10 +18,16 @@ export type ModelObject = {
   light?: number; // Add light property
 };
 
-export function Model3DSelector({ selectedModelId, onSelectModel }: { selectedModelId: string, onSelectModel: (id: string) => void }) {
+export function Model3DSelector({ 
+  selectedModelUrl, 
+  onSelectModel 
+}: { 
+  selectedModelUrl: string, 
+  onSelectModel: (url: string) => void 
+}) {
   const [models, setModels] = useState<ModelObject[]>([]);
   const [loading, setLoading] = useState(true);
-  const [internalSelectedId, setInternalSelectedId] = useState<string>(selectedModelId);
+  const [internalSelectedUrl, setInternalSelectedUrl] = useState<string>(selectedModelUrl);
 
   useEffect(() => {
     fetch("/api/get-3dModels")
@@ -34,50 +40,61 @@ export function Model3DSelector({ selectedModelId, onSelectModel }: { selectedMo
 
   // Keep internal state in sync with prop
   useEffect(() => {
-    setInternalSelectedId(selectedModelId);
-  }, [selectedModelId]);
+    setInternalSelectedUrl(selectedModelUrl);
+  }, [selectedModelUrl]);
+
+  // Find the selected model by URL
+  const selectedModel = models.find(m => m.url === internalSelectedUrl);
 
   useEffect(() => {
-    if (internalSelectedId) {
-      const selected = models.find(m => m.id === internalSelectedId);
-      if (selected) {
-        console.log("Selected 3D Model:", selected);
-      }
+    if (selectedModel) {
+      console.log("Selected 3D Model:", selectedModel);
     }
-  }, [internalSelectedId, models]);
+  }, [selectedModel]);
 
-  if (loading) return <div>Loading models...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center py-8">
+      <div className="text-center">
+        {/* Spinner */}
+        <div className="relative mb-3">
+          <div className="w-8 h-8 border-3 border-blue-100 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+        </div>
+        
+        {/* Message */}
+        <p className="text-gray-600 text-sm">Loading 3D models...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div>
       <label className="block mb-2 font-semibold">Select 3D Model</label>
       <select
-        value={internalSelectedId}
+        value={internalSelectedUrl}
         onChange={e => {
-          setInternalSelectedId(e.target.value);
-          // Save the selected model's URL in the parent content
-          const selectedModel = models.find(m => m.id === e.target.value);
-          onSelectModel(selectedModel ? selectedModel.url : "");
+          setInternalSelectedUrl(e.target.value);
+          // Pass the selected model's URL to the parent
+          onSelectModel(e.target.value);
         }}
         className="border p-2 rounded"
       >
         <option value="">-- Select a model --</option>
         {models.map(m => (
-          <option key={m.id} value={m.id}>{m.name}</option>
+          <option key={m.id} value={m.url}>{m.name}</option>
         ))}
       </select>
 
-      {internalSelectedId && (
+      {internalSelectedUrl && selectedModel && (
         <div className="h-[300px] w-full mt-4 rounded">
           <Canvas className="h-full w-full" camera={{ position: [10, 5, 10], fov: 10, zoom: 5}}>
             <Suspense fallback={<Loader />}>
               <color attach="background" args={["#ffffff"]} />
               <OrbitControls />
-              <ambientLight intensity={models.find(m => m.id === internalSelectedId)?.light ?? 5} />
+              <ambientLight intensity={selectedModel.light ?? 5} />
               <pointLight position={[0, 1, 0]} />
               <MeshComponent
-                gltfUrl={models.find(m => m.id === internalSelectedId)?.url || ""}
-                points={models.find(m => m.id === internalSelectedId)?.points || []}
+                gltfUrl={selectedModel.url}
+                points={selectedModel.points || []}
               />
             </Suspense>
           </Canvas>
@@ -87,13 +104,11 @@ export function Model3DSelector({ selectedModelId, onSelectModel }: { selectedMo
   );
 }
 
-function Loader(){//set loading screen while 3d obj loads
+function Loader(){
     const { progress } = useProgress()
     return <Html center>{progress} % loaded</Html>
 }
 
-
-//this aint working chief, Url goes to localhost instead of s3
 function MeshComponent({ gltfUrl, points }: { gltfUrl: string, points?: ModelObject["points"] }) {
   const gltf = useLoader(GLTFLoader, gltfUrl);
   // Only one label can be visible at a time

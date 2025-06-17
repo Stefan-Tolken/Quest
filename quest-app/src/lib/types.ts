@@ -71,6 +71,7 @@ export type Artefact = {
   id: string;
   name: string;
   artist: string;
+  type?: string;
   date?: string;
   description: string;
   image: File | string;
@@ -197,17 +198,17 @@ export type UserData = {
   updatedAt: string;
 };
 
-export interface ModelObject {
+export type ModelObject = {
   id: string;
   name: string;
   fileName: string;
-  url: string; // base64 string or S3 url
+  url: string;
   points: Array<{
     position: { x: number; y: number; z: number };
     rotation: { x: number; y: number; z: number };
     text: string;
   }>;
-  light?: number; // ambient light intensity
+  light?: number;
 }
 
 // DynamoDB types
@@ -216,6 +217,7 @@ export interface DynamoDBItem {
   id: AttributeValue;
   name: AttributeValue;
   artist?: AttributeValue;
+  type?: AttributeValue;
   date?: AttributeValue;
   description: AttributeValue;
   image?: AttributeValue;
