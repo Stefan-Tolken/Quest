@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import type { QuestArtefact, Quest, Artefact, DateRange, Hint } from "@/lib/types";
 import { SaveSuccessPopup } from "../components/SaveSuccessPopup";
 import { SaveConfirmationPopup } from "../components/SaveConfirmationPopup";
-import { QuestLoading, InlineQuestLoading, QuestFormSkeleton } from "./components/QuestLoading";
+import { InlineQuestLoading, QuestFormSkeleton } from "./components/QuestLoading";
 
 const QuestBuild = () => {
   const router = useRouter();
@@ -624,11 +624,6 @@ const QuestBuild = () => {
   const handleCancel = () => {
     router.push('/admin');
   };
-
-  // If we're in the very initial loading state, show the full-page loading component
-  if (initialLoading) {
-    return <QuestLoading message={isEditMode ? "Loading quest editor..." : "Preparing quest creator..."} />;
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">

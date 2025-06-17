@@ -4,43 +4,6 @@ interface QuestLoadingProps {
   message?: string;
 }
 
-export const QuestLoading: React.FC<QuestLoadingProps> = ({ 
-  message = "Loading quest data..." 
-}) => {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="w-full max-w-5xl mx-auto bg-white shadow-sm rounded-lg">
-        <div className="p-8">
-          <div className="flex flex-col items-center justify-center py-16">
-            <div className="text-center">
-              {/* Enhanced loading spinner */}
-              <div className="relative mb-6">
-                <div className="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin"></div>
-                <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-blue-400 rounded-full animate-pulse"></div>
-              </div>
-              
-              {/* Loading message */}
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                {message}
-              </h2>
-              <p className="text-gray-600 text-sm">
-                Please wait while we prepare your quest...
-              </p>
-              
-              {/* Animated dots */}
-              <div className="flex justify-center items-center mt-4 space-x-1">
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // Enhanced loading for when already inside the quest build page
 export const InlineQuestLoading: React.FC<QuestLoadingProps> = ({ 
   message = "Loading quest data..." 
