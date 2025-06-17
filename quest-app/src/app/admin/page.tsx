@@ -2,14 +2,14 @@
 
 import React from "react";
 import { useData } from "@/context/dataContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 import QRModal from "./components/modals/QRModal";
 import BulkQRModal from "./components/modals/BulkQRModal";
 import DeleteModal from "./components/modals/DeleteModal";
-import QuestsTable from "./components/QuestTabel"; // Note: Keep your current filename
-import ArtefactsTable from "./components/ArtefactsTabel"; // Note: Keep your current filename
+import QuestsTable from "./components/QuestTabel";
+import ArtefactsTable from "./components/ArtefactsTabel";
 import { Artefact } from "@/lib/types";
 
 export default function AdminHome() {

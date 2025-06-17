@@ -1,5 +1,6 @@
 // app/api/save-quest/route.ts
 import { NextResponse } from "next/server";
+import { revalidatePath } from 'next/cache';
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
@@ -97,10 +98,15 @@ export async function POST(request: Request) {
     };
 
     await dynamoDB.send(new PutItemCommand(params));
+    
+    revalidatePath('/admin');
+    revalidatePath('/api/get-quests');
 
     return NextResponse.json({
       success: true,
+      message: 'Quest saved successfully',
       quest_id: questId,
+      shouldRefresh: true
     });
   } catch (error) {
     console.error("Error:", error);
