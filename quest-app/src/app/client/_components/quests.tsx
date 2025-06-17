@@ -349,25 +349,27 @@ export default function Quests() {
 
   return (
     <>
-      {!questToShow && (
-        <div className="fixed z-50 top-0 left-0 flex justify-evenly gap-6 items-center p-6 w-full">
-          <Button
-            variant="glass"
-            className={`flex-1 font-bold ${ongoing ? '!bg-blue-500/60' : ''}`}
-            onClick={handleOngoing}
-          >Ongoing</Button>
-          <Button
-            variant="glass"
-            className={`flex-1 font-bold ${upcoming ? '!bg-orange-500/60' : ''}`} 
-            onClick={handleUpcoming}
-          >Upcomming</Button>
-          <Button
-            variant="glass"
-            className={`flex-1 font-bold ${completed ? '!bg-green-500/60' : ''}`}
-            onClick={handleCompleted}
-          >Completed</Button>
-        </div>  
-      )}
+      <div className="fixed z-50 top-0 left-0 flex justify-evenly gap-6 items-center p-6 w-full">
+        <Button
+          variant="glass"
+          className={`flex-1 font-bold ${ongoing && !questToShow ? '!bg-blue-500/60' : ''}`}
+          onClick={handleOngoing}
+          disabled={questToShow ? true : false}
+        >Ongoing</Button>
+        <Button
+          variant="glass"
+          className={`flex-1 font-bold ${upcoming && !questToShow ? '!bg-orange-500/60' : ''}`} 
+          onClick={handleUpcoming}
+          disabled={questToShow ? true : false}
+        >Upcomming</Button>
+        <Button
+          variant="glass"
+          className={`flex-1 font-bold ${completed && !questToShow ? '!bg-green-500/60' : ''}`}
+          onClick={handleCompleted}
+          disabled={questToShow ? true : false}
+        >Completed</Button>
+      </div>  
+
       <ScrollArea className="h-full max-w-full mx-6 pt-20 pb-13 rounded-xl">
         <div className="space-y-10">
           {/* Accepted Quest Section */}
