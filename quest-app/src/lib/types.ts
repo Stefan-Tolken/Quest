@@ -1,4 +1,5 @@
 // lib/types.ts
+
 export type DateRange = {
   from?: string;
   to?: string;
@@ -99,10 +100,6 @@ export type Quest = {
   createdAt: string;
 };
 
-export type Model3DContent = {
-  url: string;
-}
-
 export type MainQuest = Omit<Quest, 'artefacts'> & {
   artefacts: Array<{
     artefactId: string;
@@ -192,4 +189,23 @@ export type UserData = {
   artefacts_collected: string[];
   createdAt: string;
   updatedAt: string;
+};
+
+// 3D Model Editor Types
+
+export type Model3DContent = {
+  url: string;
+}
+
+export type ModelObject = {
+    id: string,
+    name: string,
+    fileName: string,
+    url: string,
+    points: Array<{
+        position: { x: number, y: number, z: number },
+        rotation: { x: number, y: number, z: number },
+        text: string
+    }>;
+    light?: number;
 };

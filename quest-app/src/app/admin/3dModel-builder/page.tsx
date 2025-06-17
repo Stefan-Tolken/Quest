@@ -4,10 +4,15 @@ import AuthGuard from "@/components/authGuard";
 import { Suspense, useRef, useState, useEffect } from "react";
 import { Canvas, useFrame, useLoader, useThree, ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Html, useProgress, SpotLight} from "@react-three/drei";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";//check this 
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
 import { v4 as uuidv4 } from "uuid";
 import ModelEditorOverlay from "./3dModel-editor";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Upload, Edit3, Plus, Trash2, Save, Settings } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ModelObject } from "@/lib/types";
 
 type CircleData = {
     position: THREE.Vector3;
@@ -17,27 +22,13 @@ type CircleData = {
     showText: boolean;
 }
 
-type MeshComponentProps = {
+export type MeshComponentProps = {
   gltfUrl: string;
   circles: CircleData[];
   setCircles: React.Dispatch<React.SetStateAction<CircleData[]>>;
 };
 
-type ModelObject = {
-    id: string,
-    name: string,         // Name of the model (from input)
-    fileName: string,     // The .glb file name (e.g. "myModel.glb")
-    url: string,          // S3 URL of the uploaded .glb
-    points: Array<{
-        position: { x: number, y: number, z: number },
-        rotation: { x: number, y: number, z: number },
-        text: string
-    }>;
-    light?: number; // Ambient light intensity
-};
-
 function MeshComponent({ gltfUrl, circles, setCircles }: MeshComponentProps){
-    //const fileURL = "/3dModel/3DModel_Custom.glb";
     const mesh = useRef<THREE.Mesh>(null!);
     const gltf = useLoader(GLTFLoader, gltfUrl);
     const { camera } = useThree();
@@ -144,7 +135,7 @@ function MeshComponent({ gltfUrl, circles, setCircles }: MeshComponentProps){
     );
 }
 
-function Loader(){//set loading screen while 3d obj loads
+function Loader(){
     const { progress } = useProgress()
     return <Html center>{progress} % loaded</Html>
 }
@@ -159,6 +150,9 @@ export default function ThreeDModelBuilderPage() {
     const [showEditOverlay, setShowEditOverlay] = useState(false);
     const [models, setModels] = useState<{ id: string, name: string }[]>([]);
     const [selectedModelId, setSelectedModelId] = useState<string>("");
+    const [showError, setShowError] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const router = useRouter();
 
     // Fetch models when overlay is opened
     useEffect(() => {
@@ -179,12 +173,11 @@ export default function ThreeDModelBuilderPage() {
         const file = e.target.files?.[0];
         if (file && file.name.endsWith(".glb")) {
             setUploadedFile(file);
-            setGltfUrl(URL.createObjectURL(file)); // For local preview
+            setGltfUrl(URL.createObjectURL(file));
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 const base64 = e.target?.result as string;
-                // Save base64 to state for upload
                 setBase64Glb(base64);
             };
             reader.readAsDataURL(file);
@@ -195,152 +188,289 @@ export default function ThreeDModelBuilderPage() {
     };
 
     const handleSave = async () => {
-        if (!uploadedFile || !modelName) {
-            alert("Please upload a file and enter a model name.");
+        if (!modelName) {
+            setShowError(true);
             return;
         }
 
-        // Convert the file to base64 if not already done
-        let base64Data = base64Glb;
-        if (!base64Data) {
-            base64Data = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onload = (e) => resolve(e.target?.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(uploadedFile);
+        if (!uploadedFile) {
+            alert("Please upload a .glb file");
+            return;
+        }
+
+        setIsSaving(true);
+
+        try {
+            let base64Data = base64Glb;
+            if (!base64Data) {
+                base64Data = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target?.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(uploadedFile);
+                });
+            }
+
+            const modelObject: ModelObject = {
+                id: uuidv4(),
+                name: modelName,
+                fileName: uploadedFile.name,
+                url: base64Data || "",
+                points: circles.map(c => ({
+                    position: { x: c.position.x, y: c.position.y, z: c.position.z },
+                    rotation: { x: c.rotation.x, y: c.rotation.y, z: c.rotation.z },
+                    text: c.text,
+                })),
+                light: ambientIntensity,
+            };
+
+            const response = await fetch("/api/save-3dModel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(modelObject),
             });
+            
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                throw new Error("Error saving 3D Model");
+            }
+            
+            alert("3D Model saved successfully!");
+            // Reset form
+            setModelName("");
+            setUploadedFile(null);
+            setGltfUrl(null);
+            setCircles([]);
+            setAmbientIntensity(5);
+        } catch (error) {
+            console.error("Error saving 3D model:", error);
+            alert("Error saving 3D Model");
+        } finally {
+            setIsSaving(false);
         }
-
-        // Build the model object for API
-        const modelObject: ModelObject = {
-            id: uuidv4(),
-            name: modelName,
-            fileName: uploadedFile.name,
-            url: base64Data || "", // base64 string for now, backend will handle S3 upload
-            points: circles.map(c => ({
-                position: { x: c.position.x, y: c.position.y, z: c.position.z },
-                rotation: { x: c.rotation.x, y: c.rotation.y, z: c.rotation.z },
-                text: c.text,
-            })),
-            light: ambientIntensity, // Save the ambient light value
-        };
-
-        // Send to /api/save-3dModel, backend will handle S3 upload and return S3 url
-        const response = await fetch("/api/save-3dModel", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(modelObject),
-        });
-        const data = await response.json();
-        if (!response.ok || !data.success) {
-            alert("Error saving 3D Model.");
-            return;
-        }
-        alert("3D Model saved successfully!");
     };
 
     return (
         <AuthGuard adminOnly={false}>
-            <div className="flex flex-col h-screen bg-gray-50">
-              <div className="p-4 border-b bg-white">
-                <div className="max-w-3xl mx-auto space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h1 className="text-2xl font-bold">Create New 3D Model</h1>
-                    <button
-                      className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 z-10 ml-4"
-                      onClick={() => setShowEditOverlay(true)}
-                    >
-                      Edit existing models
-                    </button>
-                  </div>
-                  <p className="text-red-500 text-sm">
-                    * Please enter a name for your 3D Model.
-                  </p>
-    
-                  <input
-                    type="text"
-                    required
-                    placeholder="3D Model Name*"
-                    value={modelName}
-                    onChange={e => setModelName(e.target.value)}
-                    className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-1">
-                {/* 3D Model Canvas */}
-                <div className="flex-1 flex flex-col justify-center items-center">
-                    {!gltfUrl ? (
-                        <div className="text-center">
-                            <h2 className="mb-4 text-lg font-semibold">Upload a .glb 3D model</h2>
-                            <input type="file" accept=".glb" onChange={handleFileUpload} className="cursor-pointer px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"/>
-                        </div>
-                    ) : (
-                        <Canvas className="h-2x1 w-2x1" camera={{ position: [10, 5, 10], fov: 3 }}>
-                            <Suspense fallback={<Loader />}>
-                                <color attach="background" args={["#ffffff"]} />
-                                <OrbitControls />
-                                <ambientLight intensity={ambientIntensity} />
-                                <pointLight position={[0, 1, 5]} intensity={1}/>
-                                <spotLight position={[0, 10, 0]} intensity={1}/>
-                                <MeshComponent gltfUrl={gltfUrl} circles={circles} setCircles={setCircles} />
-                            </Suspense>
-                        </Canvas>
-                    )}
-                </div>
-                <div className="w-80 bg-white border-l p-4 overflow-y-auto relative">
-                  {/* Overlay Card */}
-                  {showEditOverlay && (
-                    <ModelEditorOverlay onClose={() => setShowEditOverlay(false)} />
-                  )}
-                  <div className="mb-4 flex items-center gap-2">
-                    <label className="text-xs font-medium">Lighting:</label>
-                    <input
-                      type="range"
-                      min={0}
-                      max={20}
-                      step={0.1}
-                      value={ambientIntensity}
-                      onChange={e => setAmbientIntensity(Number(e.target.value))}
-                      className="w-32 accent-blue-500"
-                    />
-                    <span className="ml-2 text-xs w-8 inline-block text-right">{ambientIntensity}</span>
-                  </div>
-                  <h3 className="font-semibold mb-2">Points</h3>
-                  {circles.length === 0 && <div className="text-gray-400">No points added yet.</div>}
-                  <ul className="space-y-3">
-                    {circles.map((circle, idx) => (
-                      <li key={idx} className="flex items-center gap-2 border rounded p-2">
-                        <span className="text-xs text-gray-500">{idx + 1}.</span>
-                        <input
-                          type="text"
-                          value={circle.text}
-                          onChange={e => {
-                            const value = e.target.value;
-                            setCircles(prev => prev.map((c, i) => i === idx ? { ...c, text: value } : c));
-                          }}
-                          className="flex-1 border rounded px-2 py-1 text-sm"
-                        />
-                        <button
-                          onClick={() => setCircles(prev => prev.filter((_, i) => i !== idx))}
-                          className="ml-2 px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                          title="Delete point"
+            <div className="min-h-screen bg-gray-50">
+                <div className="w-full max-w-7xl mx-auto bg-white shadow-sm">
+                    {/* Header */}
+                    <div className="flex items-center gap-4 p-6 border-b border-gray-200">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push("/admin")}
+                            className="flex items-center gap-2 hover:cursor-pointer"
                         >
-                          Delete
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
+                            <ArrowLeft className="h-4 w-4" />
+                            Back to Admin
+                        </Button>
+                        <h1 className="text-2xl font-semibold">3D Model Builder</h1>
+                        <div className="ml-auto">
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowEditOverlay(true)}
+                                className="flex items-center gap-2 hover:cursor-pointer"
+                            >
+                                <Edit3 className="h-4 w-4" />
+                                Edit Existing Models
+                            </Button>
+                        </div>
+                    </div>
 
-                <button
-                  onClick={handleSave}
-                  className="fixed bottom-4 right-4 bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
-                >
-                  Save 3D Model
-                </button>
+                    {/* Error Messages */}
+                    {showError && (
+                        <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                            <p className="text-red-600 text-sm">* Please enter a name for your 3D Model.</p>
+                        </div>
+                    )}
+
+                    {/* Model Name Input */}
+                    <div className="p-6 border-b border-gray-200">
+                        <div className="max-w-md">
+                            <label className="block text-lg font-medium text-gray-700 mb-2">
+                                Model Name <span className="text-red-500">*</span>
+                            </label>
+                            <Input
+                                type="text"
+                                required
+                                placeholder="Enter 3D model name"
+                                value={modelName}
+                                onChange={(e) => setModelName(e.target.value)}
+                                onFocus={() => setShowError(false)}
+                                className="w-full h-12 border placeholder:text-gray-400 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base p-4"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Main Content Area */}
+                    <div className="flex h-[calc(100vh-200px)]">
+                        {/* 3D Canvas Area */}
+                        <div className="flex-1 flex flex-col">
+                            {!gltfUrl ? (
+                                <div className="flex-1 flex items-center justify-center bg-gray-50">
+                                    <div className="text-center p-8">
+                                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <Upload className="h-8 w-8 text-blue-600" />
+                                        </div>
+                                        <h2 className="text-xl font-semibold text-gray-700 mb-2">Upload 3D Model</h2>
+                                        <p className="text-gray-500 mb-6">Upload a .glb file to get started</p>
+                                        <div className="relative">
+                                            <input
+                                                type="file"
+                                                accept=".glb"
+                                                onChange={handleFileUpload}
+                                                className="hidden"
+                                                id="file-upload"
+                                            />
+                                            <Button
+                                                onClick={() => document.getElementById('file-upload')?.click()}
+                                                className="flex items-center gap-2 hover:cursor-pointer"
+                                            >
+                                                <Upload className="h-4 w-4" />
+                                                Choose .glb File
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex-1 bg-white border-r border-gray-200">
+                                    <div className="h-full w-full">
+                                        <Canvas 
+                                            className="h-full w-full" 
+                                            camera={{ position: [10, 5, 10], fov: 3 }}
+                                        >
+                                            <Suspense fallback={<Loader />}>
+                                                <color attach="background" args={["#ffffff"]} />
+                                                <OrbitControls />
+                                                <ambientLight intensity={ambientIntensity} />
+                                                <pointLight position={[0, 1, 5]} intensity={1}/>
+                                                <spotLight position={[0, 10, 0]} intensity={1}/>
+                                                <MeshComponent 
+                                                    gltfUrl={gltfUrl} 
+                                                    circles={circles} 
+                                                    setCircles={setCircles} 
+                                                />
+                                            </Suspense>
+                                        </Canvas>
+                                    </div>
+                                    {gltfUrl && (
+                                        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md border">
+                                            <p className="text-sm text-gray-600">
+                                                <span className="font-medium">Tip:</span> Double-click on the model to add interest points
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Sidebar */}
+                        {gltfUrl && (
+                            <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+                                {/* Settings Section */}
+                                <div className="p-6 border-b border-gray-200">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Settings className="h-5 w-5 text-gray-600" />
+                                        <h3 className="font-semibold text-gray-900">Model Settings</h3>
+                                    </div>
+                                    
+                                    {/* Lighting Control */}
+                                    <div className="space-y-3">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Ambient Lighting
+                                        </label>
+                                        <div className="flex items-center gap-3">
+                                            <input
+                                                type="range"
+                                                min={0}
+                                                max={20}
+                                                step={0.1}
+                                                value={ambientIntensity}
+                                                onChange={e => setAmbientIntensity(Number(e.target.value))}
+                                                className="flex-1 accent-blue-500"
+                                            />
+                                            <span className="text-sm font-medium text-gray-900 w-12 text-right">
+                                                {ambientIntensity.toFixed(1)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Points Section */}
+                                <div className="flex-1 p-6 overflow-y-auto">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Plus className="h-5 w-5 text-gray-600" />
+                                        <h3 className="font-semibold text-gray-900">Interest Points</h3>
+                                        <span className="ml-auto text-sm text-gray-500">
+                                            {circles.length} point{circles.length !== 1 ? 's' : ''}
+                                        </span>
+                                    </div>
+                                    
+                                    {circles.length === 0 ? (
+                                        <div className="text-center py-8">
+                                            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                                <Plus className="h-6 w-6 text-gray-400" />
+                                            </div>
+                                            <p className="text-sm text-gray-500">
+                                                No interest points added yet
+                                            </p>
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                Double-click on the model to add points
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {circles.map((circle, idx) => (
+                                                <div key={idx} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-xs font-medium text-gray-500 bg-white rounded px-2 py-1">
+                                                            Point {idx + 1}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => setCircles(prev => prev.filter((_, i) => i !== idx))}
+                                                            className="ml-auto p-1 hover:bg-red-100 rounded-full transition-colors"
+                                                            title="Delete point"
+                                                        >
+                                                            <Trash2 className="h-3 w-3 text-red-500" />
+                                                        </button>
+                                                    </div>
+                                                    <Input
+                                                        type="text"
+                                                        value={circle.text}
+                                                        onChange={e => {
+                                                            const value = e.target.value;
+                                                            setCircles(prev => prev.map((c, i) => i === idx ? { ...c, text: value } : c));
+                                                        }}
+                                                        placeholder="Enter point description..."
+                                                        className="text-sm"
+                                                    />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Save Button */}
+                                <div className="p-6 border-t border-gray-200">
+                                    <Button
+                                        onClick={handleSave}
+                                        disabled={isSaving || !modelName}
+                                        className="w-full flex items-center gap-2 hover:cursor-pointer disabled:cursor-not-allowed"
+                                    >
+                                        <Save className="h-4 w-4" />
+                                        {isSaving ? "Saving..." : "Save 3D Model"}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Overlay for editing existing models */}
+                {showEditOverlay && (
+                    <ModelEditorOverlay onClose={() => setShowEditOverlay(false)} />
+                )}
             </div>
         </AuthGuard>
     );
