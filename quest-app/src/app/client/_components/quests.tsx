@@ -415,20 +415,20 @@ export default function Quests() {
     <>
       <div className="fixed z-50 top-0 left-0 flex justify-evenly gap-6 items-center p-6 w-full">
         <Button
-          variant="glass"
-          className={`flex-1 font-bold ${ongoing && !questToShow ? '!bg-blue-500/60' : ''}`}
+          variant={`${ongoing && !questToShow ? 'glassDark' : 'glass'}`}
+          className={`flex-1 font-bold`}
           onClick={handleOngoing}
           disabled={questToShow ? true : false}
         >Ongoing</Button>
         <Button
-          variant="glass"
-          className={`flex-1 font-bold ${upcoming && !questToShow ? '!bg-orange-500/60' : ''}`} 
+          variant={`${upcoming && !questToShow ? 'glassDark' : 'glass'}`}
+          className={`flex-1 font-bold`} 
           onClick={handleUpcoming}
           disabled={questToShow ? true : false}
-        >Upcomming</Button>
+        >Upcoming</Button>
         <Button
-          variant="glass"
-          className={`flex-1 font-bold ${completed && !questToShow ? '!bg-green-500/60' : ''}`}
+          variant={`${completed && !questToShow ? 'glassDark' : 'glass'}`}
+          className={`flex-1 font-bold`}
           onClick={handleCompleted}
           disabled={questToShow ? true : false}
         >Completed</Button>
