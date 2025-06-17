@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from 'next/cache';
 import { DynamoDBClient, PutItemCommand, PutItemCommandInput } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { Artefact } from "@/lib/types";
@@ -164,7 +163,6 @@ export async function POST(request: Request) {
     };
 
     await dynamoDB.send(new PutItemCommand(params));
-    revalidatePath('/admin');
 
     return NextResponse.json({
       success: true,
