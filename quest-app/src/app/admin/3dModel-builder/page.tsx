@@ -10,9 +10,11 @@ import { v4 as uuidv4 } from "uuid";
 import ModelEditorOverlay from "./3dModel-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Upload, Edit3, Plus, Trash2, Save, Settings } from "lucide-react";
+import { ArrowLeft, Upload, Edit3, Plus, Trash2, Save, Loader2, Edit, X, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ModelObject } from "@/lib/types";
+import SuccessPopup from "@/components/ui/SuccessPopup";
+
 
 type CircleData = {
     position: THREE.Vector3;
@@ -26,27 +28,72 @@ export type MeshComponentProps = {
   gltfUrl: string;
   circles: CircleData[];
   setCircles: React.Dispatch<React.SetStateAction<CircleData[]>>;
+  selectedIdx: number | null;
+  setSelectedIdx: React.Dispatch<React.SetStateAction<number | null>>;
 };
 
-function MeshComponent({ gltfUrl, circles, setCircles }: MeshComponentProps){
-    const mesh = useRef<THREE.Mesh>(null!);
+function MeshComponent({ gltfUrl, circles, setCircles, selectedIdx, setSelectedIdx, isTextModalOpen }: MeshComponentProps & { isTextModalOpen?: boolean }){
+    const mesh = useRef<THREE.Group>(null!);
     const gltf = useLoader(GLTFLoader, gltfUrl);
     const { camera } = useThree();
+    const [targetY, setTargetY] = useState<number | null>(null);
 
+    // Double-click handler for adding points
     const handleDoubleClick = (event: ThreeEvent<MouseEvent>) => {
         event.stopPropagation();
-        const offset = camera.getWorldDirection(new THREE.Vector3()).multiplyScalar(-0.05);
-        const position = event.point.clone().add(offset);
-
+        // Use the exact double-clicked point, with a minimal offset to avoid z-fighting
+        const cameraDir = camera.position.clone().sub(event.point).normalize();
+        const position = event.point.clone().add(cameraDir.multiplyScalar(0.05)); // Minimal offset
+        // Calculate rotation to face the camera from the new point
         const lookAtMatrix = new THREE.Matrix4();
         lookAtMatrix.lookAt(position, camera.position, new THREE.Vector3(0, 1, 0));
         const rotation = new THREE.Euler().setFromRotationMatrix(lookAtMatrix);
-
-        console.log("Double-click at:", position);
         setCircles((prev) => [
             ...prev,
             { position, rotation, text: "", editing: true, showText: true },
         ]);
+    };
+
+    // Rotate model to face selected point (Y axis only)
+    useEffect(() => {
+        if (
+            typeof selectedIdx === "number" &&
+            circles[selectedIdx] &&
+            mesh.current
+        ) {
+            const point = circles[selectedIdx];
+            const pointPos = point.position;
+            const pointRot = point.rotation;
+            // Camera direction from point
+            const camDir = camera.position.clone().sub(pointPos);
+            camDir.y = 0;
+            camDir.normalize();
+            // Local -Z axis in world space
+            const localMinusZ = new THREE.Vector3(0, 0, -1).applyEuler(pointRot);
+            localMinusZ.y = 0;
+            localMinusZ.normalize();
+            const angleToCamera = Math.atan2(camDir.x, camDir.z);
+            const angleOfPoint = Math.atan2(localMinusZ.x, localMinusZ.z);
+            let targetY = angleToCamera - angleOfPoint;
+            if (targetY > Math.PI) targetY -= 2 * Math.PI;
+            if (targetY < -Math.PI) targetY += 2 * Math.PI;
+            setTargetY(targetY);
+        }
+    }, [selectedIdx, circles, camera]);
+
+    useFrame(() => {
+        if (mesh.current && targetY !== null) {
+            mesh.current.rotation.y += (targetY - mesh.current.rotation.y) * 0.02;
+        }
+    });
+
+    // When a circle is clicked or its text is focused, set selectedIdx
+    const handleCircleClick = (idx: number) => {
+        setSelectedIdx(idx);
+        toggleShowText(idx);
+    };
+    const handleInputFocus = (idx: number) => {
+        setSelectedIdx(idx);
     };
 
     const handleTextChange = (index: number, value: string) => {
@@ -76,25 +123,63 @@ function MeshComponent({ gltfUrl, circles, setCircles }: MeshComponentProps){
     };
 
     return (
-        <mesh ref={mesh}>
-            <primitive object={gltf.scene} onDoubleClick={handleDoubleClick}/>
+        <group ref={mesh} onDoubleClick={handleDoubleClick}>
+            <primitive object={gltf.scene} />
             {circles.map((circle, index) => (
                 <group key={index}>
                     <group position={circle.position} rotation={circle.rotation}>
-                        <mesh onClick={() => toggleShowText(index)}>
+                        <mesh onClick={() => handleCircleClick(index)}>
                             <circleGeometry args={[0.03, 32]} />
                             <meshBasicMaterial color="lightblue" transparent opacity={0.8} side={THREE.DoubleSide} />
                         </mesh>
+                        {/* Number label on top of the circle */}
+                        {!isTextModalOpen && (
+                        <Html
+                            position={[0, 0, 0]}
+                            center
+                            style={{
+                                fontSize: '14px',
+                                fontWeight: 'bold',
+                                color: '#222',
+                                background: 'rgba(255,255,255,0.8)',
+                                borderRadius: '50%',
+                                width: '20px',
+                                height: '20px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                pointerEvents: 'none',
+                                border: '1px solid #b0b0b0',
+                                boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+                            }}
+                        >
+                            {index + 1}
+                        </Html>
+                        )}
                     </group>
-
-                    {circle.showText && (<Html
-                        position={circle.position.clone().add(new THREE.Vector3(0, 0.01, 0))}
-                        rotation={circle.rotation}
-                        transform
+                    {!isTextModalOpen && (
+                    <Html
+                        position={[circle.position.x, circle.position.y, circle.position.z]}
+                        rotation={[circle.rotation.x, circle.rotation.y, circle.rotation.z]}
                         distanceFactor={0.5}
                         style={{
-                            pointerEvents: "auto",
-                            transform: "translateY(-30px) rotateY(180deg)",
+                          background: "white",
+                          padding: "2px 4px",
+                          borderRadius: "4px",
+                          fontSize: "20px",
+                          border: "1px solid gray",
+                          pointerEvents: "auto",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          textAlign: "center",
+                          boxSizing: "border-box",
+                          width: "auto",
+                          minWidth: "10px",
+                          maxWidth: "300px",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis"
                         }}
                     >
                         {circle.editing ? (
@@ -104,6 +189,7 @@ function MeshComponent({ gltfUrl, circles, setCircles }: MeshComponentProps){
                                 autoFocus
                                 onChange={(e) => handleTextChange(index, e.target.value)}
                                 onBlur={() => finishEditing(index)}
+                                onFocus={() => handleInputFocus(index)}
                                 onKeyDown={(e) => {
                                     if(e.key === "Enter") finishEditing(index);
                                 }}
@@ -131,14 +217,21 @@ function MeshComponent({ gltfUrl, circles, setCircles }: MeshComponentProps){
                     )}
                 </group>
             ))}
-        </mesh>
+        </group>
     );
 }
 
-function Loader(){
-    const { progress } = useProgress()
-    return <Html center>{progress} % loaded</Html>
+function Loader() {
+  const { progress } = useProgress();
+  return (
+    <Html center>
+      <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md">
+        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+      </div>
+    </Html>
+  );
 }
+
 
 export default function ThreeDModelBuilderPage() {
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -146,12 +239,18 @@ export default function ThreeDModelBuilderPage() {
     const [modelName, setModelName] = useState("");
     const [base64Glb, setBase64Glb] = useState<string | null>(null);
     const [circles, setCircles] = useState<CircleData[]>([]);
+    const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
     const [ambientIntensity, setAmbientIntensity] = useState(5);
     const [showEditOverlay, setShowEditOverlay] = useState(false);
     const [models, setModels] = useState<{ id: string, name: string }[]>([]);
     const [selectedModelId, setSelectedModelId] = useState<string>("");
     const [showError, setShowError] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isTextModalOpen, setIsTextModalOpen] = useState(false);
+    const [modalText, setModalText] = useState("");
+    const [modalPointIdx, setModalPointIdx] = useState<number | null>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const router = useRouter();
 
     // Fetch models when overlay is opened
@@ -234,8 +333,7 @@ export default function ThreeDModelBuilderPage() {
             if (!response.ok || !data.success) {
                 throw new Error("Error saving 3D Model");
             }
-            
-            alert("3D Model saved successfully!");
+            setShowSuccess(true);
             // Reset form
             setModelName("");
             setUploadedFile(null);
@@ -250,9 +348,45 @@ export default function ThreeDModelBuilderPage() {
         }
     };
 
+    // Auto-focus textarea when modal opens
+    useEffect(() => {
+        if (isTextModalOpen && textareaRef.current) {
+            textareaRef.current.focus();
+        }
+    }, [isTextModalOpen]);
+
+    // Open modal for editing point text
+    const openTextModal = (idx: number) => {
+        setModalPointIdx(idx);
+        setModalText(circles[idx]?.text || "");
+        setIsTextModalOpen(true);
+    };
+
+    // Save text from modal
+    const handleSaveTextModal = () => {
+        if (modalPointIdx === null) return;
+        setCircles(prev => prev.map((c, i) => i === modalPointIdx ? { ...c, text: modalText } : c));
+        setIsTextModalOpen(false);
+    };
+
+    // Cancel text modal
+    const handleCancelTextModal = () => {
+        setIsTextModalOpen(false);
+    };
+
     return (
         <AuthGuard adminOnly={false}>
             <div className="min-h-screen bg-gray-50">
+                {/* Success Popup */}
+                {showSuccess && (
+                    <SuccessPopup
+                        message="3D Model saved successfully!"
+                        onOk={() => {
+                            setShowSuccess(false);
+                            router.push("/admin");
+                        }}
+                    />
+                )}
                 <div className="w-full max-w-7xl mx-auto bg-white shadow-sm">
                     {/* Header */}
                     <div className="flex items-center gap-4 p-6 border-b border-gray-200">
@@ -350,6 +484,9 @@ export default function ThreeDModelBuilderPage() {
                                                     gltfUrl={gltfUrl} 
                                                     circles={circles} 
                                                     setCircles={setCircles} 
+                                                    selectedIdx={selectedIdx}
+                                                    setSelectedIdx={setSelectedIdx}
+                                                    isTextModalOpen={isTextModalOpen}
                                                 />
                                             </Suspense>
                                         </Canvas>
@@ -422,29 +559,34 @@ export default function ThreeDModelBuilderPage() {
                                     ) : (
                                         <div className="space-y-3">
                                             {circles.map((circle, idx) => (
-                                                <div key={idx} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <span className="text-xs font-medium text-gray-500 bg-white rounded px-2 py-1">
-                                                            Point {idx + 1}
-                                                        </span>
-                                                        <button
-                                                            onClick={() => setCircles(prev => prev.filter((_, i) => i !== idx))}
-                                                            className="ml-auto p-1 hover:bg-red-100 rounded-full transition-colors"
-                                                            title="Delete point"
-                                                        >
-                                                            <Trash2 className="h-3 w-3 text-red-500" />
-                                                        </button>
-                                                    </div>
-                                                    <Input
-                                                        type="text"
-                                                        value={circle.text}
-                                                        onChange={e => {
-                                                            const value = e.target.value;
-                                                            setCircles(prev => prev.map((c, i) => i === idx ? { ...c, text: value } : c));
-                                                        }}
-                                                        placeholder="Enter point description..."
-                                                        className="text-sm"
-                                                    />
+                                                <div key={idx} className="bg-gray-50 rounded-lg p-3 border border-gray-200 flex items-center gap-2">
+                                                    <span className="text-xs font-medium text-gray-500 rounded px-2 py-1">
+                                                        Point {idx + 1}:
+                                                    </span>
+                                                    <button
+                                                        className="flex-1 text-left bg-white border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[32px] truncate"
+                                                        onClick={() => openTextModal(idx)}
+                                                        style={{wordBreak: 'break-word', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis'}}
+                                                        title={circle.text}
+                                                    >
+                                                        {circle.text ? circle.text : <span className="text-gray-400 italic">Enter point description...</span>}
+                                                    </button>
+                                                    <button
+                                                        className="ml-2 p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                                                        onClick={() => openTextModal(idx)}
+                                                        title="Edit point"
+                                                    >
+                                                        <Edit className="h-4 w-4" />
+                                                    </button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => setCircles(prev => prev.filter((_, i) => i !== idx))}
+                                                        className="ml-2"
+                                                        title="Delete point"
+                                                    >
+                                                        <Trash2 className="h-4 w-4 text-red-500" />
+                                                    </Button>
                                                 </div>
                                             ))}
                                         </div>
@@ -470,6 +612,58 @@ export default function ThreeDModelBuilderPage() {
                 {/* Overlay for editing existing models */}
                 {showEditOverlay && (
                     <ModelEditorOverlay onClose={() => setShowEditOverlay(false)} />
+                )}
+                {/* Text editing modal for interest points */}
+                {isTextModalOpen && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center backdrop-blur-sm bg-black/40 transition-all">
+                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl overflow-hidden animate-fade-in">
+                            {/* Header Section */}
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex-shrink-0 w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                                        <Plus size={16} className="text-blue-600" />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <h2 className="text-lg font-semibold text-gray-900">
+                                            Edit Point {modalPointIdx !== null ? modalPointIdx + 1 : ''}
+                                        </h2>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleCancelTextModal}
+                                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                                >
+                                    <X size={24} />
+                                </button>
+                            </div>
+                            {/* Content Area */}
+                            <div className="p-6">
+                                <textarea
+                                    ref={textareaRef}
+                                    value={modalText}
+                                    onChange={e => setModalText(e.target.value)}
+                                    className="w-full p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[120px] resize-none text-sm"
+                                    placeholder="Enter a detailed description for this point..."
+                                    autoFocus
+                                />
+                            </div>
+                            {/* Footer Actions */}
+                            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-white">
+                                <button
+                                    className="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                                    onClick={handleCancelTextModal}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                                    onClick={handleSaveTextModal}
+                                >
+                                    Save Description
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </AuthGuard>

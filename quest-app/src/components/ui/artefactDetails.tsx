@@ -418,7 +418,7 @@ export default function ArtefactDetail({
                             // Import Model3DViewer at the top if not already imported
                             // Render the 3D model viewer
                             return (
-                              <div key={component.id} className="border rounded-xl p-6">
+                              <div key={component.id} className="">
                                 {modelUrl ? (
                                   <Model3DViewer modelUrl={modelUrl} />
                                 ) : (
