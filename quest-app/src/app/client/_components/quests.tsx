@@ -1,7 +1,7 @@
 // components/ui/quests.tsx
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useData } from '@/context/dataContext';
 import { useQuest } from '@/context/questContext';
 import { useUserData } from '@/hooks/useUserData'; // Import the user data hook
@@ -118,13 +118,6 @@ export default function Quests() {
     });
   }, []);
 
-  // Check if a quest is completed by the user
-  const isQuestCompleted = useCallback((questId: string): boolean => {
-    return userData?.completed_quests?.some(completedQuest => 
-      completedQuest.questId === questId
-    ) ?? false;
-  }, [userData?.completed_quests]);
-
   // Get completed quest data
   const getCompletedQuestData = useCallback((questId: string) => {
     return userData?.completed_quests?.find(completedQuest => 
@@ -218,11 +211,119 @@ export default function Quests() {
     }
   }, [activeQuest, loadQuestProgress, setProgress]);
 
+  // Check if a quest is completed by the user
+  const isQuestCompleted = useCallback((questId: string): boolean => {
+    return userData?.completed_quests?.some(completedQuest => 
+      completedQuest.questId === questId
+    ) ?? false;
+  }, [userData?.completed_quests]);
+
+  const isDataLoading = loading || !quests?.length || !userData?.completed_quests;
+
+  const { ongoingQuests, upcomingQuests, completedQuests, questToShow } = useMemo(() => {
+    const ongoing: MainQuest[] = [];
+    const upcoming: MainQuest[] = [];
+    const completed: MainQuest[] = [];
+    let toShow: MainQuest | null = null;
+
+    if (isDataLoading) {
+      return { ongoingQuests: [], upcomingQuests: [], completedQuests: [], questToShow: null };
+    }
+
+    const now = new Date();
+
+    for (const quest of quests) {
+      if (isMainQuest(quest)) {
+        const from = parseDate(quest.dateRange?.from);
+        const to = parseDate(quest.dateRange?.to);
+        const isAccepted = activeQuest?.quest_id === quest.quest_id;
+        const isCompleted = isQuestCompleted(quest.quest_id);
+
+        if (isCompleted) {
+          completed.push(quest);
+        } else if (isAccepted) {
+          toShow = quest;
+        } else if (from && from > now) {
+          upcoming.push(quest);
+        } else if (from && from <= now && (!to || to > now)) {
+          ongoing.push(quest);
+        }
+      }
+    }
+
+    return {
+      ongoingQuests: ongoing,
+      upcomingQuests: upcoming,
+      completedQuests: completed,
+      questToShow: toShow,
+    };
+  }, [quests, userData, activeQuest, isQuestCompleted, isDataLoading]);
+
   if (loading) {
     return (
-      <div className="w-full h-full p-6 flex justify-center items-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-black"></div>
-      </div>
+      <>
+        {/* Top Buttons Skeleton */}
+        <div className="fixed z-50 top-0 left-0 flex justify-evenly gap-6 items-center p-6 w-full">
+          {[1, 2, 3].map(i => (
+            <div
+              key={i}
+              className="flex-1 h-10 rounded-lg glass animate-pulse"
+            />
+          ))}
+        </div>
+
+        {/* Scrollable area with placeholder cards */}
+        <ScrollArea className="h-full max-w-full mx-6 pt-20 pb-13 rounded-xl">
+          <div className="space-y-6">
+            {[...Array(3)].map((_, idx) => (
+              <div key={idx} className="animate-pulse space-y-4 glass p-4 rounded-xl">
+                <div className="h-6 w-1/2 glass rounded" />
+                <div className="h-4 w-3/4 glass rounded" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-14 glass rounded" />
+                  ))}
+                </div>
+                <div className="h-10 w-full glass rounded mt-4" />
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </>
+    );
+  }
+
+  if (isDataLoading) {
+    return (
+      <>
+        {/* Top Buttons Skeleton */}
+        <div className="fixed z-50 top-0 left-0 flex justify-evenly gap-6 items-center p-6 w-full">
+          {[1, 2, 3].map(i => (
+            <div
+              key={i}
+              className="flex-1 h-10 rounded-lg glass animate-pulse"
+            />
+          ))}
+        </div>
+
+        {/* Scrollable area with placeholder cards */}
+        <ScrollArea className="h-full max-w-full mx-6 pt-20 pb-13 rounded-xl">
+          <div className="space-y-6">
+            {[...Array(3)].map((_, idx) => (
+              <div key={idx} className="animate-pulse space-y-4 glass p-4 rounded-xl">
+                <div className="h-6 w-1/2 glass rounded" />
+                <div className="h-4 w-3/4 glass rounded" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="h-14 glass rounded" />
+                  ))}
+                </div>
+                <div className="h-10 w-full glass rounded mt-4" />
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      </>
     );
   }
 
@@ -240,32 +341,6 @@ export default function Quests() {
         <div className="bg-primary/70 text-primary-foreground p-2 rounded-md">No quests available at this time</div>
       </div>
     );
-  }
-
-  const now = new Date();
-  let questToShow: MainQuest | null = null;
-  const ongoingQuests: MainQuest[] = [];
-  const upcomingQuests: MainQuest[] = [];
-  const completedQuests: MainQuest[] = [];
-
-  // Categorize quests
-  for (const quest of quests) {
-    if (isMainQuest(quest)) {
-      const from = parseDate(quest.dateRange?.from);
-      const to = parseDate(quest.dateRange?.to);
-      const isAccepted = activeQuest?.quest_id === quest.quest_id;
-      const isCompleted = isQuestCompleted(quest.quest_id);
-
-      if (isCompleted) {
-        completedQuests.push(quest);
-      } else if (isAccepted) {
-        questToShow = quest;
-      } else if (from && from > now) {
-        upcomingQuests.push(quest);
-      } else if (from && from <= now && (!to || to > now)) {
-        ongoingQuests.push(quest);
-      }
-    }
   }
 
   // Determine which artefacts to display based on quest type
