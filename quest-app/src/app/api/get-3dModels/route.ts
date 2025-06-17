@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { DynamoDBClient, ScanCommand, AttributeValue } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, ScanCommand } from "@aws-sdk/client-dynamodb";
+import { DynamoDBModelItem } from "@/lib/types";
 
 // Configure AWS SDK
 const dynamoDB = new DynamoDBClient({
@@ -9,17 +10,6 @@ const dynamoDB = new DynamoDBClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
-
-// Define DynamoDB item structure
-interface DynamoDBModelItem {
-  id: AttributeValue;
-  name: AttributeValue;
-  fileName?: AttributeValue;
-  url?: AttributeValue;
-  points?: AttributeValue;
-  createdAt?: AttributeValue;
-  light?: AttributeValue; // Add light property
-}
 
 // Helper to parse DynamoDB Items
 function parseModelItem(item: DynamoDBModelItem) {

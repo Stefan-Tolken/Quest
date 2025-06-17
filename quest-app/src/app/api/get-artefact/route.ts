@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { DynamoDBClient, ScanCommand } from '@aws-sdk/client-dynamodb';
+import { NextRequest, NextResponse } from 'next/server';
+import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { ComponentData, DynamoDBItem } from '@/lib/types';
 
 // Configure AWS SDK
@@ -33,22 +33,43 @@ function parseItem(item: DynamoDBItem) {
   };
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Artefact ID is required' },
+        { status: 400 }
+      );
+    }
+
     const params = {
       TableName: 'artefacts',
+      Key: {
+        id: { S: id }
+      }
     };
 
-    const data = await dynamoDB.send(new ScanCommand(params));
-    const artifacts = data.Items?.map((item) => parseItem(item as unknown as DynamoDBItem)) || [];
+    const data = await dynamoDB.send(new GetItemCommand(params));
+    
+    if (!data.Item) {
+      return NextResponse.json(
+        { error: 'Artefact not found' },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json({ success: true, artifacts });
+    const artefact = parseItem(data.Item as unknown as DynamoDBItem);
+
+    return NextResponse.json({ success: true, artefact });
   } catch (error) {
     console.error('DynamoDB Error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch artifacts',
+        error: 'Failed to fetch artefact',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }

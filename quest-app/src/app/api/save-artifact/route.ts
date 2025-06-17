@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { DynamoDBClient, PutItemCommand, PutItemCommandInput } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { ComponentData } from "@/lib/types";
+import { Artefact } from "@/lib/types";
 
 // Configure AWS SDK
 const dynamoDB = new DynamoDBClient({
@@ -21,20 +21,10 @@ const s3 = new S3Client({
 });
 
 // Define TypeScript interface for artifact data
-interface ArtifactData {
-  id: string;
-  name: string;
-  artist?: string;
-  date?: string;
-  description: string;
-  image: string;
-  components: ComponentData[];
-  createdAt: string;
-}
 
 export async function POST(request: Request) {
   try {
-    const artifactData: ArtifactData = await request.json();
+    const artifactData: Artefact = await request.json();
 
     if (!artifactData.name) {
       return NextResponse.json(

@@ -98,46 +98,82 @@ const QuestBuild = () => {
 
         console.log('Quest to edit:', questToEdit);
 
-        // Fetch artefact details for each artefact in the quest
-        const artefactsWithDetails = await Promise.all(
+        // Improved artefact fetching with better error handling
+        const artefactsWithDetails = await Promise.allSettled(
           questToEdit.artefacts.map(async (artefact: QuestArtefact) => {
             try {
               console.log('Fetching artefact details for:', artefact.artefactId);
-              const artefactResponse = await fetch(`/api/get-artefact?id=${artefact.artefactId}`);
+              
+              // Try the current API endpoint first
+              let artefactResponse = await fetch(`/api/get-artefact?id=${artefact.artefactId}`);
+              
+              // If that fails, try alternative endpoint names
+              if (!artefactResponse.ok) {
+                console.log('Trying alternative endpoint...');
+                artefactResponse = await fetch(`/api/get-artefacts?id=${artefact.artefactId}`);
+              }
               
               if (!artefactResponse.ok) {
-                console.error('Failed to fetch artefact details for:', artefact.artefactId);
-                return artefact;
+                console.warn(`Failed to fetch artefact details for ${artefact.artefactId}, using existing data`);
+                // Return the artefact as-is if we can't fetch details
+                return {
+                  ...artefact,
+                  name: artefact.name || "Unknown Artefact"
+                };
               }
               
               const artefactData = await artefactResponse.json();
               console.log('Artefact details:', artefactData);
               
-              // Make sure we're just adding name if needed
-              const artefactWithName = {
-                ...artefact,
-                name: artefact.name || 
-                      (artefactData.artefact?.name || 
-                       artefactData.artefacts?.[0]?.name || 
-                       "Unnamed Artefact")
-              };
+              // Handle different possible response structures
+              let artefactInfo: Artefact | undefined;
+              if (artefactData.artefact) {
+                artefactInfo = artefactData.artefact;
+              } else if (artefactData.artefacts && artefactData.artefacts.length > 0) {
+                artefactInfo = artefactData.artefacts[0];
+              } else if (artefactData.artifacts && artefactData.artifacts.length > 0) {
+                artefactInfo = artefactData.artifacts[0];
+              } else {
+                artefactInfo = artefactData;
+              }
               
-              return artefactWithName;
+              return {
+                ...artefact,
+                name: artefact.name || artefactInfo?.name || "Unknown Artefact"
+              };
             } catch (error) {
               console.error('Error fetching artefact details:', error);
-              return artefact;
+              // Return the artefact with existing data if fetch fails
+              return {
+                ...artefact,
+                name: artefact.name || "Unknown Artefact"
+              };
             }
           })
         );
         
+        // Extract successful results and handle any failures
+        const processedArtefacts = artefactsWithDetails.map((result, index) => {
+          if (result.status === 'fulfilled') {
+            return result.value;
+          } else {
+            console.error(`Failed to process artefact at index ${index}:`, result.reason);
+            // Return the original artefact data as fallback
+            return {
+              ...questToEdit.artefacts[index],
+              name: questToEdit.artefacts[index].name || "Unknown Artefact"
+            };
+          }
+        });
+        
         console.log('Final quest data with artefact details:', {
           ...questToEdit,
-          artefacts: artefactsWithDetails
+          artefacts: processedArtefacts
         });
         
         setQuest({
           ...questToEdit,
-          artefacts: artefactsWithDetails
+          artefacts: processedArtefacts
         });
         
         if (questToEdit.prize?.image) {
@@ -146,6 +182,7 @@ const QuestBuild = () => {
       } catch (error) {
         console.error('Error loading quest:', error);
         alert(`Failed to load quest data: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Don't redirect, just show the error and let user try again
       } finally {
         setIsLoading(false);
       }

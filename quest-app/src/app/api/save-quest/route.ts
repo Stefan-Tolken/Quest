@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
+import { Quest } from "@/lib/types";
 
 const dynamoDB = new DynamoDBClient({
   region: process.env.AWS_REGION,
@@ -19,31 +20,6 @@ const s3 = new S3Client({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
-
-interface Quest {
-  quest_id: string;
-  title: string;
-  description: string;
-  artefacts: Array<{
-    artefactId: string;
-    hints: Array<{
-      description: string;
-      displayAfterAttempts: number;
-    }>;
-    hintDisplayMode: "sequential" | "random";
-  }>;
-  questType: "sequential" | "concurrent";
-  dateRange?: {
-    from: string;
-    to: string;
-  };
-  prize?: {
-    title: string;
-    description: string;
-    image?: string;
-  };
-  createdAt: string;
-}
 
 export async function POST(request: Request) {
   try {
