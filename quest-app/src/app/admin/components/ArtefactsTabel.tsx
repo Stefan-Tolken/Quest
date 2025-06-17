@@ -201,15 +201,14 @@ export default function ArtefactsTable({
     onBulkQRDownload(selectedArtefacts);
   };
 
-  // Handle select all filtered artefacts
-  const handleSelectAllFiltered = () => {
-    // This will select all rows that match the current filter
-    table.toggleAllRowsSelected(true);
-  };
-
-  // Handle deselect all
-  const handleDeselectAll = () => {
-    table.toggleAllRowsSelected(false);
+  // Handle toggle select all filtered artefacts
+  const handleToggleSelectAll = () => {
+    const hasSelectedRows = table.getFilteredSelectedRowModel().rows.length > 0;
+    if (hasSelectedRows) {
+      table.toggleAllRowsSelected(false); // Deselect all
+    } else {
+      table.toggleAllRowsSelected(true); // Select all
+    }
   };
 
   return (
@@ -219,20 +218,11 @@ export default function ArtefactsTable({
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={handleSelectAllFiltered}
+            onClick={handleToggleSelectAll}
             className="flex items-center gap-2 hover:cursor-pointer"
           >
             <CheckSquare className="h-4 w-4" />
-            Select All
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={handleDeselectAll}
-            disabled={table.getFilteredSelectedRowModel().rows.length === 0}
-            className="flex items-center gap-2 hover:cursor-pointer disabled:hover:cursor-not-allowed"
-          >
-            Deselect All
+            {table.getFilteredSelectedRowModel().rows.length > 0 ? 'Deselect All' : 'Select All'}
           </Button>
           
           <Button
@@ -263,7 +253,7 @@ export default function ArtefactsTable({
             onChange={(event) =>
               table.getColumn("name")?.setFilterValue(event.target.value)
             }
-            className="w-80 placeholder:text-gray-400 p-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-10 resize-none text-base"
+            className="max-w-sm"
           />
           <div className="ml-auto flex gap-2">
             <Button

@@ -11,6 +11,8 @@ import DeleteModal from "./components/modals/DeleteModal";
 import QuestsTable from "./components/QuestTabel";
 import ArtefactsTable from "./components/ArtefactsTabel";
 import { Artefact } from "@/lib/types";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 export default function AdminHome() {
   const { artefacts, quests, loading } = useData();
@@ -173,24 +175,6 @@ export default function AdminHome() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-[90vh] p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-        <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start w-full max-w-4xl">
-          <div className="flex flex-col w-full gap-8">
-            <div>
-              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500 mb-6">
-                Manage your quests and artefacts here.
-              </p>
-            </div>
-            <p>Loading...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   const handleDeleteArtefact = async (id: string) => {
     // Check if artefact is used in any quest
     const res = await fetch("/api/check-artifact-usage", {
@@ -237,28 +221,55 @@ export default function AdminHome() {
   };
 
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-[90vh] p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start w-full max-w-6xl">
-        <div className="flex flex-col w-full gap-8">
-          <div>
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <p className="text-sm text-gray-500 mb-6">
-              Manage your quests and artefacts here.
-            </p>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b p-4 flex-shrink-0">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/")}
+              className="flex items-center gap-2 hover:cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
+            </Button>
+            <div>
+              <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
+              <p className="text-sm text-gray-600 mt-1">Manage your quests and artefacts here.</p>
+            </div>
           </div>
-
-          {/* Quests Section */}
-          <QuestsTable quests={quests} onDeleteQuest={handleDeleteQuest} />
-
-          {/* Artefacts Section */}
-          <ArtefactsTable 
-            artefacts={artefacts} 
-            onDeleteArtefact={handleDeleteArtefact} 
-            onBulkQRDownload={handleBulkDownloadLambda} 
-            onGenerateQR={handleArtefactQR} 
-          />
         </div>
-      </main>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 p-6">
+        {loading ? (
+          <div className="max-w-6xl mx-auto">
+            <div className="bg-white rounded-lg shadow p-6">
+              <p>Loading...</p>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-6xl mx-auto space-y-8">
+            {/* Quests Section */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <QuestsTable quests={quests} onDeleteQuest={handleDeleteQuest} />
+            </div>
+
+            {/* Artefacts Section */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <ArtefactsTable 
+                artefacts={artefacts} 
+                onDeleteArtefact={handleDeleteArtefact} 
+                onBulkQRDownload={handleBulkDownloadLambda} 
+                onGenerateQR={handleArtefactQR} 
+              />
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* QR Code Popup Modal */}
       {showQRPopup && selectedArtefact && (
