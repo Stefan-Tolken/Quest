@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { CalendarDays, Trophy, MapPin, Gift } from 'lucide-react';
 import type { Hint, QuestProgress, MainQuest } from '@/lib/types';
-import { div } from 'three/src/nodes/TSL.js';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Separate component for hints display to properly handle hooks
@@ -92,6 +91,9 @@ export default function Quests() {
   const [progress, setProgress] = useState<QuestProgress | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
+  const [ongoing, setOngoing] = useState(true);
+  const [upcoming, setUpcoming] = useState(false);
+  const [completed, setCompleted] = useState(false);
   
   // Get the single attempts number
   const getAttempts = useCallback((): number => {
@@ -323,11 +325,6 @@ export default function Quests() {
     // For sequential hints, return all eligible hints in order
     return eligibleHints;
   };
-
-  // Filter state
-  const [ongoing, setOngoing] = useState(true);
-  const [upcoming, setUpcoming] = useState(false);
-  const [completed, setCompleted] = useState(false);
 
   const handleOngoing = () => {
     setOngoing(true);
