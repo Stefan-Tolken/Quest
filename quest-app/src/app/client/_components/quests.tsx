@@ -25,7 +25,8 @@ import {
 const HintsDisplay = ({ 
   artefact, 
   questId, 
-  hints, 
+  hints,
+  attempts,
   isCollected, 
   completed,
   displayedHints,
@@ -35,6 +36,7 @@ const HintsDisplay = ({
   questId: string,
   hints: Hint[],
   isCollected: boolean,
+  attempts: number,
   completed: boolean,
   displayedHints: Record<string, boolean>,
   onUpdateProgress: (updates: Partial<QuestProgress>) => void
@@ -67,15 +69,15 @@ const HintsDisplay = ({
 
   return (
     <>
-      {hints.map((hint, idx) => (
+      {hints.slice(0, attempts).map((hint, idx) => (
         <div 
           key={idx}
-          className="text-sm bg-white p-3 rounded border border-gray-200"
+          className="text-sm glass p-3 rounded-md"
         >
           <div className="flex gap-2 items-center">
             <span className="font-medium">Hint {idx + 1}</span>
           </div>
-          <p className="mt-1 text-gray-600">{hint.description}</p>
+          <p className="mt-1 text-muted-foreground">{hint.description}</p>
         </div>
       ))}
     </>
@@ -491,7 +493,7 @@ export default function Quests() {
                   {/* Hints Section */}
                   {questToShow && progress && (
                     <div className="mt-4">
-                      <h3 className="font-medium text-blue-800 mb-3">Quest Progress & Hints</h3>
+                      <h3 className="font-medium mb-3">Quest Progress & Hints</h3>
                       <div className="space-y-3">
                         {getVisibleArtefacts(questToShow.questType, questToShow.artefacts, progress).map((artefact) => {
                           const originalIndex = questToShow.artefacts.findIndex(a => a.artefactId === artefact.artefactId);
@@ -511,43 +513,40 @@ export default function Quests() {
                           return (
                             <div 
                               key={artefact.artefactId}
-                              className={`rounded-lg border p-4 ${
+                              className={`flex flex-col rounded-lg p-4 ${
                                 isNextInSequence
-                                  ? 'bg-blue-50 border-blue-200'
-                                  : 'bg-gray-50 border-gray-200'
+                                  ? 'glass bg-blue-500/20'
+                                  : 'glass'
                               }`}
                             >
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <span className="font-medium">{artefact.name}</span>
+                              <div className="flex justify-between items-start">
+                                <div className='flex justify-between items-center gap-2'>
                                   {isNextInSequence && !progress.completed && (
-                                    <span className="ml-2 text-blue-600 text-sm">Current Target</span>
+                                    <span className="ml-2 text-blue-600 text-sm">Current Target: </span>
                                   )}
+                                  <span className="font-medium">{artefact.name}</span>
                                 </div>
-                                {(attempts > 0 && isLastAttempted && !isCollected) && (
-                                  <span className="text-sm text-gray-500">
-                                    Attempts: {attempts}
-                                  </span>
-                                )}
                               </div>
                               {/* Show hints section */}
-                              {!isCollected && !progress.completed && artefact.hints && (
+                              {!isCollected && !progress.completed && !(artefact.hints.length === 0) && (
                                 <div className="space-y-2 mt-3">
                                   <HintsDisplay
                                     artefact={artefact}
                                     questId={questToShow.quest_id}
                                     hints={hintsToDisplay}
+                                    attempts={attempts}
                                     isCollected={isCollected}
                                     completed={progress.completed}
                                     displayedHints={progress.displayedHints}
                                     onUpdateProgress={handleProgressUpdate}
                                   />
-                                  {artefact.hints.some(hint => attempts < hint.displayAfterAttempts) && (
-                                    <div className="text-sm bg-gray-50 p-3 rounded border border-gray-200">
+                                  {/* Show "Next Hint" only if there are more hints to unlock */}
+                                  {attempts < artefact.hints.length && (
+                                    <div className="text-sm glass p-3 rounded-md">
                                       <div className="flex gap-2 items-center">
-                                        <span className="font-medium text-gray-400">Next Hint</span>
-                                        <span className="text-gray-400 text-xs">
-                                          (Unlocks after more attempts)
+                                        <span className="font-medium text-muted-foreground">Next Hint</span>
+                                        <span className="text-muted-foreground text-xs">
+                                          (Unlocks after you scan again)
                                         </span>
                                       </div>
                                     </div>
