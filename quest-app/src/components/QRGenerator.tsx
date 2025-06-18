@@ -20,7 +20,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
       // Use window.location.origin in client-side or process.env.NEXT_PUBLIC_BASE_URL in server-side
       const baseUrl = typeof window !== 'undefined' 
         ? window.location.origin 
-        : process.env.NEXT_PUBLIC_BASE_URL || 'https://quest.com';
+        : process.env.NEXT_PUBLIC_BASE_URL || 'https://quest-sable.vercel.app';
       return `${baseUrl}/artifact/${data.artefactId}`;
     }
     // Fallback to JSON for other cases
