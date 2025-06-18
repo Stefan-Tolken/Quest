@@ -19,14 +19,39 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
-
   const handleScanSuccess = (decodedText: string) => {
     try {
+      // Check if the scanned text is a URL
+      if (decodedText.startsWith('http')) {
+        // Extract artifact ID from URL
+        const url = new URL(decodedText);
+        const pathParts = url.pathname.split('/');
+        const artifactIndex = pathParts.indexOf('artifact');
+        const artifactId = artifactIndex !== -1 ? pathParts[artifactIndex + 1] : undefined;
+        if (artifactId) {
+          setScanResult(artifactId);
+          return;
+        } else {
+          // URL but not a recognized artifact path
+          setScanError('Unfamiliar QR code detected. This is not a valid artifact QR code.');
+          setTimeout(() => setScanError(null), 3000);
+          return;
+        }
+      }
+
+      // Fallback to JSON parsing if not a URL or URL parsing failed
       const parsedData = JSON.parse(decodedText);
-      setScanResult(parsedData.artefactId);
+      if (parsedData && parsedData.artefactId) {
+        setScanResult(parsedData.artefactId);
+        return;
+      } else {
+        setScanError('Unfamiliar QR code detected. This is not a valid artifact QR code.');
+        setTimeout(() => setScanError(null), 3000);
+        return;
+      }
     } catch (error) {
-      console.error('Invalid QR code data:', error);
-      setScanError('Invalid QR code data. Please try again.');
+      // Not a valid URL or JSON
+      setScanError('Unfamiliar QR code detected. This is not a valid artifact QR code.');
       setTimeout(() => setScanError(null), 3000);
     }
   };
