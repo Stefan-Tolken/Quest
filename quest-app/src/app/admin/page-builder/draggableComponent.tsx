@@ -94,16 +94,6 @@ export const DraggableComponent = ({ component, displayName }: DraggableComponen
 
       {/* Hover State Enhancement */}
       <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-all duration-200 -z-10" />
-      
-      {/* Enhanced Drag Preview */}
-      {isDragging && (
-        <div className="absolute inset-0 rounded-lg bg-blue-50 border-2 border-blue-400 flex items-center justify-center backdrop-blur-sm">
-          <div className="flex items-center gap-2">
-            {getComponentIcon(component.type)}
-            <span className="text-blue-700 font-medium text-sm">Adding {displayName}...</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

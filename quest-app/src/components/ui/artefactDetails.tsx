@@ -15,6 +15,7 @@ import { useToast } from '@/components/ui/toast';
 import CameraBackground from './cameraBackground';
 import ImageWithPoints from './imageWithPoints';
 import RestorationTimeline from './restorationTimeline';
+import { ScrollArea } from './scroll-area';
 
 export default function ArtefactDetail({ 
   artefactId,
@@ -287,158 +288,127 @@ export default function ArtefactDetail({
 
   return artefact ? (
     <>
-      <CameraBackground/>
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="container max-w-6xl p-4 sm:px-6">
-          {/* Header with back button */}
-          <div className='fixed top-0 left-0 z-50 p-4 pr-5 w-full bg-gradient-to-b from-black/70 to-transparent'>
-            <div className="flex items-center justify-between">
-              <Button
-                onClick={handleClose}
-                variant={"glass"}
-              >
-                <ArrowLeft size={24} /> Back
+      <div className='fixed top-0 left-0 z-50 p-6 pr-5 w-full'>
+        <div className="flex items-center justify-between">
+          <Button
+            onClick={handleClose}
+            variant={"glassDark"}
+          >
+            <ArrowLeft size={24} /> Back
+          </Button>
+          {/* Quest status */}
+          {/* {activeQuest && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col gap-2">
+              <h3 className="font-medium text-blue-800 mb-1">Quest Artefact</h3>
+              <p className="text-sm text-blue-700">
+                This artefact is part of your active quest. Submit it to mark as found!
+              </p>
+              <Button onClick={handleSubmit} variant="default">
+                Submit as Quest Answer
               </Button>
-              {/* Quest status */}
-              {/* {activeQuest && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex flex-col gap-2">
-                  <h3 className="font-medium text-blue-800 mb-1">Quest Artefact</h3>
-                  <p className="text-sm text-blue-700">
-                    This artefact is part of your active quest. Submit it to mark as found!
-                  </p>
-                  <Button onClick={handleSubmit} variant="default">
-                    Submit as Quest Answer
-                  </Button>
-                  {isSequential && !isNextSequential && submitStatus === 'error' && (
-                    <span className="text-yellow-600 font-medium">Incorrect artefact for this step. Try another.</span>
-                  )}
-                  {submitStatus === 'success' && <span className="text-green-600 font-medium">Artefact submitted!</span>}
-                  {submitStatus === 'already' && <span className="text-blue-600 font-medium">Already submitted.</span>}
-                  {submitStatus === 'error' && !isSequential && <span className="text-red-600 font-medium">Error submitting. Try again.</span>}
-                </div>
-              )} */}
-              {/* Quest status */}
-                {activeQuest && (
-                  <Button onClick={handleSubmit} variant="glass" className="">
-                    Submit Artefact to Quest
-                  </Button>
-                )}
+              {isSequential && !isNextSequential && submitStatus === 'error' && (
+                <span className="text-yellow-600 font-medium">Incorrect artefact for this step. Try another.</span>
+              )}
+              {submitStatus === 'success' && <span className="text-green-600 font-medium">Artefact submitted!</span>}
+              {submitStatus === 'already' && <span className="text-blue-600 font-medium">Already submitted.</span>}
+              {submitStatus === 'error' && !isSequential && <span className="text-red-600 font-medium">Error submitting. Try again.</span>}
             </div>
-          </div>
-
-          <div className="space-y-4 mt-13">
-            {/* Hero image */}
-            <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-100">
-              <Image
-                src={typeof artefact.image === 'string' && artefact.image ? artefact.image : `/api/placeholder/${artefact.id}`}
-                alt={artefact.name}
-                fill
-                className="object-cover"
-                priority
-              />
-            </div>
-
-            {/* Main content grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Left column - Description and Components */}
-              <div className="lg:col-span-2 space-y-4 glass p-6 rounded-xl">
-                <div className='pace-y-4'>
-                  <h1 className="text-3xl text-center font-bold tracking-tight mb-2">
-                    {artefact.name}
-                  </h1>
-                  <div className="prose max-w-none">
-                    <p className="text-lg">{artefact.description}</p>
-                  </div>
-                </div>
-
-                {/* Render components in order */}
-                {(artefact.components?.length ?? 0) > 0 && (
-                  <div>
-                    <div className="space-y-4">
-                      {artefact.components?.map((component: ComponentData) => {
-                        switch (component.type) {
-                          case 'heading':
-                            return <h3 key={component.id} className="text-center text-2xl font-bold">{typeof component.content === 'string' ? component.content : ''}</h3>;
-                          case 'subheading':
-                            return <h3 key={component.id} className="text-lg font-semibold">{typeof component.content === 'string' ? component.content : ''}</h3>;
-                          case 'paragraph':
-                            return <p key={component.id} className="text-base">{typeof component.content === 'string' ? component.content : ''}</p>;
-                          case 'image':
-                            return <ImageWithPoints key={component.id} component={component} />;
-                          case 'restoration':
-                            return <RestorationTimeline key={component.id} component={component} />;
-                          case 'details': {
-                            const details = component.content as any;
-                            return (
-                              <div key={component.id} className="">
-                                <h3 className="text-2xl text-center font-semibold mb-4">Details</h3>
-                                <div className="space-y-4">
-                                  <div className="flex items-start gap-3">
-                                    <Calendar className="mt-0.5 h-5 w-5 text-foreground" />
-                                    <div>
-                                      <h3 className="text-sm font-medium text-foreground">Created</h3>
-                                      <p className="text-sm">{details.created || 'Not specified'}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-start gap-3">
-                                    <MapPin className="mt-0.5 h-5 w-5 text-foreground" />
-                                    <div>
-                                      <h3 className="text-sm font-medium text-foreground">Origin</h3>
-                                      <p className="text-sm">{details.origin || 'Not specified'}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-start gap-3">
-                                    <Ruler className="mt-0.5 h-5 w-5 text-foreground" />
-                                    <div>
-                                      <h3 className="text-sm font-medium text-foreground">Dimensions</h3>
-                                      <p className="text-sm">{details.dimensions || 'Not specified'}</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-start gap-3">
-                                    <Box className="mt-0.5 h-5 w-5 text-foreground" />
-                                    <div>
-                                      <h3 className="text-sm font-medium text-foreground">Materials</h3>
-                                      <p className="text-sm">{details.materials || 'Not specified'}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          }
-                          case '3DModel': {
-                            const model = component.content as any;
-                            // Model3DViewer expects a modelUrl prop
-                            // Defensive: if model is a string, treat as URL; if object, use model.url
-                            let modelUrl = '';
-                            if (typeof model === 'string') {
-                              modelUrl = model;
-                            } else if (model && typeof model.url === 'string') {
-                              modelUrl = model.url;
-                            }
-                            // Import Model3DViewer at the top if not already imported
-                            // Render the 3D model viewer
-                            return (
-                              <div key={component.id} className="border rounded-xl p-6">
-                                {modelUrl ? (
-                                  <Model3DViewer modelUrl={modelUrl} />
-                                ) : (
-                                  <p className="text-sm">Not specified</p>
-                                )}
-                              </div>
-                            );
-                        }
-                        default:
-                          return null;
-                        }
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          )} */}
+          {/* Quest status */}
+            {activeQuest && (
+              <Button onClick={handleSubmit} variant="glass" className="">
+                Submit Artefact to Quest
+              </Button>
+            )}
         </div>
       </div>
+      <ScrollArea className="h-full flex max-w-full mx-6 pt-20 pb-6 rounded-xl">
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-gray-100 mb-4">
+          <Image
+            src={typeof artefact.image === 'string' && artefact.image ? artefact.image : `/api/placeholder/${artefact.id}`}
+            alt={artefact.name}
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+
+        {/* Main content grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Left column - Description and Components */}
+          <div className="lg:col-span-2 space-y-4 glass p-6 rounded-xl">
+            <div className='pace-y-4'>
+              <h1 className="text-3xl text-center font-bold tracking-tight mb-2">
+                {artefact.name}
+              </h1>
+              <div className="prose max-w-none">
+                <p className="text-lg">{artefact.description}</p>
+              </div>
+            </div>
+
+            {/* Render components in order */}
+            {(artefact.components?.length ?? 0) > 0 && (
+              <div>
+                <div className="space-y-4">
+                  {artefact.components?.map((component: ComponentData) => {
+                    switch (component.type) {
+                      case 'heading':
+                        return <h3 key={component.id} className="text-center text-2xl font-bold">{typeof component.content === 'string' ? component.content : ''}</h3>;
+                      case 'subheading':
+                        return <h3 key={component.id} className="text-lg font-semibold">{typeof component.content === 'string' ? component.content : ''}</h3>;
+                      case 'paragraph':
+                        return <p key={component.id} className="text-base">{typeof component.content === 'string' ? component.content : ''}</p>;
+                      case 'image':
+                        return <ImageWithPoints key={component.id} component={component} />;
+                      case 'restoration':
+                        return <RestorationTimeline key={component.id} component={component} />;
+                      case 'details': {
+                        const details = component.content as any;
+                        return (
+                          <div key={component.id} className="">
+                            <h3 className="text-2xl text-center font-semibold mb-4">Details</h3>
+                            <div className="space-y-4">
+                              <div className="flex items-start gap-3">
+                                <Calendar className="mt-0.5 h-5 w-5 text-foreground" />
+                                <div>
+                                  <h3 className="text-sm font-medium text-foreground">Created</h3>
+                                  <p className="text-sm">{details.created || 'Not specified'}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+                      case '3DModel': {
+                        const model = component.content as any;
+                        // Model3DViewer expects a modelUrl prop
+                        // Defensive: if model is a string, treat as URL; if object, use model.url
+                        let modelUrl = '';
+                        if (typeof model === 'string') {
+                          modelUrl = model;
+                        } else if (model && typeof model.url === 'string') {
+                          modelUrl = model.url;
+                        }
+                        // Import Model3DViewer at the top if not already imported
+                        // Render the 3D model viewer
+                        return (
+                          <div key={component.id} className="">
+                            {modelUrl ? (
+                              <Model3DViewer modelUrl={modelUrl} />
+                            ) : (
+                              <p className="text-sm">Not specified</p>
+                            )}
+                          </div>
+                        );
+                      }
+                    }
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </ScrollArea>
     </>
   ) : (
     <></>

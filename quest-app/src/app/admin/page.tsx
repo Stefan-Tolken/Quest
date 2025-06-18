@@ -2,19 +2,19 @@
 
 import React from "react";
 import { useData } from "@/context/dataContext";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 import QRModal from "./components/modals/QRModal";
 import BulkQRModal from "./components/modals/BulkQRModal";
 import DeleteModal from "./components/modals/DeleteModal";
-import QuestsTable from "./components/QuestTabel"; // Note: Keep your current filename
-import ArtefactsTable from "./components/ArtefactsTabel"; // Note: Keep your current filename
+import QuestsTable from "./components/QuestTabel";
+import ArtefactsTable from "./components/ArtefactsTabel";
 import { Artefact } from "@/lib/types";
+import AdminDashboardSkeleton from "./components/AdminDashboardSkeleton";
 
 export default function AdminHome() {
   const { artefacts, quests, loading } = useData();
-  const router = useRouter();
+  const [initialLoading, setInitialLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteType, setDeleteType] = useState<"artefact" | "quest" | null>(null);
   const [deleteWarning, setDeleteWarning] = useState<string>("");
@@ -31,6 +31,14 @@ export default function AdminHome() {
   const [bulkImageType, setBulkImageType] = useState<"png" | "jpg" | "jpeg">("png");
   const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
   const [selectedArtefactsForBulk, setSelectedArtefactsForBulk] = useState<Artefact[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 800); // 800ms loading period, same as quest page
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handle QR code generation
   const handleArtefactQR = (artefact: Artefact) => {
@@ -173,24 +181,6 @@ export default function AdminHome() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-[90vh] p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-        <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start w-full max-w-4xl">
-          <div className="flex flex-col w-full gap-8">
-            <div>
-              <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-              <p className="text-sm text-gray-500 mb-6">
-                Manage your quests and artefacts here.
-              </p>
-            </div>
-            <p>Loading...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   const handleDeleteArtefact = async (id: string) => {
     // Check if artefact is used in any quest
     const res = await fetch("/api/check-artifact-usage", {
@@ -236,29 +226,47 @@ export default function AdminHome() {
     setDeleteType(null);
   };
 
+  if (initialLoading || loading) {
+    return <AdminDashboardSkeleton />;
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-[90vh] p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start w-full max-w-6xl">
-        <div className="flex flex-col w-full gap-8">
-          <div>
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <p className="text-sm text-gray-500 mb-6">
-              Manage your quests and artefacts here.
-            </p>
+    <div className="flex flex-col min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b p-4 flex-shrink-0">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
+              <p className="text-sm text-gray-600 mt-1">Manage your quests and artefacts here.</p>
+            </div>
           </div>
-
-          {/* Quests Section */}
-          <QuestsTable quests={quests} onDeleteQuest={handleDeleteQuest} />
-
-          {/* Artefacts Section */}
-          <ArtefactsTable 
-            artefacts={artefacts} 
-            onDeleteArtefact={handleDeleteArtefact} 
-            onBulkQRDownload={handleBulkDownloadLambda} 
-            onGenerateQR={handleArtefactQR} 
-          />
         </div>
-      </main>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 p-6">
+        {loading ? (
+          <AdminDashboardSkeleton />
+        ) : (
+          <div className="max-w-6xl mx-auto space-y-8">
+            {/* Quests Section */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <QuestsTable quests={quests} onDeleteQuest={handleDeleteQuest} />
+            </div>
+
+            {/* Artefacts Section */}
+            <div className="bg-white rounded-lg shadow overflow-hidden">
+              <ArtefactsTable 
+                artefacts={artefacts} 
+                onDeleteArtefact={handleDeleteArtefact} 
+                onBulkQRDownload={handleBulkDownloadLambda} 
+                onGenerateQR={handleArtefactQR} 
+              />
+            </div>
+          </div>
+        )}
+      </div>
       
       {/* QR Code Popup Modal */}
       {showQRPopup && selectedArtefact && (

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
+import { ModelObject } from "@/lib/types";
 
 // Configure AWS SDK
 const dynamoDB = new DynamoDBClient({
@@ -19,19 +20,6 @@ const s3 = new S3Client({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
-
-interface ModelObject {
-  id: string;
-  name: string;
-  fileName: string;
-  url: string; // base64 string or S3 url
-  points: Array<{
-    position: { x: number; y: number; z: number };
-    rotation: { x: number; y: number; z: number };
-    text: string;
-  }>;
-  light?: number; // ambient light intensity
-}
 
 export async function POST(request: Request) {
   try {

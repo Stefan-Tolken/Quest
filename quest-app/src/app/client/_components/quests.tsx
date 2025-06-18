@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { CalendarDays, Trophy, MapPin, Gift } from 'lucide-react';
 import type { Hint, QuestProgress, MainQuest } from '@/lib/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Separate component for hints display to properly handle hooks
 const HintsDisplay = ({ 
@@ -90,6 +91,9 @@ export default function Quests() {
   const [progress, setProgress] = useState<QuestProgress | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
+  const [ongoing, setOngoing] = useState(true);
+  const [upcoming, setUpcoming] = useState(false);
+  const [completed, setCompleted] = useState(false);
   
   // Get the single attempts number
   const getAttempts = useCallback((): number => {
@@ -322,322 +326,361 @@ export default function Quests() {
     return eligibleHints;
   };
 
+  const handleOngoing = () => {
+    setOngoing(true);
+    setUpcoming(false);
+    setCompleted(false);
+  }
+
+  const handleUpcoming = () => {
+    setOngoing(false);
+    setUpcoming(true);
+    setCompleted(false);
+  }
+
+  const handleCompleted = () => {
+    setOngoing(false);
+    setUpcoming(false);
+    setCompleted(true);
+  }
+
   return (
-    <div className="pb-20 p-6 space-y-10">
-
-      {/* Accepted Quest Section */}
-      {questToShow && (
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>{questToShow.title}</CardTitle>
-              <CardDescription>{questToShow.description}</CardDescription>
-            </CardHeader>
-
-            <CardContent className="grid grid-cols-1 gap-4">
-              {/* Quest Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                {questToShow.dateRange && (
-                  <div className="flex items-start gap-3">
-                    <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Available Until</p>
-                      <p className="text-muted-foreground">
-                        {questToShow.dateRange.to ? new Date(questToShow.dateRange.to).toLocaleDateString() : 'N/A'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Artefacts</p>
-                    <p className="text-muted-foreground">
-                      {questToShow.artefacts.length} to discover
-                    </p>
-                  </div>
-                </div>
-                {questToShow.prize && (
-                  <div className="flex items-start gap-3">
-                    <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                    <div>
-                      <p className="font-medium">Prize</p>
-                      <p className="text-muted-foreground">{questToShow.prize.title}</p>
-                    </div>
-                  </div>
-                )}
-              </div>              
-              
-              {/* Hints Section */}
-              {questToShow && progress && (
-                <div className="mt-4">
-                  <h3 className="font-medium text-blue-800 mb-3">Quest Progress & Hints</h3>
-                  <div className="space-y-3">
-                    {getVisibleArtefacts(questToShow.questType, questToShow.artefacts, progress).map((artefact) => {
-                      const originalIndex = questToShow.artefacts.findIndex(a => a.artefactId === artefact.artefactId);
-                      const isCollected = progress.collectedArtefactIds?.includes(artefact.artefactId);
-                      const isNextInSequence = !progress.completed && 
-                        questToShow.questType === 'sequential' && 
-                        originalIndex === (progress.collectedArtefactIds?.length || 0);
-                      const attempts = getAttempts();
-                      const isLastAttempted = progress.lastAttemptedArtefactId === artefact.artefactId;
-
-                      if (questToShow.questType === 'sequential' && !isCollected && !isNextInSequence) {
-                        return null;
-                      }
-
-                      const hintsToDisplay = getHintsToDisplay(artefact, attempts, progress);
-
-                      return (
-                        <div 
-                          key={artefact.artefactId}
-                          className={`rounded-lg border p-4 ${
-                            isNextInSequence
-                              ? 'bg-blue-50 border-blue-200'
-                              : 'bg-gray-50 border-gray-200'
-                          }`}
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <span className="font-medium">{artefact.name}</span>
-                              {isNextInSequence && !progress.completed && (
-                                <span className="ml-2 text-blue-600 text-sm">Current Target</span>
-                              )}
-                            </div>
-                            {(attempts > 0 && isLastAttempted && !isCollected) && (
-                              <span className="text-sm text-gray-500">
-                                Attempts: {attempts}
-                              </span>
-                            )}
-                          </div>
-                          {/* Show hints section */}
-                          {!isCollected && !progress.completed && artefact.hints && (
-                            <div className="space-y-2 mt-3">
-                              <HintsDisplay
-                                artefact={artefact}
-                                questId={questToShow.quest_id}
-                                hints={hintsToDisplay}
-                                isCollected={isCollected}
-                                completed={progress.completed}
-                                displayedHints={progress.displayedHints}
-                                onUpdateProgress={handleProgressUpdate}
-                              />
-                              {artefact.hints.some(hint => attempts < hint.displayAfterAttempts) && (
-                                <div className="text-sm bg-gray-50 p-3 rounded border border-gray-200">
-                                  <div className="flex gap-2 items-center">
-                                    <span className="font-medium text-gray-400">Next Hint</span>
-                                    <span className="text-gray-400 text-xs">
-                                      (Unlocks after more attempts)
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-
-            <CardFooter className="flex flex-col gap-2 items-stretch">
-              {/* Progress display */}
-              {progressLoading ? (
-                <div className="text-blue-500">Loading progress...</div>
-              ) : progressError ? (
-                <div className="text-red-500">{progressError}</div>
-              ) : progress ? (
-                <div className="w-full flex items-center gap-2">
-                  <span className="font-medium">Artefacts found:</span>
-                  <span>
-                    {progress.collectedArtefactIds.length} / {questToShow.artefacts.length}
-                  </span>
-                </div>
-              ) : null}
-
-              <Button 
-                onClick={cancelQuest}
-                variant="destructive"
-                className="w-full sm:w-auto"
-              >
-                Cancel Quest
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+    <>
+      {!questToShow && (
+        <div className="fixed z-50 top-0 left-0 flex justify-evenly gap-6 items-center p-6 w-full">
+          <Button
+            variant="glass"
+            className={`flex-1 font-bold ${ongoing ? '!bg-blue-500/60' : ''}`}
+            onClick={handleOngoing}
+          >Ongoing</Button>
+          <Button
+            variant="glass"
+            className={`flex-1 font-bold ${upcoming ? '!bg-orange-500/60' : ''}`} 
+            onClick={handleUpcoming}
+          >Upcomming</Button>
+          <Button
+            variant="glass"
+            className={`flex-1 font-bold ${completed ? '!bg-green-500/60' : ''}`}
+            onClick={handleCompleted}
+          >Completed</Button>
+        </div>  
       )}
-
-      {/* Ongoing Quests Section */}
-      {ongoingQuests.length > 0 && !questToShow && (
-        <div className="m-0 mb-6">
-          <div className="grid gap-6">
-            {ongoingQuests.map((quest) => (
-              <Card key={quest.quest_id}>
+      <ScrollArea className="h-full max-w-full mx-6 pt-20 pb-13 rounded-xl">
+        <div className="space-y-10">
+          {/* Accepted Quest Section */}
+          {questToShow && (
+            <div>
+              <Card>
                 <CardHeader>
-                  <CardTitle>{quest.title}</CardTitle>
-                  <CardDescription>{quest.description}</CardDescription>
+                  <CardTitle>{questToShow.title}</CardTitle>
+                  <CardDescription>{questToShow.description}</CardDescription>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                  {quest.dateRange && (
-                    <div className="flex items-start gap-3">
-                      <CalendarDays className="h-4 w-4 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Available Until</p>
-                        <p>
-                          {quest.dateRange.to ? new Date(quest.dateRange.to).toLocaleDateString() : 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-4 w-4 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Artefacts</p>
-                      <p>{quest.artefacts.length} to discover</p>
-                    </div>
-                  </div>
-                  {quest.prize && (
-                    <div className="flex items-start gap-3">
-                      <Trophy className="h-4 w-4 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Prize</p>
-                        <p>{quest.prize.title}</p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    onClick={() => acceptQuest(quest)}
-                    variant="glass"
-                    className="w-full sm:w-auto"
-                  >
-                    Accept Quest
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
 
-      {/* Upcoming Quests Section */}
-      {upcomingQuests.length > 0 && !questToShow && (
-        <div>
-          <div className="grid gap-6">
-            {upcomingQuests.map((quest) => (
-              <Card key={quest.quest_id}>
-                <CardHeader>
-                  <CardTitle>{quest.title}</CardTitle>
-                  <CardDescription>{quest.description}</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                  {quest.dateRange && (
-                    <div className="flex items-start gap-3">
-                      <CalendarDays className="h-4 w-4 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Available From</p>
-                        <p>
-                          {quest.dateRange.from ? new Date(quest.dateRange.from).toLocaleDateString() : 'N/A'}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-4 w-4 mt-0.5" />
-                    <div>
-                      <p className="font-medium">Artefacts</p>
-                      <p>{quest.artefacts.length} to discover</p>
-                    </div>
-                  </div>
-                  {quest.prize && (
-                    <div className="flex items-start gap-3">
-                      <Trophy className="h-4 w-4 mt-0.5" />
-                      <div>
-                        <p className="font-medium">Prize</p>
-                        <p>{quest.prize.title}</p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    disabled 
-                    variant="destructive" 
-                    className="w-full cursor-not-allowed"
-                  >
-                    Not Yet Available
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Completed Quests Section */}
-      {completedQuests.length > 0 && (
-        <div>
-          <h2 className="text-xl font-bold mb-4 text-green-700">Completed Quests</h2>
-          <div className="grid gap-6">
-            {completedQuests.map((quest) => {
-              const completedQuestData = getCompletedQuestData(quest.quest_id);
-              return (
-                <Card key={quest.quest_id} className="border-green-200 bg-green-50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <span>{quest.title}</span>
-                      <span className="text-green-600 text-sm">✓ Completed</span>
-                    </CardTitle>
-                    <CardDescription>{quest.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    {completedQuestData && (
+                <CardContent className="grid grid-cols-1 gap-4">
+                  {/* Quest Info */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                    {questToShow.dateRange && (
                       <div className="flex items-start gap-3">
-                        <CalendarDays className="h-4 w-4 mt-0.5 text-green-600" />
+                        <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground" />
                         <div>
-                          <p className="font-medium">Completed On</p>
-                          <p className="text-green-700">
-                            {new Date(completedQuestData.completedAt).toLocaleDateString()}
+                          <p className="font-medium">Available Until</p>
+                          <p className="text-muted-foreground">
+                            {questToShow.dateRange.to ? new Date(questToShow.dateRange.to).toLocaleDateString() : 'N/A'}
                           </p>
                         </div>
                       </div>
                     )}
                     <div className="flex items-start gap-3">
-                      <MapPin className="h-4 w-4 mt-0.5 text-green-600" />
+                      <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
                       <div>
-                        <p className="font-medium">Artefacts Found</p>
-                        <p className="text-green-700">{quest.artefacts.length} / {quest.artefacts.length}</p>
+                        <p className="font-medium">Artefacts</p>
+                        <p className="text-muted-foreground">
+                          {questToShow.artefacts.length} to discover
+                        </p>
                       </div>
                     </div>
-                    {quest.prize && (
+                    {questToShow.prize && (
                       <div className="flex items-start gap-3">
-                        <Trophy className="h-4 w-4 mt-0.5 text-green-600" />
+                        <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
                         <div>
-                          <p className="font-medium">Prize Earned</p>
-                          <p className="text-green-700">{quest.prize.title}</p>
+                          <p className="font-medium">Prize</p>
+                          <p className="text-muted-foreground">{questToShow.prize.title}</p>
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                  <CardFooter>
-                    <Button
-                      onClick={() => handleViewPrize(quest)}
-                      variant="outline"
-                      className="w-full sm:w-auto border-green-300 text-green-700 hover:bg-green-100"
-                    >
-                      <Gift className="h-4 w-4 mr-2" />
-                      View Prize
-                    </Button>
-                  </CardFooter>
-                </Card>
-              );
-            })}
-          </div>
+                  </div>              
+                  
+                  {/* Hints Section */}
+                  {questToShow && progress && (
+                    <div className="mt-4">
+                      <h3 className="font-medium text-blue-800 mb-3">Quest Progress & Hints</h3>
+                      <div className="space-y-3">
+                        {getVisibleArtefacts(questToShow.questType, questToShow.artefacts, progress).map((artefact) => {
+                          const originalIndex = questToShow.artefacts.findIndex(a => a.artefactId === artefact.artefactId);
+                          const isCollected = progress.collectedArtefactIds?.includes(artefact.artefactId);
+                          const isNextInSequence = !progress.completed && 
+                            questToShow.questType === 'sequential' && 
+                            originalIndex === (progress.collectedArtefactIds?.length || 0);
+                          const attempts = getAttempts();
+                          const isLastAttempted = progress.lastAttemptedArtefactId === artefact.artefactId;
+
+                          if (questToShow.questType === 'sequential' && !isCollected && !isNextInSequence) {
+                            return null;
+                          }
+
+                          const hintsToDisplay = getHintsToDisplay(artefact, attempts, progress);
+
+                          return (
+                            <div 
+                              key={artefact.artefactId}
+                              className={`rounded-lg border p-4 ${
+                                isNextInSequence
+                                  ? 'bg-blue-50 border-blue-200'
+                                  : 'bg-gray-50 border-gray-200'
+                              }`}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <span className="font-medium">{artefact.name}</span>
+                                  {isNextInSequence && !progress.completed && (
+                                    <span className="ml-2 text-blue-600 text-sm">Current Target</span>
+                                  )}
+                                </div>
+                                {(attempts > 0 && isLastAttempted && !isCollected) && (
+                                  <span className="text-sm text-gray-500">
+                                    Attempts: {attempts}
+                                  </span>
+                                )}
+                              </div>
+                              {/* Show hints section */}
+                              {!isCollected && !progress.completed && artefact.hints && (
+                                <div className="space-y-2 mt-3">
+                                  <HintsDisplay
+                                    artefact={artefact}
+                                    questId={questToShow.quest_id}
+                                    hints={hintsToDisplay}
+                                    isCollected={isCollected}
+                                    completed={progress.completed}
+                                    displayedHints={progress.displayedHints}
+                                    onUpdateProgress={handleProgressUpdate}
+                                  />
+                                  {artefact.hints.some(hint => attempts < hint.displayAfterAttempts) && (
+                                    <div className="text-sm bg-gray-50 p-3 rounded border border-gray-200">
+                                      <div className="flex gap-2 items-center">
+                                        <span className="font-medium text-gray-400">Next Hint</span>
+                                        <span className="text-gray-400 text-xs">
+                                          (Unlocks after more attempts)
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+
+                <CardFooter className="flex flex-col gap-2 items-stretch">
+                  {/* Progress display */}
+                  {progressLoading ? (
+                    <div className="text-blue-500">Loading progress...</div>
+                  ) : progressError ? (
+                    <div className="text-red-500">{progressError}</div>
+                  ) : progress ? (
+                    <div className="w-full flex items-center gap-2">
+                      <span className="font-medium">Artefacts found:</span>
+                      <span>
+                        {progress.collectedArtefactIds.length} / {questToShow.artefacts.length}
+                      </span>
+                    </div>
+                  ) : null}
+
+                  <Button 
+                    onClick={cancelQuest}
+                    variant="destructive"
+                    className="w-full sm:w-auto"
+                  >
+                    Cancel Quest
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          )}
+
+          {/* Ongoing Quests Section */}
+          {ongoingQuests.length > 0 && !questToShow && ongoing &&(
+            <div className="m-0 mb-6">
+              <div className="grid gap-6">
+                {ongoingQuests.map((quest) => (
+                  <Card key={quest.quest_id}>
+                    <CardHeader>
+                      <CardTitle>{quest.title}</CardTitle>
+                      <CardDescription>{quest.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      {quest.dateRange && (
+                        <div className="flex items-start gap-3">
+                          <CalendarDays className="h-4 w-4 mt-0.5" />
+                          <div>
+                            <p className="font-medium">Available Until</p>
+                            <p>
+                              {quest.dateRange.to ? new Date(quest.dateRange.to).toLocaleDateString() : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-start gap-3">
+                        <MapPin className="h-4 w-4 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Artefacts</p>
+                          <p>{quest.artefacts.length} to discover</p>
+                        </div>
+                      </div>
+                      {quest.prize && (
+                        <div className="flex items-start gap-3">
+                          <Trophy className="h-4 w-4 mt-0.5" />
+                          <div>
+                            <p className="font-medium">Prize</p>
+                            <p>{quest.prize.title}</p>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                    <CardFooter>
+                      <Button
+                        onClick={() => acceptQuest(quest)}
+                        variant="glass"
+                        className="w-full sm:w-auto"
+                      >
+                        Accept Quest
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Upcoming Quests Section */}
+          {upcomingQuests.length > 0 && !questToShow && upcoming && (
+            <div>
+              <div className="grid gap-6">
+                {upcomingQuests.map((quest) => (
+                  <Card key={quest.quest_id}>
+                    <CardHeader>
+                      <CardTitle>{quest.title}</CardTitle>
+                      <CardDescription>{quest.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      {quest.dateRange && (
+                        <div className="flex items-start gap-3">
+                          <CalendarDays className="h-4 w-4 mt-0.5" />
+                          <div>
+                            <p className="font-medium">Available From</p>
+                            <p>
+                              {quest.dateRange.from ? new Date(quest.dateRange.from).toLocaleDateString() : 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-start gap-3">
+                        <MapPin className="h-4 w-4 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Artefacts</p>
+                          <p>{quest.artefacts.length} to discover</p>
+                        </div>
+                      </div>
+                      {quest.prize && (
+                        <div className="flex items-start gap-3">
+                          <Trophy className="h-4 w-4 mt-0.5" />
+                          <div>
+                            <p className="font-medium">Prize</p>
+                            <p>{quest.prize.title}</p>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                    <CardFooter>
+                      <Button 
+                        disabled 
+                        variant="destructive" 
+                        className="w-full cursor-not-allowed"
+                      >
+                        Not Yet Available
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Completed Quests Section */}
+          {completedQuests.length > 0 && !questToShow && completed && (
+            <div>
+              <div className="grid gap-6">
+                {completedQuests.map((quest) => {
+                  const completedQuestData = getCompletedQuestData(quest.quest_id);
+                  return (
+                    <Card key={quest.quest_id} className="border-green-200 bg-green-50">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <span>{quest.title}</span>
+                          <span className="text-green-600 text-sm">✓ Completed</span>
+                        </CardTitle>
+                        <CardDescription>{quest.description}</CardDescription>
+                      </CardHeader>
+                      <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        {completedQuestData && (
+                          <div className="flex items-start gap-3">
+                            <CalendarDays className="h-4 w-4 mt-0.5 text-green-600" />
+                            <div>
+                              <p className="font-medium">Completed On</p>
+                              <p className="text-green-700">
+                                {new Date(completedQuestData.completedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex items-start gap-3">
+                          <MapPin className="h-4 w-4 mt-0.5 text-green-600" />
+                          <div>
+                            <p className="font-medium">Artefacts Found</p>
+                            <p className="text-green-700">{quest.artefacts.length} / {quest.artefacts.length}</p>
+                          </div>
+                        </div>
+                        {quest.prize && (
+                          <div className="flex items-start gap-3">
+                            <Trophy className="h-4 w-4 mt-0.5 text-green-600" />
+                            <div>
+                              <p className="font-medium">Prize Earned</p>
+                              <p className="text-green-700">{quest.prize.title}</p>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                      <CardFooter>
+                        <Button
+                          onClick={() => handleViewPrize(quest)}
+                          variant="outline"
+                          className="w-full sm:w-auto border-green-300 text-green-700 hover:bg-green-100"
+                        >
+                          <Gift className="h-4 w-4 mr-2" />
+                          View Prize
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+      </ScrollArea>
+    </>
   );
 }
