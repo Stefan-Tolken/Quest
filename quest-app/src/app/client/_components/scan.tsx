@@ -19,15 +19,14 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+
   const handleScanSuccess = (decodedText: string) => {
     try {
       // Check if the scanned text is a URL
-      if (decodedText.startsWith('http')) {
-        // Extract artifact ID from URL
+      if (decodedText.startsWith('https')) {
+        // Extract artifact ID from URL query parameter
         const url = new URL(decodedText);
-        const pathParts = url.pathname.split('/');
-        const artifactIndex = pathParts.indexOf('artifact');
-        const artifactId = artifactIndex !== -1 ? pathParts[artifactIndex + 1] : undefined;
+        const artifactId = url.searchParams.get('id');
         if (artifactId) {
           setScanResult(artifactId);
           return;
