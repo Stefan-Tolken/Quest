@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
       questId,
       status: 'in_progress',
       collectedArtefactIds: [],
-      attempts: 0, // Initialize as single number
-      displayedHints: {}, // Object to track displayed hints per artefact
+      attempts: 0,
+      displayedHints: {},
       completed: false,
       startTime,
       endTime: null,

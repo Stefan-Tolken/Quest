@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Plus, CheckCircle, ArrowLeft, Check } from "lucide-react";
+import { Plus, CheckCircle, ArrowLeft, Check, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { QuestInfo } from "./components/QuestInfo";
 import { UnifiedArtefactSection } from "./components/UnifiedArtefactSection";
@@ -9,12 +9,16 @@ import { HintsSection } from "./components/HintSection";
 import { PrizeSection } from "./components/PrizeSection";
 import { Button } from "@/components/ui/button";
 import type { QuestArtefact, Quest, Artefact, DateRange, Hint } from "@/lib/types";
+import { SaveSuccessPopup } from "./components/SaveSuccessPopup";
+import { SaveConfirmationPopup } from "./components/SaveConfirmationPopup";
+import { InlineQuestLoading, QuestFormSkeleton } from "./components/QuestLoading";
 
 const QuestBuild = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const isEditMode = !!editId;
+  const [initialLoading, setInitialLoading] = useState(true); // Track initial page load
   const [quest, setQuest] = useState<Quest>({
     quest_id: editId || crypto.randomUUID(),
     title: "",
@@ -40,7 +44,19 @@ const QuestBuild = () => {
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initial page load effect
+  useEffect(() => {
+    // Simulate initial page load delay
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Load quest data when in edit mode
   useEffect(() => {
@@ -57,7 +73,7 @@ const QuestBuild = () => {
         prize: { title: "", description: "", image: "" },
         createdAt: new Date().toISOString(),
       });
-      setImagePreview("");
+
       setImageFile(null);
       setActiveArtefactIndex(null);
       setValidationErrors({});
@@ -74,6 +90,9 @@ const QuestBuild = () => {
         setIsLoading(true);
 
         console.log('Fetching quest data for ID:', editId);
+        // Add a slight delay to show loading animation
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
         const response = await fetch(`/api/get-quests?id=${editId}`, {
           signal: abortController.signal,
         });
@@ -98,59 +117,44 @@ const QuestBuild = () => {
 
         console.log('Quest to edit:', questToEdit);
 
-        // Fetch artefact details for each artefact in the quest
-        const artefactsWithDetails = await Promise.all(
-          questToEdit.artefacts.map(async (artefact: QuestArtefact) => {
-            try {
-              console.log('Fetching artefact details for:', artefact.artefactId);
-              const artefactResponse = await fetch(`/api/get-artefact?id=${artefact.artefactId}`);
-              
-              if (!artefactResponse.ok) {
-                console.error('Failed to fetch artefact details for:', artefact.artefactId);
-                return artefact;
-              }
-              
-              const artefactData = await artefactResponse.json();
-              console.log('Artefact details:', artefactData);
-              
-              // Make sure we're just adding name if needed
-              const artefactWithName = {
-                ...artefact,
-                name: artefact.name || 
-                      (artefactData.artefact?.name || 
-                       artefactData.artefacts?.[0]?.name || 
-                       "Unnamed Artefact")
-              };
-              
-              return artefactWithName;
-            } catch (error) {
-              console.error('Error fetching artefact details:', error);
-              return artefact;
-            }
-          })
-        );
+        const artefactsWithNames = questToEdit.artefacts.map((artefact: QuestArtefact) => ({
+          ...artefact,
+          name: artefact.name || "Unknown Artefact"
+        }));
         
-        console.log('Final quest data with artefact details:', {
+        console.log('Final quest data:', {
           ...questToEdit,
-          artefacts: artefactsWithDetails
+          artefacts: artefactsWithNames
         });
         
         setQuest({
           ...questToEdit,
-          artefacts: artefactsWithDetails
+          artefacts: artefactsWithNames
         });
         
         if (questToEdit.prize?.image) {
           setImagePreview(questToEdit.prize.image);
         }
       } catch (error) {
+        // Check if the error is due to abort
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.log('Quest loading was aborted');
+          return;
+        }
+        
         console.error('Error loading quest:', error);
         alert(`Failed to load quest data: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
-        setIsLoading(false);
+        // Add slight delay before removing loading state for smoother transition
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 300);
       }
     };
 
+    // Set initial loading state
+    setIsLoading(true);
+    
     setQuest({
       quest_id: editId || crypto.randomUUID(),
       title: "",
@@ -161,16 +165,21 @@ const QuestBuild = () => {
       prize: { title: "", description: "", image: "" },
       createdAt: new Date().toISOString(),
     });
-    setImagePreview("");
     setImageFile(null);
 
-    if (editId) loadQuestData();
-    else setIsLoading(false);
-      return () => {
+    if (editId) {
+      loadQuestData();
+    } else {
+      // Even in create mode, show loading briefly for consistency
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 600);
+    }
+
+    return () => {
       abortController.abort();
-      if (imagePreview) URL.revokeObjectURL(imagePreview);
     };
-  }, [editId, imagePreview]);
+  }, [editId]);
 
   // Load all artefacts on component mount
   useEffect(() => {
@@ -185,6 +194,7 @@ const QuestBuild = () => {
     
     loadAllArtefacts();
   }, []);
+
   const getRandomArtefacts = useCallback((count: number = 3): Artefact[] => {
     const addedArtefactIds = quest.artefacts.map(a => a.artefactId);
     const availableArtefacts = allArtefacts.filter(
@@ -230,7 +240,8 @@ const QuestBuild = () => {
           (artefact.date && artefact.date.toLowerCase().includes(searchQuery.toLowerCase())) ||
           (artefact.description && artefact.description.toLowerCase().includes(searchQuery.toLowerCase()))
         )
-    );    setSearchResults(filteredResults);
+    );    
+    setSearchResults(filteredResults);
   }, [searchQuery, allArtefacts, quest.artefacts, getRandomArtefacts]);
 
   const handleSetTitle = (title: string) => {
@@ -551,6 +562,13 @@ const QuestBuild = () => {
       return;
     }
 
+    // Show confirmation popup instead of saving directly
+    setShowConfirmationPopup(true);
+  };
+
+  const handleConfirmSave = async () => {
+    setShowConfirmationPopup(false);
+    
     try {
       setIsSaving(true);
       const formData = new FormData();
@@ -579,9 +597,10 @@ const QuestBuild = () => {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to save quest");
       }
-
-      alert(isEditMode ? "Quest updated successfully!" : "Quest created successfully!");
-      router.push('/admin');
+    
+      // Show success popup instead of alert
+      setShowSuccessPopup(true);
+      
     } catch (error) {
       console.error("Error saving quest:", error);
       alert(
@@ -590,6 +609,16 @@ const QuestBuild = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCancelSave = () => {
+    setShowConfirmationPopup(false);
+  };
+
+  const handleSuccessPopupClose = () => {
+    setShowSuccessPopup(false);
+    // Navigate with force reload after popup is closed
+    window.location.href = '/admin';
   };
 
   const handleCancel = () => {
@@ -616,12 +645,12 @@ const QuestBuild = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading quest data...</p>
-            </div>
-          </div>
+          // Check if we're in edit mode to show the right loading state
+          editId ? (
+            <InlineQuestLoading message="Loading quest data..." />
+          ) : (
+            <QuestFormSkeleton />
+          )
         ) : (
           <div className="p-6">
             <div className="space-y-8">
@@ -711,7 +740,7 @@ const QuestBuild = () => {
             </Button>
             <Button
               onClick={handleSaveQuest}
-              disabled={isSaving}
+              disabled={isSaving || isLoading}
               className="px-6 py-2 hover:cursor-pointer disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSaving ? (
@@ -729,6 +758,23 @@ const QuestBuild = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Popup */}
+      {showConfirmationPopup && (
+        <SaveConfirmationPopup
+          isEditMode={isEditMode}
+          onConfirm={handleConfirmSave}
+          onCancel={handleCancelSave}
+        />
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <SaveSuccessPopup
+          isEditMode={isEditMode}
+          onClose={handleSuccessPopupClose}
+        />
+      )}
     </div>
   );
 };

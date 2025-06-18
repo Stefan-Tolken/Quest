@@ -64,7 +64,7 @@ export const DropZone = ({ components, onDelete, onUpdate, onEditPoints, isDragg
   });
 
   return (
-    <div className="flex-1 bg-gray-50 overflow-y-auto">
+    <div className="flex-1 bg-gray-50 overflow-y-auto pb-[100px]">
       {/* Canvas Header */}
       <div className="bg-white border-b border-gray-200 p-6 shadow-sm">
         <h2 className="text-2xl font-semibold text-gray-900">Page Canvas</h2>

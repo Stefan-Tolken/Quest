@@ -1,5 +1,7 @@
 // lib/types.ts
 
+import { AttributeValue } from "@aws-sdk/client-dynamodb";
+
 export type DateRange = {
   from?: string;
   to?: string;
@@ -69,6 +71,7 @@ export type Artefact = {
   id: string;
   name: string;
   artist: string;
+  type?: string;
   date?: string;
   description: string;
   image: File | string;
@@ -209,3 +212,28 @@ export type ModelObject = {
     }>;
     light?: number;
 };
+
+// DynamoDB types
+
+export interface DynamoDBItem {
+  id: AttributeValue;
+  name: AttributeValue;
+  artist?: AttributeValue;
+  type?: AttributeValue;
+  date?: AttributeValue;
+  description: AttributeValue;
+  image?: AttributeValue;
+  components: AttributeValue;
+  createdAt: AttributeValue;
+  partOfQuest: AttributeValue;
+}
+
+export interface DynamoDBModelItem {
+  id: AttributeValue;
+  name: AttributeValue;
+  fileName?: AttributeValue;
+  url?: AttributeValue;
+  points?: AttributeValue;
+  createdAt?: AttributeValue;
+  light?: AttributeValue;
+}

@@ -40,6 +40,15 @@ export const PageComponent = ({
     onUpdate(component.id, content);
   };
 
+  // Helper function to extract URL from content
+  const getUrlFromContent = (content: any): string => {
+    if (typeof content === 'string') return content;
+    if (content && typeof content === 'object' && 'url' in content) {
+      return content.url || "";
+    }
+    return "";
+  };
+
   return (
     <div className="group relative mb-6">
       {/* Delete Button - Positioned outside top-right */}
@@ -130,7 +139,7 @@ export const PageComponent = ({
 
           {component.type === "3DModel" && (
             <Model3DSelector
-              selectedModelId={typeof component.content === 'object' && component.content !== null && 'modelId' in component.content ? (component.content as any).modelId || "" : ""}
+              selectedModelUrl={getUrlFromContent(component.content)}
               onSelectModel={url => handleUpdate({ url })}
             />
           )}
@@ -139,7 +148,3 @@ export const PageComponent = ({
     </div>
   );
 };
-
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
