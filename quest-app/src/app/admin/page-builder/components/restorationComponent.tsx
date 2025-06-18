@@ -40,6 +40,7 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
     imageUrl: "",
     organization: "",
   });
+  const [showDateTips, setShowDateTips] = useState(false);
 
   // Smart preposition selector based on date format
   const getDatePreposition = (date: string): string => {
@@ -150,6 +151,7 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
   const closeModal = () => {
     setShowAddModal(false);
     setEditingRestoration(null);
+    setShowDateTips(false); // Reset tips when closing modal
     setFormData({
       id: "",
       name: "",
@@ -487,14 +489,71 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                       Unknown date
                     </label>
                   </div>
-                  <div className="mt-2 text-xs text-gray-500">
-                    <p><strong>Examples:</strong></p>
-                    <p>• Specific dates: &quot;March 15, 2024&quot; → uses &quot;on&quot;</p>
-                    <p>• Years: &quot;1995&quot; → uses &quot;in&quot;</p>
-                    <p>• Centuries: &quot;19th century&quot; → uses &quot;in the&quot;</p>
-                    <p>• Decades: &quot;1990s&quot; → uses &quot;in the&quot;</p>
-                    <p>• Ranges: &quot;1990-1995&quot; → uses &quot;between&quot;</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDateTips(!showDateTips)}
+                      className="flex items-center gap-1.5 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+                    >
+                      <svg 
+                        className={`w-3 h-3 transition-transform ${showDateTips ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      Date format examples
+                    </button>
                   </div>
+                  
+                  {showDateTips && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100 animate-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-start gap-2 mb-2">
+                        <div className="flex-shrink-0 w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
+                          <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-blue-900">Smart Grammar Examples</p>
+                          <p className="text-xs text-blue-700 mt-1">The preposition will be chosen automatically based on your date format</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div className="grid grid-cols-1 gap-1.5 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">March 15, 2024</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;on&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">1902-08-12</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;on&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">1995</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;in&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">19th century</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;in the&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">1990s</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;in the&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">1990-1995</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;between&quot;</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
