@@ -111,8 +111,7 @@ export const QuestInfo = ({
         <div>
           <label className="block text-lg font-medium text-gray-700 mb-2">
             Quest Description
-          </label>
-          <div className="relative">
+          </label>          <div className="space-y-2">
             <textarea
               placeholder="Describe the quest story and objectives..."
               value={description}
@@ -121,15 +120,17 @@ export const QuestInfo = ({
                 validationErrors.description ? "border-red-500" : "border-gray-300"
               }`}
             />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"          className="absolute right-2 top-2"
-              onClick={handleEnhanceDescription}
-              disabled={isEnhancing || !description.trim()}
-            >
-              {isEnhancing ? "Enhancing..." : "Enhance Description"}
-            </Button>
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleEnhanceDescription}
+                disabled={isEnhancing || !description.trim()}
+              >
+                {isEnhancing ? "Enhancing..." : "Enhance Description"}
+              </Button>
+            </div>
           </div>
           {validationErrors.description && (
             <p className="mt-2 text-sm text-red-600">
