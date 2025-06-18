@@ -2,8 +2,7 @@
 
 import React from "react";
 import { useData } from "@/context/dataContext";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 import QRModal from "./components/modals/QRModal";
 import BulkQRModal from "./components/modals/BulkQRModal";
@@ -11,12 +10,11 @@ import DeleteModal from "./components/modals/DeleteModal";
 import QuestsTable from "./components/QuestTabel";
 import ArtefactsTable from "./components/ArtefactsTabel";
 import { Artefact } from "@/lib/types";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import AdminDashboardSkeleton from "./components/AdminDashboardSkeleton";
 
 export default function AdminHome() {
   const { artefacts, quests, loading } = useData();
-  const router = useRouter();
+  const [initialLoading, setInitialLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteType, setDeleteType] = useState<"artefact" | "quest" | null>(null);
   const [deleteWarning, setDeleteWarning] = useState<string>("");
@@ -33,6 +31,14 @@ export default function AdminHome() {
   const [bulkImageType, setBulkImageType] = useState<"png" | "jpg" | "jpeg">("png");
   const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
   const [selectedArtefactsForBulk, setSelectedArtefactsForBulk] = useState<Artefact[]>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setInitialLoading(false);
+    }, 800); // 800ms loading period, same as quest page
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handle QR code generation
   const handleArtefactQR = (artefact: Artefact) => {
@@ -220,6 +226,10 @@ export default function AdminHome() {
     setDeleteType(null);
   };
 
+  if (initialLoading || loading) {
+    return <AdminDashboardSkeleton />;
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       {/* Header */}
@@ -237,11 +247,7 @@ export default function AdminHome() {
       {/* Content */}
       <div className="flex-1 p-6">
         {loading ? (
-          <div className="max-w-6xl mx-auto">
-            <div className="bg-white rounded-lg shadow p-6">
-              <p>Loading...</p>
-            </div>
-          </div>
+          <AdminDashboardSkeleton />
         ) : (
           <div className="max-w-6xl mx-auto space-y-8">
             {/* Quests Section */}
