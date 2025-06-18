@@ -7,41 +7,53 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useQuest } from '@/context/questContext';
+import { useState} from 'react';
 
-interface ArtefactSubmitDialogProps {
-  open: boolean;
-  onClose: () => void;
-  scanResult: string | null;
+
+interface SubmitDialogProps {
+  open?: boolean;
+  onClose?: () => void;
+  scanResult: string | null | undefined;
   submitStatus: 'idle' | 'success' | 'already' | 'error' | null;
   message?: string | null;
-  activeQuest: any; // Adjust type if available
+  activeQuest: any; // Adjust type
   handleSubmit: () => void;
   handleViewArtefact: () => void;
+  children?: React.ReactNode;
 }
 
-export default function ArtefactSubmitDialog({
+export default function SubmitDialog({
   open,
   onClose,
   scanResult,
   submitStatus,
   message,
-  activeQuest,
   handleSubmit,
   handleViewArtefact,
-}: ArtefactSubmitDialogProps) {
-
-const { isNextSequential } = useQuest();
+  children,
+}: SubmitDialogProps) {
+    const isControlled = typeof open !== 'undefined';
+    const { 
+        activeQuest,
+        submitArtefact: questSubmitArtefact,
+        isNextSequential
+    } = useQuest();
 
   return (
     <Dialog
       open={open}
       onOpenChange={(isOpen) => {
-        if (!isOpen) onClose();
+        if (isControlled && !isOpen) {
+          onClose?.();
+        }
       }}
     >
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-xl">Ready to Submit?</DialogTitle>
@@ -81,14 +93,13 @@ const { isNextSequential } = useQuest();
         </div>
 
         <DialogFooter className="flex flex-row gap-2">
-          <Button
-            onClick={handleViewArtefact}
-            type="button"
-            variant="glass"
-            className="flex-1"
-          >
-            View Artefact
-          </Button>
+            <>
+                {!children ? (                    
+                    <Button onClick={handleViewArtefact} variant="glass" className="flex-1">
+                        View Artefact
+                    </Button>
+                ) : (<></>)}
+            </>
           <Button
             onClick={handleSubmit}
             variant="glassDark"

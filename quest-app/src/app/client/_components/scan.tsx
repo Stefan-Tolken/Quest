@@ -7,7 +7,7 @@ import { useHasMounted } from '@/hooks/useHasMounted';
 import { useQuest } from '@/context/questContext';
 import ArtefactDetail from '@/components/ui/artefactDetails';
 import { useToast } from '@/components/ui/toast';
-import ArtefactSubmitDialog from '@/components/ui/submitDialog';
+import SubmitDialog from '@/components/ui/submitDialog';
 
 export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: boolean) => void }) {
   const hasMounted = useHasMounted();
@@ -114,7 +114,7 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
       ) : (<></>)}
       {activeQuest && !viewArtefact ? (
         <>
-          <ArtefactSubmitDialog
+          <SubmitDialog
             open={scanResult !== null}
             onClose={() => setScanResult(null)}
             scanResult={scanResult}
