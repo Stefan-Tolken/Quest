@@ -50,7 +50,7 @@ const advancedComponents: ComponentData[] = [
 
 export const ComponentList = () => {
   return (
-    <div className="w-80 bg-white border-r border-gray-200 shadow-sm flex-shrink-0 flex flex-col h-full">
+    <div className="w-80 bg-white border-r border-gray-200 shadow-sm flex-shrink-0 flex flex-col h-full pb-[100px]">
       {/* Header */}
       <div className="p-6 border-b border-gray-200 flex-shrink-0">
         <h3 className="text-2xl font-semibold text-gray-900">Components</h3>
