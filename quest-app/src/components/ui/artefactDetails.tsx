@@ -375,6 +375,27 @@ export default function ArtefactDetail({
                                   <p className="text-sm">{details.created || 'Not specified'}</p>
                                 </div>
                               </div>
+                            );
+                          }
+                          case '3DModel': {
+                            const model = component.content as any;
+                            // Model3DViewer expects a modelUrl prop
+                            // Defensive: if model is a string, treat as URL; if object, use model.url
+                            let modelUrl = '';
+                            if (typeof model === 'string') {
+                              modelUrl = model;
+                            } else if (model && typeof model.url === 'string') {
+                              modelUrl = model.url;
+                            }
+                            // Import Model3DViewer at the top if not already imported
+                            // Render the 3D model viewer
+                            return (
+                              <div key={component.id} className="">
+                                {modelUrl ? (
+                                  <Model3DViewer modelUrl={modelUrl} />
+                                ) : (
+                                  <p className="text-sm">Not specified</p>
+                                )}
                               <div className="flex items-start gap-3">
                                 <MapPin className="mt-0.5 h-5 w-5 text-foreground" />
                                 <div>
@@ -400,27 +421,6 @@ export default function ArtefactDetail({
                           </div>
                         );
                       }
-                      case '3DModel': {
-                        const model = component.content as any;
-                        // Model3DViewer expects a modelUrl prop
-                        // Defensive: if model is a string, treat as URL; if object, use model.url
-                        let modelUrl = '';
-                        if (typeof model === 'string') {
-                          modelUrl = model;
-                        } else if (model && typeof model.url === 'string') {
-                          modelUrl = model.url;
-                        }
-                        // Import Model3DViewer at the top if not already imported
-                        // Render the 3D model viewer
-                        return (
-                          <div key={component.id} className="border rounded-xl p-6">
-                            {modelUrl ? (
-                              <Model3DViewer modelUrl={modelUrl} />
-                            ) : (
-                              <p className="text-sm">Not specified</p>
-                            )}
-                          </div>
-                        );
                     }
                     default:
                       return null;
