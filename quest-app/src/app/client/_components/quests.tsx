@@ -9,8 +9,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { CalendarDays, Trophy, MapPin, Gift } from 'lucide-react';
 import type { Hint, QuestProgress, MainQuest } from '@/lib/types';
-import { div } from 'three/src/nodes/TSL.js';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 // Separate component for hints display to properly handle hooks
 const HintsDisplay = ({ 
@@ -567,14 +576,33 @@ export default function Quests() {
                       </span>
                     </div>
                   ) : null}
-
-                  <Button 
-                    onClick={cancelQuest}
-                    variant="destructive"
-                    className="w-full sm:w-auto"
-                  >
-                    Cancel Quest
-                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="destructive">Stop Quest</Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle>Are you sure?</DialogTitle>
+                        <DialogDescription>
+                          All the progress you made in this quest will be lost.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter className="flex flex-row gap-2">
+                        <DialogClose asChild>
+                          <Button type="button" variant="glass" className='flex-1'>
+                            Cancel
+                          </Button>
+                        </DialogClose>
+                        <Button 
+                          onClick={cancelQuest}
+                          variant="destructive"
+                          className="flex-1"
+                        >
+                          Delete progress
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </CardFooter>
               </Card>
             </div>

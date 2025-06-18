@@ -5,19 +5,16 @@ import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { ArrowLeft, Calendar, MapPin, Ruler, Box } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import QRCodeGenerator from '@/components/QRGenerator';
 import { ComponentData } from '@/lib/types';
 import { useQuest } from '@/context/questContext';
 import Model3DViewer from '@/components/3dModel/3dModel';
 import { QuestProgress, ArtefactDetailProps } from '@/lib/types';
 import { Artefact } from '@/lib/types';
 import { useToast } from '@/components/ui/toast';
-import CameraBackground from './cameraBackground';
 import ImageWithPoints from './imageWithPoints';
 import RestorationTimeline from './restorationTimeline';
 import { ScrollArea } from './scroll-area';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { div } from 'three/src/nodes/TSL.js';
 
 
 export default function ArtefactDetail({ 
