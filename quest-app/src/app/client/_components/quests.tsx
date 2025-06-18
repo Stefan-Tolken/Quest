@@ -578,7 +578,7 @@ export default function Quests() {
                   ) : null}
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="destructive">Stop Quest</Button>
+                      <Button variant="glassDestructive">Stop Quest</Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
                       <DialogHeader>
@@ -595,7 +595,7 @@ export default function Quests() {
                         </DialogClose>
                         <Button 
                           onClick={cancelQuest}
-                          variant="destructive"
+                          variant="glassDestructive"
                           className="flex-1"
                         >
                           Delete progress

@@ -5,10 +5,9 @@ import QRScanner from '@/components/ui/QRScanner';
 import { isMobile } from 'react-device-detect';
 {/* Temp code for demo */}
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 {/* Temp code for demo */}
 import { useHasMounted } from '@/hooks/useHasMounted';
-import QRCodeGenerator from '@/components/QRGenerator';
+import { useQuest } from '@/context/questContext';
 import ArtefactDetail from '@/components/ui/artefactDetails';
 
 export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: boolean) => void }) {
@@ -19,6 +18,7 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const { activeQuest, acceptQuest, cancelQuest, submitArtefact, checkQuestCompletion } = useQuest();
 
   const handleScanSuccess = (decodedText: string) => {
     try {
