@@ -18,7 +18,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Trash, BadgeInfo, X, Edit, Plus } from "lucide-react";
+import { GripVertical, Trash, BadgeInfo, X, Edit, Plus, Pin, Notebook } from "lucide-react";
 import { Point, ImageEditorProps } from "@/lib/types";
 
 export const ImageEditor = ({
@@ -268,7 +268,7 @@ export const ImageEditor = ({
   return (
     <>
       {/* Main modal backdrop */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40 transition-all">
+      <div className="fixed inset-0 backdrop-blur-xs bg-black/40 z-50 flex items-center justify-center transition-all">
         {/* Main editor container */}
         <div className="bg-white rounded-lg shadow-xl w-full h-full max-w-[80vw] max-h-[80vh] min-w-[1000px] min-h-[700px] flex flex-col overflow-hidden animate-fade-in">
           {/* Header */}
@@ -312,12 +312,13 @@ export const ImageEditor = ({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-8 text-center text-gray-500 h-full flex items-center justify-center">
+                  <div className="p-8 text-center text-gray-500 h-full flex justify-center">
                     <div>
                       <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <span className="text-gray-400 text-lg">📝</span>
+                        <span className="text-gray-400 text-lg"><Notebook /></span>
                       </div>
                       <p className="text-sm">Select a point to preview</p>
+                      <p className="text-xs w-45 text-gray-400 mt-1">Click on a point in the points list</p>
                     </div>
                   </div>
                 )}
@@ -401,10 +402,12 @@ export const ImageEditor = ({
                       {currentPoints.length === 0 && (
                         <div className="p-8 text-center text-gray-500">
                           <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                            <span className="text-gray-400 text-lg">📍</span>
+                            <span className="text-gray-400 text-lg"><Pin /></span>
                           </div>
-                          <p className="text-sm">No points added yet</p>
-                          <p className="text-xs text-gray-400 mt-1">Click on the image to add points</p>
+                          <div>
+                            <p className="text-sm">No points added yet</p>
+                            <p className="text-xs text-gray-400 mt-1">Click on the image to add points</p>
+                          </div>
                         </div>
                       )}
                     </div>

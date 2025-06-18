@@ -502,7 +502,7 @@ const PageBuilder = () => {
       )}
 
       {editingImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div>
           <ImageEditor
             imageUrl={(editingImage.content as ImageContent).url}
             points={(editingImage.content as ImageContent).points}
