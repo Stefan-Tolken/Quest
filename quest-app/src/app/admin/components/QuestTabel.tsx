@@ -250,6 +250,11 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       columnFilters,
       columnVisibility,
     },
+    initialState: {
+        pagination: {
+            pageSize: 6, // This sets the number of rows per page to 6
+        },
+    },
   });
 
   return (
