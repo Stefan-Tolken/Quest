@@ -226,15 +226,6 @@ export default function AdminHome() {
       <div className="bg-white shadow-sm border-b p-4 flex-shrink-0">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/")}
-              className="flex items-center gap-2 hover:cursor-pointer"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Home
-            </Button>
             <div>
               <h1 className="text-2xl font-semibold">Admin Dashboard</h1>
               <p className="text-sm text-gray-600 mt-1">Manage your quests and artefacts here.</p>
