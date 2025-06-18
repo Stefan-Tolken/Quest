@@ -9,8 +9,8 @@ import { HintsSection } from "./components/HintSection";
 import { PrizeSection } from "./components/PrizeSection";
 import { Button } from "@/components/ui/button";
 import type { QuestArtefact, Quest, Artefact, DateRange, Hint } from "@/lib/types";
-import { SaveSuccessPopup } from "../components/SaveSuccessPopup";
-import { SaveConfirmationPopup } from "../components/SaveConfirmationPopup";
+import { SaveSuccessPopup } from "./components/SaveSuccessPopup";
+import { SaveConfirmationPopup } from "./components/SaveConfirmationPopup";
 import { InlineQuestLoading, QuestFormSkeleton } from "./components/QuestLoading";
 
 const QuestBuild = () => {

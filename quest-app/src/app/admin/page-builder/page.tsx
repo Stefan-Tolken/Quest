@@ -12,13 +12,14 @@ import { ImageContent } from "@/lib/types";
 import { ImageEditor } from "./components/imageEditor";
 import { ArtifactDetails } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
-import SuccessPopup from "@/components/ui/SuccessPopup";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { DraggableComponent } from "./draggableComponent";
 import { InlineArtefactsLoading, ArtefactFormSkeleton, PageBuilderSkeleton } from "./components/ArtefactsLoading";
+import { SaveConfirmationPopup } from "./components/SaveConfirmationPopup";
+import { SaveSuccessPopup } from "./components/SaveSuccessPopup";
 
 // Component templates for drag overlay
 const basicComponents: ComponentData[] = [
@@ -93,7 +94,8 @@ const PageBuilder = () => {
   const [editingImage, setEditingImage] = useState<ComponentData | null>(null);
   const [step, setStep] = useState(0);
   const [createdAt, setCreatedAt] = useState<string>("");
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
+  const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [activeComponent, setActiveComponent] = useState<ComponentData | null>(null);
   const [dragType, setDragType] = useState<'new' | 'existing' | null>(null);
   const [draggedComponent, setDraggedComponent] = useState<ComponentData | null>(null);
@@ -104,6 +106,7 @@ const PageBuilder = () => {
   const [isTransitionLoading, setIsTransitionLoading] = useState(false);
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
+  const isEditMode = !!editId;
   const router = useRouter();
 
   // Initial page load effect
@@ -194,37 +197,45 @@ const PageBuilder = () => {
       return;
     }
 
-    // Add order property to each component before saving
-    const componentsWithOrder = components.map((component, index) => ({
-      ...component,
-      order: index
-    }));
+    // Show confirmation popup instead of saving directly
+    setShowConfirmationPopup(true);
+  };
 
-    // If the image is a File, convert to base64 string for backend upload
-    let imageToSend = image;
-    if (image && typeof image !== "string") {
-      imageToSend = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(image as File);
-      });
-    }
-
-    const artefactData = {
-      id: editId || crypto.randomUUID(),
-      name: artefact,
-      artist,
-      type,
-      date,
-      description,
-      image: imageToSend,
-      components: componentsWithOrder,
-      createdAt: editId ? createdAt : new Date().toISOString(),
-    };
+  const handleConfirmSave = async () => {
+    setShowConfirmationPopup(false);
 
     try {
       setIsSaving(true);
+
+      // Add order property to each component before saving
+      const componentsWithOrder = components.map((component, index) => ({
+        ...component,
+        order: index
+      }));
+
+      // If the image is a File, convert to base64 string for backend upload
+      let imageToSend = image;
+      if (image && typeof image !== "string") {
+        imageToSend = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(image as File);
+        });
+      }
+
+      const artefactData = {
+        id: editId || crypto.randomUUID(),
+        name: artefact,
+        artist,
+        type,
+        date,
+        description,
+        image: imageToSend,
+        components: componentsWithOrder,
+        createdAt: editId ? createdAt : new Date().toISOString(),
+      };
+
       const response = await fetch("/api/save-artifact", {
         method: "POST",
         headers: {
@@ -250,7 +261,7 @@ const PageBuilder = () => {
 
       setComponents([]);
       setartefactName("");
-      setShowSuccess(true);
+      setShowSuccessPopup(true);
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));
       console.error("Error saving artefact:", error);
@@ -258,6 +269,16 @@ const PageBuilder = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCancelSave = () => {
+    setShowConfirmationPopup(false);
+  };
+
+  const handleSuccessPopupClose = () => {
+    setShowSuccessPopup(false);
+    // Navigate with force reload after popup is closed
+    window.location.href = '/admin';
   };
 
   // Handle drag start to track active component
@@ -494,13 +515,6 @@ const PageBuilder = () => {
 
   return (
     <AuthGuard adminOnly={true}>
-      {showSuccess && (
-        <SuccessPopup
-          message="artefact saved successfully!"
-          onOk={() => (window.location.href = "/admin")}
-        />
-      )}
-
       {editingImage && (
         <div>
           <ImageEditor
@@ -834,10 +848,19 @@ const PageBuilder = () => {
                     <Button
                       onClick={handleSubmit}
                       disabled={isSaving}
-                      className="px-6 py-2 hover:cursor-pointer disabled:cursor-not-allowed"
+                      className="px-6 py-2 hover:cursor-pointer disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      <Check />
-                      {isSaving ? "Saving..." : "Save artefact"}
+                      {isSaving ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Check />
+                          Save artefact
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -877,6 +900,23 @@ const PageBuilder = () => {
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Confirmation Popup */}
+      {showConfirmationPopup && (
+        <SaveConfirmationPopup
+          isEditMode={isEditMode}
+          onConfirm={handleConfirmSave}
+          onCancel={handleCancelSave}
+        />
+      )}
+
+      {/* Success Popup */}
+      {showSuccessPopup && (
+        <SaveSuccessPopup
+          isEditMode={isEditMode}
+          onClose={handleSuccessPopupClose}
+        />
+      )}
     </AuthGuard>
   );
 };
