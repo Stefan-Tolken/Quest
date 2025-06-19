@@ -250,6 +250,11 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       columnFilters,
       columnVisibility,
     },
+    initialState: {
+        pagination: {
+            pageSize: 6, // This sets the number of rows per page to 6
+        },
+    },
   });
 
   return (
@@ -268,12 +273,12 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       <div className="w-full">
         <div className="flex items-center py-4">
           <Input
-            placeholder="Search quests..."
+            placeholder="Search for quests..."
             value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
             onChange={(event) =>
               table.getColumn("title")?.setFilterValue(event.target.value)
             }
-            className="max-w-sm"
+            className="w-80 placeholder:text-gray-400 p-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-10 resize-none text-base"
           />
           <div className="ml-auto flex gap-2">
             <Button

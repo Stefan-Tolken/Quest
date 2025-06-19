@@ -226,27 +226,6 @@ export default function ArtefactDetail({
                                   <p className="text-sm">{details.created || 'Not specified'}</p>
                                 </div>
                               </div>
-                              <div className="flex items-start gap-3">
-                                <MapPin className="mt-0.5 h-5 w-5 text-foreground" />
-                                <div>
-                                  <h3 className="text-sm font-medium text-foreground">Origin</h3>
-                                  <p className="text-sm">{details.origin || 'Not specified'}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-start gap-3">
-                                <Ruler className="mt-0.5 h-5 w-5 text-foreground" />
-                                <div>
-                                  <h3 className="text-sm font-medium text-foreground">Dimensions</h3>
-                                  <p className="text-sm">{details.dimensions || 'Not specified'}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-start gap-3">
-                                <Box className="mt-0.5 h-5 w-5 text-foreground" />
-                                <div>
-                                  <h3 className="text-sm font-medium text-foreground">Materials</h3>
-                                  <p className="text-sm">{details.materials || 'Not specified'}</p>
-                                </div>
-                              </div>
                             </div>
                           </div>
                         );
@@ -264,7 +243,7 @@ export default function ArtefactDetail({
                         // Import Model3DViewer at the top if not already imported
                         // Render the 3D model viewer
                         return (
-                          <div key={component.id} className="border rounded-xl p-6">
+                          <div key={component.id} className="">
                             {modelUrl ? (
                               <Model3DViewer modelUrl={modelUrl} />
                             ) : (

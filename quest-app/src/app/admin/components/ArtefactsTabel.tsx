@@ -3,7 +3,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash, QrCode as QrCodeIcon, ArrowUpDown } from "lucide-react";
+import { Edit, Trash, QrCode as QrCodeIcon, ArrowUpDown, CheckSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   ColumnDef,
@@ -174,10 +174,15 @@ export default function ArtefactsTable({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
+        sorting,
+        columnFilters,
+        columnVisibility,
+        rowSelection,
+    },
+    initialState: {
+        pagination: {
+            pageSize: 6, // This sets the number of rows per page to 6
+        },
     },
   });
 
@@ -196,11 +201,30 @@ export default function ArtefactsTable({
     onBulkQRDownload(selectedArtefacts);
   };
 
+  // Handle toggle select all filtered artefacts
+  const handleToggleSelectAll = () => {
+    const hasSelectedRows = table.getFilteredSelectedRowModel().rows.length > 0;
+    if (hasSelectedRows) {
+      table.toggleAllRowsSelected(false); // Deselect all
+    } else {
+      table.toggleAllRowsSelected(true); // Select all
+    }
+  };
+
   return (
     <div className="bg-white shadow-sm rounded-lg p-6">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Artefacts</h2>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={handleToggleSelectAll}
+            className="flex items-center gap-2 hover:cursor-pointer"
+          >
+            <CheckSquare className="h-4 w-4" />
+            {table.getFilteredSelectedRowModel().rows.length > 0 ? 'Deselect All' : 'Select All'}
+          </Button>
+          
           <Button
             variant="outline"
             onClick={handleBulkQRDownload}
@@ -299,7 +323,7 @@ export default function ArtefactsTable({
                     No artefacts found.
                   </TableCell>
                 </TableRow>
-              )}
+                )}
             </TableBody>
           </Table>
         </div>

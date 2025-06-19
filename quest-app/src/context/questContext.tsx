@@ -340,7 +340,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // New function to check and handle quest completion
+  // Updated function to check and handle quest completion with auto-cleanup
   const checkQuestCompletion = async (collectedArtefactIds: string[]) => {
     if (!activeQuest) {
       return;
@@ -382,7 +382,6 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
         } else {
           toast.error('Failed to complete quest: ' + (data.error || 'Unknown error'));
         }
-
       } catch (err) {
         toast.error('Error completing quest. Please try again.');
       }

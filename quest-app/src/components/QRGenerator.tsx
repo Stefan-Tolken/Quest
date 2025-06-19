@@ -16,24 +16,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   
   // Convert JSON data to string for QR code
   const qrData = useMemo(() => JSON.stringify(data), [data]);
-
-  // Handle download QR code as PNG
-  const handleDownload = () => {
-    const canvas = document.getElementById('qr-canvas') as HTMLCanvasElement;
-    if (!canvas) return;
-
-    const pngUrl = canvas
-      .toDataURL('image/png')
-      .replace('image/png', 'image/octet-stream');
-    
-    const downloadLink = document.createElement('a');
-    downloadLink.href = pngUrl;
-    downloadLink.download = `qr-code-${Date.now()}.png`;
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-  };
-
+  
   return (
     <div className={`flex flex-col items-center gap-4 ${className}`}>
       <div className="relative p-4 bg-white rounded-lg border border-gray-200">
