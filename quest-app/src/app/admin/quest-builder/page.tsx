@@ -65,14 +65,33 @@ const QuestBuild = () => {
   
   // Register/unregister the navigation guard
   useEffect(() => {
-    registerGuard(!!shouldBlock, pathname);
-    
-    return () => {
-      unregisterGuard();
-    };
+      registerGuard(!!shouldBlock, pathname);
+      
+      return () => {
+          unregisterGuard();
+      };
   }, [shouldBlock, pathname, registerGuard, unregisterGuard]);
 
-   // Handle confirmation dialog responses
+  // Listen for navigation attempts
+  useEffect(() => {
+      const handleNavigationAttempt = (event: CustomEvent) => {
+          if (shouldBlock) {
+              setShowExitConfirmation(true);
+              setPendingNavigationPath(event.detail.targetPath);
+          } else if (event.detail.targetPath) {
+              router.push(event.detail.targetPath);
+          }
+      };
+
+      // Add event listener
+      window.addEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+      
+      return () => {
+          window.removeEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+      };
+  }, [shouldBlock, router]);
+
+  // Handle confirmation dialog responses
   const handleConfirmExit = useCallback(() => {
     setShowExitConfirmation(false);
     

@@ -137,6 +137,24 @@ const PageBuilder = () => {
     };
   }, [shouldBlock, pathname, registerGuard, unregisterGuard]);
 
+  useEffect(() => {
+      const handleNavigationAttempt = (event: CustomEvent) => {
+          if (shouldBlock) {
+              setShowExitConfirmation(true);
+              setPendingNavigationPath(event.detail.targetPath);
+          } else if (event.detail.targetPath) {
+              router.push(event.detail.targetPath);
+          }
+      };
+
+      // Add event listener
+      window.addEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+      
+      return () => {
+          window.removeEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+      };
+  }, [shouldBlock, router]);
+
   // Handle confirmation dialog responses
   const handleConfirmExit = useCallback(() => {
     setShowExitConfirmation(false);
