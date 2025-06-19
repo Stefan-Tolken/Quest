@@ -100,7 +100,7 @@ export default function QuestsTable({
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer justify-start pl-6"
           >
@@ -119,7 +119,7 @@ export default function QuestsTable({
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -144,7 +144,7 @@ export default function QuestsTable({
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -180,7 +180,7 @@ export default function QuestsTable({
       header: ({ column }) => {
         return (
           <Button
-            variant="ghost"
+            variant="subtle"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -208,35 +208,6 @@ export default function QuestsTable({
           return new Date(row.dateRange.to).getTime();
         }
         return -1;
-      },
-      enableSorting: true,
-    },
-    {
-      id: "completions",
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-            className="hover:cursor-pointer"
-          >
-            Completions
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
-      cell: ({ row }) => {
-        const quest = row.original;
-        const completionsCount = quest.leaderboard?.length || 0;
-        
-        return (
-          <div className="text-sm text-gray-600 ml-3">
-            {completionsCount}
-          </div>
-        );
-      },
-      accessorFn: (row) => {
-        return row.leaderboard?.length || 0;
       },
       enableSorting: true,
     },
