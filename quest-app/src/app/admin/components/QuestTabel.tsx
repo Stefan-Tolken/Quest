@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash, ArrowUpDown } from "lucide-react";
+import { Edit, Trash, ArrowUpDown, LineChart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   ColumnDef,
@@ -26,13 +26,21 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Quest } from "@/lib/types";
+import LeaderboardModal from "./modals/leaderboardModal";
 
 interface QuestsTableProps {
   quests: Quest[];
   onDeleteQuest: (id: string) => void;
+  isAdmin?: boolean;
+  userId?: string; // Optional: current user ID for client-side view
 }
 
-export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps) {
+export default function QuestsTable({ 
+  quests, 
+  onDeleteQuest,
+  isAdmin = true,
+  userId
+}: QuestsTableProps) {
   const router = useRouter();
   
   // Table state
@@ -47,7 +55,7 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       header: ({ column }) => {
         return (
           <Button
-            variant="subtle"
+            variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer justify-start pl-6"
           >
@@ -66,7 +74,7 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       header: ({ column }) => {
         return (
           <Button
-            variant="subtle"
+            variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -114,7 +122,7 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       header: ({ column }) => {
         return (
           <Button
-            variant="subtle"
+            variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -158,7 +166,7 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       header: ({ column }) => {
         return (
           <Button
-            variant="subtle"
+            variant="ghost"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:cursor-pointer"
           >
@@ -198,6 +206,35 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       enableSorting: true,
     },
     {
+      id: "completions",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+            className="hover:cursor-pointer"
+          >
+            Completions
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        );
+      },
+      cell: ({ row }) => {
+        const quest = row.original;
+        const completionsCount = quest.leaderboard?.length || 0;
+        
+        return (
+          <div className="text-sm text-gray-600 ml-3">
+            {completionsCount}
+          </div>
+        );
+      },
+      accessorFn: (row) => {
+        return row.leaderboard?.length || 0;
+      },
+      enableSorting: true,
+    },
+    {
       id: "actions",
       enableHiding: false,
       cell: ({ row }) => {
@@ -205,29 +242,42 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
 
         return (
           <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/admin/quest-builder?edit=${quest.quest_id}`);
-              }}
-              className="flex items-center gap-1 hover:cursor-pointer"
-            >
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteQuest(quest.quest_id);
-              }}
-              className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:cursor-pointer"
-            >
-              <Trash className="h-4 w-4" />
-            </Button>
+            <LeaderboardModal
+              questId={quest.quest_id}
+              questTitle={quest.title}
+              isAdmin={isAdmin}
+              userId={userId}
+              buttonVariant="default"
+              buttonSize="sm"
+              className="text-white"
+            />
+            {isAdmin && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/admin/quest-builder?edit=${quest.quest_id}`);
+                  }}
+                  className="flex items-center gap-1 hover:cursor-pointer"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteQuest(quest.quest_id);
+                  }}
+                  className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:cursor-pointer"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
         );
       },
@@ -251,9 +301,9 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       columnVisibility,
     },
     initialState: {
-        pagination: {
-            pageSize: 6, // This sets the number of rows per page to 6
-        },
+      pagination: {
+        pageSize: 6, // Sets the number of rows per page to 6
+      },
     },
   });
 
@@ -312,6 +362,14 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
               className={`hover:cursor-pointer ${table.getColumn("end_date")?.getIsVisible() ? "" : "opacity-50"}`}
             >
               End
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.getColumn("completions")?.toggleVisibility()}
+              className={`hover:cursor-pointer ${table.getColumn("completions")?.getIsVisible() ? "" : "opacity-50"}`}
+            >
+              Completions
             </Button>
           </div>
         </div>
