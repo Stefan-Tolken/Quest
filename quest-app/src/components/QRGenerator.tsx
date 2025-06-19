@@ -13,6 +13,7 @@ const QRCodeGenerator: React.FC<QRCodeGeneratorProps> = ({
   size = 200,
   className = '',
 }) => {
+
     // Convert data to URL format
   const qrData = useMemo(() => {
     // If the data contains an artefactId, create a URL

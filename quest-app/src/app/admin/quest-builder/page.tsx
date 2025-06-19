@@ -12,13 +12,16 @@ import type { QuestArtefact, Quest, Artefact, DateRange, Hint } from "@/lib/type
 import { SaveSuccessPopup } from "./components/SaveSuccessPopup";
 import { SaveConfirmationPopup } from "./components/SaveConfirmationPopup";
 import { InlineQuestLoading, QuestFormSkeleton } from "./components/QuestLoading";
+import { useNavigationGuardContext } from "@/context/NavigationGuardContext";
+import { usePathname } from "next/navigation";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 const QuestBuild = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("edit");
   const isEditMode = !!editId;
-  const [initialLoading, setInitialLoading] = useState(true); // Track initial page load
+  const [initialLoading, setInitialLoading] = useState(true);
   const [quest, setQuest] = useState<Quest>({
     quest_id: editId || crypto.randomUUID(),
     title: "",
@@ -46,7 +49,75 @@ const QuestBuild = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { registerGuard, unregisterGuard } = useNavigationGuardContext();
+  const pathname = usePathname();
+  
+  // Determine if we should block navigation - check if any important fields have been filled
+  const shouldBlock = 
+    quest.title.trim() !== '' || 
+    quest.description.trim() !== '' || 
+    quest.artefacts.length > 0 ||
+    (quest.prize && (quest.prize.title.trim() !== '' || quest.prize.description.trim() !== '' || !!imagePreview));
+  
+  // Register/unregister the navigation guard
+  useEffect(() => {
+      registerGuard(!!shouldBlock, pathname);
+      
+      return () => {
+          unregisterGuard();
+      };
+  }, [shouldBlock, pathname, registerGuard, unregisterGuard]);
+
+  // Listen for navigation attempts
+  useEffect(() => {
+      const handleNavigationAttempt = (event: CustomEvent) => {
+          if (shouldBlock) {
+              setShowExitConfirmation(true);
+              setPendingNavigationPath(event.detail.targetPath);
+          } else if (event.detail.targetPath) {
+              router.push(event.detail.targetPath);
+          }
+      };
+
+      // Add event listener
+      window.addEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+      
+      return () => {
+          window.removeEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+      };
+  }, [shouldBlock, router]);
+
+  // Handle confirmation dialog responses
+  const handleConfirmExit = useCallback(() => {
+    setShowExitConfirmation(false);
+    
+    // If we have a pending navigation path, navigate to it
+    if (pendingNavigationPath) {
+      router.push(pendingNavigationPath);
+      setPendingNavigationPath(null);
+    } else {
+      // Resolve the pending navigation promise for the context-based navigation
+      if ((window as any).pendingNavigationResolve) {
+        (window as any).pendingNavigationResolve(true);
+        delete (window as any).pendingNavigationResolve;
+      }
+    }
+  }, [pendingNavigationPath, router]);
+
+  const handleCancelExit = useCallback(() => {
+    setShowExitConfirmation(false);
+    setPendingNavigationPath(null);
+    
+    // Resolve the pending navigation promise with false
+    if ((window as any).pendingNavigationResolve) {
+      (window as any).pendingNavigationResolve(false);
+      delete (window as any).pendingNavigationResolve;
+    }
+  }, []);
 
   // Initial page load effect
   useEffect(() => {
@@ -85,6 +156,7 @@ const QuestBuild = () => {
         return;
       }
       
+      // Rest of your existing loadQuestData function...
       try {
         resetState();
         setIsLoading(true);
@@ -621,8 +693,14 @@ const QuestBuild = () => {
     window.location.href = '/admin';
   };
 
-  const handleCancel = () => {
-    router.push('/admin');
+  const handleCancel = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (shouldBlock) {
+      setShowExitConfirmation(true);
+      setPendingNavigationPath("/admin");
+    } else {
+      router.push('/admin');
+    }
   };
 
   return (
@@ -775,6 +853,18 @@ const QuestBuild = () => {
           onClose={handleSuccessPopupClose}
         />
       )}
+
+      {/* Exit Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showExitConfirmation}
+        onClose={handleCancelExit}
+        onConfirm={handleConfirmExit}
+        title="Leave Quest Builder?"
+        message="You have unsaved changes. If you leave now, your progress will be lost and nothing will be saved."
+        confirmText="Leave Page"
+        cancelText="Stay Here"
+        variant="warning"
+      />
     </div>
   );
 };

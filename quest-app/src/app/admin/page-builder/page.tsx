@@ -20,6 +20,9 @@ import { DraggableComponent } from "./draggableComponent";
 import { InlineArtefactsLoading, ArtefactFormSkeleton, PageBuilderSkeleton } from "./components/ArtefactsLoading";
 import { SaveConfirmationPopup } from "./components/SaveConfirmationPopup";
 import { SaveSuccessPopup } from "./components/SaveSuccessPopup";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useNavigationGuardContext } from "@/context/NavigationGuardContext";
+import { usePathname } from "next/navigation";
 
 // Component templates for drag overlay
 const basicComponents: ComponentData[] = [
@@ -90,9 +93,12 @@ const PageBuilder = () => {
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isSaving, setIsSaving] = useState(false);
   const [showError, setShowError] = useState(false);
+  const [showErrorImage, setShowErrorImage] = useState(false);
   const [showErrorArtist, setShowErrorArtist] = useState(false);
   const [editingImage, setEditingImage] = useState<ComponentData | null>(null);
   const [step, setStep] = useState(0);
+  const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+  const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
   const [createdAt, setCreatedAt] = useState<string>("");
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
@@ -108,6 +114,75 @@ const PageBuilder = () => {
   const editId = searchParams.get("edit");
   const isEditMode = !!editId;
   const router = useRouter();
+
+  const { registerGuard, unregisterGuard } = useNavigationGuardContext();
+  const pathname = usePathname();
+  
+  // Determine if we should block navigation
+  const shouldBlock = (step === 0 && (
+    artefact.trim() !== '' || 
+    artist.trim() !== '' ||
+    description.trim() !== '' ||
+    date.trim() !== '' ||
+    type.trim() !== '' ||
+    image !== ''
+  )) || (step === 1);
+  
+  // Register/unregister the navigation guard
+  useEffect(() => {
+    registerGuard(shouldBlock, pathname);
+    
+    return () => {
+      unregisterGuard();
+    };
+  }, [shouldBlock, pathname, registerGuard, unregisterGuard]);
+
+  useEffect(() => {
+      const handleNavigationAttempt = (event: CustomEvent) => {
+          if (shouldBlock) {
+              setShowExitConfirmation(true);
+              setPendingNavigationPath(event.detail.targetPath);
+          } else if (event.detail.targetPath) {
+              router.push(event.detail.targetPath);
+          }
+      };
+
+      // Add event listener
+      window.addEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+      
+      return () => {
+          window.removeEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+      };
+  }, [shouldBlock, router]);
+
+  // Handle confirmation dialog responses
+  const handleConfirmExit = useCallback(() => {
+    setShowExitConfirmation(false);
+    
+    // If we have a pending navigation path, navigate to it
+    if (pendingNavigationPath) {
+      router.push(pendingNavigationPath);
+      setPendingNavigationPath(null);
+    } else {
+      // Resolve the pending navigation promise for the context-based navigation
+      if ((window as any).pendingNavigationResolve) {
+        (window as any).pendingNavigationResolve(true);
+        delete (window as any).pendingNavigationResolve;
+      }
+    }
+  }, [pendingNavigationPath, router]);
+
+  // Handle the Canle of the confirm popup
+  const handleCancelExit = useCallback(() => {
+    setShowExitConfirmation(false);
+    setPendingNavigationPath(null);
+    
+    // Resolve the pending navigation promise with false
+    if ((window as any).pendingNavigationResolve) {
+      (window as any).pendingNavigationResolve(false);
+      delete (window as any).pendingNavigationResolve;
+    }
+  }, []);
 
   // Initial page load effect
   useEffect(() => {
@@ -160,6 +235,7 @@ const PageBuilder = () => {
           } else {
             console.error("Artifact not found with ID:", editId);
           }
+
         } else {
           console.error("Failed to fetch artifacts or no artefacts array:", data);
         }
@@ -194,6 +270,11 @@ const PageBuilder = () => {
 
     if(!artist) {
       setShowErrorArtist(true);
+      return;
+    }
+
+    if (!image) {
+      setShowErrorImage(true);
       return;
     }
 
@@ -258,7 +339,7 @@ const PageBuilder = () => {
         }
         throw new Error(errorMsg);
       }
-
+      
       setComponents([]);
       setartefactName("");
       setShowSuccessPopup(true);
@@ -544,7 +625,15 @@ const PageBuilder = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => router.push("/admin")}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (shouldBlock) {
+                      setShowExitConfirmation(true);
+                      setPendingNavigationPath("/admin");
+                    } else {
+                      router.push("/admin");
+                    }
+                  }}
                   className="flex items-center gap-2 hover:cursor-pointer"
                 >
                   <ArrowLeft className="h-4 w-4" />
@@ -576,6 +665,12 @@ const PageBuilder = () => {
                   {showErrorArtist && (
                     <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
                       <p className="text-red-600 text-sm">* Please enter a name for your artist.</p>
+                    </div>
+                  )}
+
+                  {showErrorImage && (
+                    <div className="mx-6 mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-red-600 text-sm">* Please upload an header image for your artefact.</p>
                     </div>
                   )}
 
@@ -618,11 +713,11 @@ const PageBuilder = () => {
 
                       {/* Optional Data */}
                       <div>
-                        <h2 className="text-2xl font-semibold mb-4">Optional Information</h2>
+                        <h2 className="text-2xl font-semibold mb-4">Extra Information</h2>
                         <div className="grid grid-cols-2 gap-6">
                           <div>
                             <label className="block text-lg font-medium text-gray-700 mb-2">
-                              Artefact Date Created
+                              Artefact Date Created <span className="text-xs text-gray-400">(Optional)</span>
                             </label>
                             <Input
                               type="text"
@@ -630,13 +725,12 @@ const PageBuilder = () => {
                               placeholder="Enter artefact date or year (e.g. 25 May 1602, 1400s, unknown)"
                               value={date}
                               onChange={(e) => setDate(e.target.value)}
-                              onFocus={() => setShowError(false)}
                               className="w-full h-14 border placeholder:text-gray-400 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-base p-4"
                             />
                           </div>
                           <div>
                             <label className="block text-lg font-medium text-gray-700 mb-2">
-                              Artefact Type
+                              Artefact Type <span className="text-xs text-gray-400">(Optional)</span>
                             </label>                        
                             <Input
                               type="text"
@@ -644,7 +738,6 @@ const PageBuilder = () => {
                               placeholder="Enter artefact type (.e.g. Painting, Sculpture)"
                               value={type}
                               onChange={(e) => setType(e.target.value)}
-                              onFocus={() => setShowErrorArtist(false)}
                               className="w-full h-14 border placeholder:text-gray-400 border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-base p-4"
                             />
                           </div>
@@ -681,7 +774,7 @@ const PageBuilder = () => {
 
                       {/* Image Upload */}
                       <div>
-                        <h2 className="text-2xl font-semibold mb-4">Artefact Image <span className="text-xs text-gray-400">(Optional)</span></h2>
+                        <h2 className="text-2xl font-semibold mb-4">Artefact Image <span className="text-red-500">*</span></h2>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           This image will appear at the top of the artefacts page and can provide users with additional context about the artefact.
                         </label>
@@ -703,6 +796,7 @@ const PageBuilder = () => {
                               const file = files[0];
                               setImage(file);
                               setImagePreview(URL.createObjectURL(file));
+                              setShowErrorImage(false);
                             }
                           }}
                           onClick={() => document.getElementById('file-input')?.click()}
@@ -716,6 +810,7 @@ const PageBuilder = () => {
                               if (file) {
                                 setImage(file);
                                 setImagePreview(URL.createObjectURL(file));
+                                setShowErrorImage(false);
                               } else {
                                 setImage("");
                                 setImagePreview("");
@@ -773,6 +868,12 @@ const PageBuilder = () => {
 
                           if (!artist) {
                             setShowErrorArtist(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            return;
+                          }
+
+                          if (!image) {
+                            setShowErrorImage(true);
                             window.scrollTo({ top: 0, behavior: 'smooth' });
                             return;
                           }
@@ -901,6 +1002,18 @@ const PageBuilder = () => {
         </DragOverlay>
       </DndContext>
 
+      {/* Exit Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showExitConfirmation}
+        onClose={handleCancelExit}
+        onConfirm={handleConfirmExit}
+        title="Leave Page Builder?"
+        message="You have unsaved changes. If you leave now, your progress will be lost and nothing will be saved."
+        confirmText="Leave Page"
+        cancelText="Stay Here"
+        variant="warning"
+      />
+
       {/* Confirmation Popup */}
       {showConfirmationPopup && (
         <SaveConfirmationPopup
@@ -917,6 +1030,7 @@ const PageBuilder = () => {
           onClose={handleSuccessPopupClose}
         />
       )}
+
     </AuthGuard>
   );
 };

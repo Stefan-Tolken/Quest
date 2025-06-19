@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useData } from "@/context/dataContext";
 import { useState, useEffect } from "react";
 import SuccessPopup from "@/components/ui/SuccessPopup";
@@ -32,55 +32,64 @@ export default function AdminHome() {
   const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
   const [selectedArtefactsForBulk, setSelectedArtefactsForBulk] = useState<Artefact[]>([]);
 
+  // Memoize data to prevent unnecessary re-renders and re-computations
+  const memoizedQuests = useMemo(() => quests, [quests]);
+  const memoizedArtefacts = useMemo(() => artefacts, [artefacts]);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setInitialLoading(false);
-    }, 800); // 800ms loading period, same as quest page
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Handle QR code generation
-  const handleArtefactQR = (artefact: Artefact) => {
-    setSelectedArtefact(artefact);
-    setShowQRPopup(true);
-  };
-
-  // Handle QR code download
-  const handleQRDownload = () => {
-    if (!selectedArtefact) return;
-    
-    const svg = document.querySelector('#qr-popup svg') as SVGElement;
-    if (!svg) return;
-
-    // Create a canvas to convert SVG to image
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(svgBlob);
-
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      ctx.fillStyle = 'white';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
+    // Only show loading screen if data is still loading
+    if (!loading) {
+      const timer = setTimeout(() => {
+        setInitialLoading(false);
+      }, 300); // Reduced loading time since data is already available
       
-      // Determine MIME type and quality based on selected format
-      let mimeType = 'image/png';
-      let quality = 1;
-      let extension = 'png';
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
+
+  // Memoize handlers to prevent unnecessary re-renders
+  const handleArtefactQR = useMemo(() => 
+    (artefact: Artefact) => {
+      setSelectedArtefact(artefact);
+      setShowQRPopup(true);
+    }, []
+  );
+
+  const handleQRDownload = useMemo(() => 
+    () => {
+      if (!selectedArtefact) return;
       
-      if (contentType === 'jpg' || contentType === 'jpeg') {
-        mimeType = 'image/jpeg';
-        quality = 0.95;
-        extension = contentType;
-      }
-      
+      const svg = document.querySelector('#qr-popup svg') as SVGElement;
+      if (!svg) return;
+
+      // Create a canvas to convert SVG to image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const svgData = new XMLSerializer().serializeToString(svg);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        
+        // Determine MIME type and quality based on selected format
+        let mimeType = 'image/png';
+        let quality = 1;
+        let extension = 'png';
+        
+        if (contentType === 'jpg' || contentType === 'jpeg') {
+          mimeType = 'image/jpeg';
+          quality = 0.95;
+          extension = contentType;
+        }
+        
       // Download the image
       const imageUrl = canvas.toDataURL(mimeType, quality);
       const downloadLink = document.createElement('a');
@@ -136,13 +145,10 @@ export default function AdminHome() {
         const errorText = await response.text();
         console.error('Error response text:', errorText);
         
-        let error;
-        try {
-          error = JSON.parse(errorText);
-        } catch (e) {
-          error = { error: errorText };
+        if (!downloadUrl) {
+          throw new Error('No download URL received from server');
         }
-        
+
         console.error('Parsed error:', error);
         throw new Error(error.error || error.details || error.message || 'Failed to generate QR codes');
       }
@@ -185,58 +191,39 @@ export default function AdminHome() {
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
-      
-      alert(`Error generating QR codes: ${errorMessage}`);
-    } finally {
-      setIsGeneratingBulk(false);
-    }
-  };
-
-  const handleDeleteArtefact = async (id: string) => {
-    // Check if artefact is used in any quest
-    const res = await fetch("/api/check-artifact-usage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ artefactId: id }),
-    });
-    const data = await res.json();
-    if (data.usedIn && data.usedIn.length > 0) {
-      setDeleteWarning(
-        `This artefact is used in the following quest(s):\n${data.usedIn
-          .map((q: { title: string }) => q.title)
-          .join(", ")}. You must remove it from all quests before deleting.`
-      );
+      setDeleteWarning("");
       setDeletingId(id);
       setDeleteType("artefact");
-      return;
-    }
-    setDeleteWarning("");
-    setDeletingId(id);
-    setDeleteType("artefact");
-  };
+    }, []
+  );
 
-  const handleDeleteQuest = (id: string) => {
-    setDeletingId(id);
-    setDeleteType("quest");
-    setDeleteWarning("");
-  };
+  const handleDeleteQuest = useMemo(() => 
+    (id: string) => {
+      setDeletingId(id);
+      setDeleteType("quest");
+      setDeleteWarning("");
+    }, []
+  );
 
-  const confirmDelete = async () => {
-    if (!deletingId || !deleteType) return;
-    const url = deleteType === "artefact" ? "/api/delete-artifact" : "/api/delete-quest";
-    const res = await fetch(url, {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: deletingId }),
-    });
-    if (res.ok) {
-      setShowDeleteSuccess(true);
-      setTimeout(() => window.location.reload(), 1200);
-    }
-    setDeletingId(null);
-    setDeleteType(null);
-  };
+  const confirmDelete = useMemo(() => 
+    async () => {
+      if (!deletingId || !deleteType) return;
+      const url = deleteType === "artefact" ? "/api/delete-artifact" : "/api/delete-quest";
+      const res = await fetch(url, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: deletingId }),
+      });
+      if (res.ok) {
+        setShowDeleteSuccess(true);
+        setTimeout(() => window.location.reload(), 1200);
+      }
+      setDeletingId(null);
+      setDeleteType(null);
+    }, [deletingId, deleteType]
+  );
 
+  // Show loading state
   if (initialLoading || loading) {
     return <AdminDashboardSkeleton />;
   }
@@ -257,26 +244,25 @@ export default function AdminHome() {
 
       {/* Content */}
       <div className="flex-1 p-6">
-        {loading ? (
-          <AdminDashboardSkeleton />
-        ) : (
-          <div className="max-w-6xl mx-auto space-y-8">
-            {/* Quests Section */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <QuestsTable quests={quests} onDeleteQuest={handleDeleteQuest} />
-            </div>
-
-            {/* Artefacts Section */}
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <ArtefactsTable 
-                artefacts={artefacts} 
-                onDeleteArtefact={handleDeleteArtefact} 
-                onBulkQRDownload={handleBulkDownloadLambda} 
-                onGenerateQR={handleArtefactQR} 
-              />
-            </div>
+        <div className="max-w-6xl mx-auto space-y-8">
+          {/* Quests Section */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <QuestsTable 
+              quests={memoizedQuests} 
+              onDeleteQuest={handleDeleteQuest} 
+            />
           </div>
-        )}
+
+          {/* Artefacts Section */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <ArtefactsTable 
+              artefacts={memoizedArtefacts} 
+              onDeleteArtefact={handleDeleteArtefact} 
+              onBulkQRDownload={handleBulkDownloadLambda} 
+              onGenerateQR={handleArtefactQR} 
+            />
+          </div>
+        </div>
       </div>
       
       {/* QR Code Popup Modal */}

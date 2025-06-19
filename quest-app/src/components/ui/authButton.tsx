@@ -10,7 +10,7 @@ export default function AuthButton() {
   if (isLoading) return <p>Loading...</p>;
 
   return isAuthenticated ? (
-    <Button variant={`${isAdmin ? "destructive" : "glassDestructive"}`} onClick={() => signout()}>Sign out</Button>
+    <Button variant={`${isAdmin ? "destructive" : "glassDark"}`} onClick={() => signout()}>Sign out</Button>
   ) : (
     <div className="flex flex-col w-full gap-4">
       <Button variant={"glassDark"} onClick={() => signin()}>Sign in</Button>
