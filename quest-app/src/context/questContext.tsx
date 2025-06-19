@@ -155,7 +155,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Show hints based on attempts: first hint after first attempt (attempts >= 1)
     // Cap at the last available hint
-    const hintIndex = Math.min(Math.max(0, attempts - 1), hints.length - 1);
+    const hintIndex = Math.min( attempts, hints.length - 1 );
     
     return hints[hintIndex];
   }, [activeQuest?.artefacts, progress]);

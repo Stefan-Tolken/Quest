@@ -20,69 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-
-// Separate component for hints display to properly handle hooks
-const HintsDisplay = ({ 
-  artefact, 
-  questId, 
-  hints,
-  attempts,
-  isCollected, 
-  completed,
-  displayedHints,
-  onUpdateProgress 
-}: { 
-  artefact: MainQuest['artefacts'][0],
-  questId: string,
-  hints: Hint[],
-  isCollected: boolean,
-  attempts: number,
-  completed: boolean,
-  displayedHints: Record<string, boolean>,
-  onUpdateProgress: (updates: Partial<QuestProgress>) => void
-}) => {
-  useEffect(() => {
-    if (!isCollected && !completed) {
-      hints.forEach((hint, idx) => {
-        const hintKey = `${artefact.artefactId}-${idx}`;
-        if (!displayedHints[hintKey]) {
-          fetch(`/api/user-quest-progress`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              questId: questId,
-              artefactId: artefact.artefactId,
-              displayedHint: { [hintKey]: true }
-            })
-          }).catch(console.error);
-
-          onUpdateProgress({
-            displayedHints: {
-              ...displayedHints,
-              [hintKey]: true
-            }
-          });
-        }
-      });
-    }
-  }, [artefact.artefactId, hints, isCollected, completed, displayedHints, questId, onUpdateProgress]);
-
-  return (
-    <>
-      {hints.slice(0, attempts).map((hint, idx) => (
-        <div 
-          key={idx}
-          className="text-sm glass p-3 rounded-md"
-        >
-          <div className="flex gap-2 items-center">
-            <span className="font-medium">Hint {idx + 1}</span>
-          </div>
-          <p className="mt-1 text-muted-foreground">{hint.description}</p>
-        </div>
-      ))}
-    </>
-  );
-};
+import { HintsToDisplay } from "@/components/ui/hintsToDisplay";
 
 function parseDate(date?: string | Date): Date | undefined {
   return date ? new Date(date) : undefined;
@@ -493,7 +431,16 @@ export default function Quests() {
                   {/* Hints Section */}
                   {questToShow && progress && (
                     <div className="mt-4">
-                      <h3 className="font-medium mb-3">Quest Progress & Hints</h3>
+                      {/* Progress display */}
+                      {progressLoading ? (
+                        <h3 className="font-medium mb-3">Loading progress...</h3>
+                      ) : progressError ? (
+                        <h3 className="font-medium mb-3">{progressError}</h3>
+                      ) : progress ? (
+                        <div className="w-full flex items-center gap-2">
+                          <h3 className="font-medium mb-3">Artefact(s) To Collect: {progress.collectedArtefactIds.length} / {questToShow.artefacts.length}</h3>
+                        </div>
+                      ) : null}
                       <div className="space-y-3">
                         {getVisibleArtefacts(questToShow.questType, questToShow.artefacts, progress).map((artefact) => {
                           const originalIndex = questToShow.artefacts.findIndex(a => a.artefactId === artefact.artefactId);
@@ -530,7 +477,7 @@ export default function Quests() {
                               {/* Show hints section */}
                               {!isCollected && !progress.completed && !(artefact.hints.length === 0) && (
                                 <div className="space-y-2 mt-3">
-                                  <HintsDisplay
+                                  <HintsToDisplay
                                     artefact={artefact}
                                     questId={questToShow.quest_id}
                                     hints={hintsToDisplay}
@@ -562,19 +509,6 @@ export default function Quests() {
                 </CardContent>
 
                 <CardFooter className="flex flex-col gap-2 items-stretch">
-                  {/* Progress display */}
-                  {progressLoading ? (
-                    <div className="text-blue-500">Loading progress...</div>
-                  ) : progressError ? (
-                    <div className="text-red-500">{progressError}</div>
-                  ) : progress ? (
-                    <div className="w-full flex items-center gap-2">
-                      <span className="font-medium">Artefacts found:</span>
-                      <span>
-                        {progress.collectedArtefactIds.length} / {questToShow.artefacts.length}
-                      </span>
-                    </div>
-                  ) : null}
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="glassDestructive">Stop Quest</Button>
