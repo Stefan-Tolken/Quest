@@ -48,7 +48,6 @@ export default function LeaderboardComponent({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"fastest" | "first">("fastest");
   const [isExporting, setIsExporting] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
   const fetchLeaderboard = async () => {
     try {
@@ -159,31 +158,6 @@ export default function LeaderboardComponent({
     }
   };
 
-  // Handle leaderboard reset
-  const handleResetLeaderboard = async () => {
-    try {
-      setIsResetting(true);
-      const response = await fetch(`/api/admin/reset-leaderboard`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ questId }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to reset leaderboard");
-      }
-
-      // Refetch leaderboard data
-      fetchLeaderboard();
-    } catch (error) {
-      console.error("Error resetting leaderboard:", error);
-    } finally {
-      setIsResetting(false);
-    }
-  };
-
   // Get fastest completions (sorted by timeTaken)
   const fastestCompletions = [...leaderboardData]
     .sort((a, b) => a.timeTaken - b.timeTaken)
@@ -264,46 +238,6 @@ export default function LeaderboardComponent({
             )}
             Export CSV
           </Button>
-          
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isResetting}
-                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                {isResetting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash className="h-4 w-4" />
-                )}
-                Reset Leaderboard
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-red-500" />
-                  Reset Leaderboard
-                </AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete all leaderboard entries for this quest. 
-                  This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-red-600 hover:bg-red-700 text-white"
-                  onClick={handleResetLeaderboard}
-                >
-                  <Trash className="h-4 w-4 mr-2" />
-                  Reset
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
           
           <div className="ml-auto text-sm text-gray-500">
             {leaderboardData.length} {leaderboardData.length === 1 ? 'entry' : 'entries'} total
