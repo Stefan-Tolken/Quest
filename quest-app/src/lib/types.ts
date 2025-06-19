@@ -124,7 +124,6 @@ export type MainQuest = Omit<Quest, 'artefacts'> & {
 export interface ArtefactDetailProps {
   artefactId: string | null | undefined;
   isOpen: boolean;
-  finalSubmission: boolean;
   onClose: () => void;
   onVisibilityChange?: (isVisible: boolean) => void;
 }

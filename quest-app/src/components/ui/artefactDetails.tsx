@@ -21,10 +21,10 @@ export default function ArtefactDetail({
   isOpen,
   onClose,
   onVisibilityChange,
-  finalSubmission
 }: ArtefactDetailProps) {
   const [artefact, setArtefact] = useState<Artefact | null>(null);
   const [loading, setLoading] = useState(false);
+  const [finalSubmission, setFinalSubmission] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<'idle'|'success'|'error'|'already'|null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -111,6 +111,11 @@ export default function ArtefactDetail({
     onClose();
   };
 
+  const handleDialogClose = () => {
+    setFinalSubmission(false);
+    setSubmitStatus(null);
+  }
+
   // Submit artefact using centralized quest context
   const handleSubmit = async () => {
     if (!activeQuest || !artefact?.id) return;
@@ -118,8 +123,14 @@ export default function ArtefactDetail({
     
     try {
       const result = await questSubmitArtefact(artefact.id);
+
+      const artefactLength = activeQuest.artefacts.length;
+      const currentArtefactLength = progress?.collectedArtefactIds.length; 
       
       if (result.success) {
+        if (currentArtefactLength + 1 >= artefactLength) {
+          setFinalSubmission(true);
+        }
         setSubmitStatus(result.status);
       } else {
         setSubmitStatus('error');
@@ -160,8 +171,9 @@ export default function ArtefactDetail({
           >
             <ArrowLeft size={24} /> Back
           </Button>
-          {activeQuest && (
+          {activeQuest || finalSubmission ? (
             <SubmitDialog
+              onClose={handleDialogClose}
               scanResult={artefactId}
               submitStatus={submitStatus}
               message={message}
@@ -172,7 +184,7 @@ export default function ArtefactDetail({
             >
               <Button variant="glassDark">Submit Artefact</Button>
             </SubmitDialog>
-          )}
+          ) : (<></>)}
         </div>
       </div>
       <ScrollArea className="h-full flex max-w-full mx-6 pt-20 pb-6 rounded-xl">
