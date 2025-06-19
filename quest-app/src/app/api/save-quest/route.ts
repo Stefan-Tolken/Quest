@@ -1,4 +1,3 @@
-// app/api/save-quest/route.ts
 import { NextResponse } from "next/server";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -75,6 +74,7 @@ export async function POST(request: Request) {
       ...questData,
       prize: updatedPrize,
       createdAt: timestamp,
+      leaderboard: [], // Initialize empty leaderboard array
     };
 
     // Prepare DynamoDB item
@@ -92,6 +92,7 @@ export async function POST(request: Request) {
         prize: quest.prize
           ? { S: JSON.stringify(quest.prize) }
           : { NULL: true },
+        leaderboard: { S: JSON.stringify([]) },
         createdAt: { S: quest.createdAt },
       },
     };
