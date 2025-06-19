@@ -90,36 +90,37 @@ export default function AdminHome() {
           extension = contentType;
         }
         
-      // Download the image
-      const imageUrl = canvas.toDataURL(mimeType, quality);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = imageUrl;
-      downloadLink.download = `qr-code-${selectedArtefact.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.${extension}`;
-      downloadLink.target = '_blank';
-      downloadLink.rel = 'noopener noreferrer';
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
+        // Download the image
+        const imageUrl = canvas.toDataURL(mimeType, quality);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = imageUrl;
+        downloadLink.download = `qr-code-${selectedArtefact.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.${extension}`;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        URL.revokeObjectURL(url);
+      };
       
-      URL.revokeObjectURL(url);
-    };
-    
-    img.src = url;
-  };
+      img.src = url;
+    }, [selectedArtefact, contentType]
+  );
 
-  // Updated function to handle bulk download with selected artefacts
-  const handleBulkDownloadLambda = async (selectedArtefacts: Artefact[]) => {
-    if (selectedArtefacts.length === 0) {
-      alert('Please select at least one artefact to download QR codes.');
-      return;
-    }
-    
-    setSelectedArtefactsForBulk(selectedArtefacts);
-    setIsGeneratingBulk(false);
-    setShowBulkQRPopup(true);
-  };
+  const handleBulkDownloadLambda = useMemo(() => 
+    async (selectedArtefacts: Artefact[]) => {
+      if (selectedArtefacts.length === 0) {
+        alert('Please select at least one artefact to download QR codes.');
+        return;
+      }
+      
+      setSelectedArtefactsForBulk(selectedArtefacts);
+      setIsGeneratingBulk(false);
+      setShowBulkQRPopup(true);
+    }, []
+  );
 
-  const executeBulkDownload = async (selectedArtefacts: Artefact[]) => {
+  const executeBulkDownload = useMemo(() => 
+  async (selectedArtefacts: Artefact[]) => {
     setIsGeneratingBulk(true);
     
     try {
@@ -128,7 +129,7 @@ export default function AdminHome() {
         format: bulkDownloadType,
         imageType: bulkImageType
       });
-  
+
       const response = await fetch('/api/lambda', {
         method: 'POST',
         headers: {
@@ -140,44 +141,42 @@ export default function AdminHome() {
           imageType: bulkImageType
         })
       });
-  
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response text:', errorText);
         
-        if (!downloadUrl) {
-          throw new Error('No download URL received from server');
+        let error;
+        try {
+          error = JSON.parse(errorText);
+        } catch (e) {
+          error = { error: errorText };
         }
-
+        
         console.error('Parsed error:', error);
         throw new Error(error.error || error.details || error.message || 'Failed to generate QR codes');
       }
-  
+
       const result = await response.json();
-      
       const { downloadUrl } = result;
       
       if (!downloadUrl) {
         throw new Error('No download URL received from server');
       }
       
-      // Handle PDF vs ZIP downloads differently
       if (bulkDownloadType === 'pdf') {
-        // For PDFs, open in a new tab/window
+        alert('If nothing happens, please ensure popups are not blocked for this site.');
         window.open(downloadUrl, '_blank');
-        alert('Please ensure pop-ups are allowed in your browser to download the PDF.');
       } else {
-        // For ZIP files, use the download approach
+        // Download the file (images/zip)
         const downloadLink = document.createElement('a');
         downloadLink.href = downloadUrl;
         downloadLink.download = `qr-codes-bulk-${Date.now()}.zip`;
-        downloadLink.target = '_blank';
-        downloadLink.rel = 'noopener noreferrer';
         document.body.appendChild(downloadLink);
         downloadLink.click();
         document.body.removeChild(downloadLink);
       }
-  
+
       setShowBulkQRPopup(false);
       setSelectedArtefactsForBulk([]);
       
@@ -190,6 +189,33 @@ export default function AdminHome() {
         errorMessage = error.message;
       } else if (typeof error === 'string') {
         errorMessage = error;
+      }
+      
+      alert(`Error generating QR codes: ${errorMessage}`);
+    } finally {
+      setIsGeneratingBulk(false);
+    }
+  }, [bulkDownloadType, bulkImageType]
+);
+
+  const handleDeleteArtefact = useMemo(() => 
+    async (id: string) => {
+      // Check if artefact is used in any quest
+      const res = await fetch("/api/check-artifact-usage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ artefactId: id }),
+      });
+      const data = await res.json();
+      if (data.usedIn && data.usedIn.length > 0) {
+        setDeleteWarning(
+          `This artefact is used in the following quest(s):\n${data.usedIn
+            .map((q: { title: string }) => q.title)
+            .join(", ")}. You must remove it from all quests before deleting.`
+        );
+        setDeletingId(id);
+        setDeleteType("artefact");
+        return;
       }
       setDeleteWarning("");
       setDeletingId(id);

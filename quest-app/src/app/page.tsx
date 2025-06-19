@@ -292,8 +292,8 @@ export default function Home() {
                       
                       {/* Bottom overlay text */}
                       <div className="absolute bottom-16 left-0 right-0 z-20 px-6">
-                        <div className="bg-black/80 backdrop-blur-md rounded-xl p-4 mx-4 border border-white/20 shadow-2xl">
-                          <p className="text-base xs:text-lg sm:text-xl font-medium text-white leading-relaxed max-w-lg mx-auto drop-shadow-lg">
+                        <div className="glass !bg-black/30 backdrop-blur-md rounded-xl p-3 mx-4 shadow-2xl">
+                          <p className="text-base xs:text-lg sm:text-xl font-medium text-white leading-relaxed max-w-lg drop-shadow-lg">
                             {desc.text}
                           </p>
                         </div>
