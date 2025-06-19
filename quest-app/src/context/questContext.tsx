@@ -343,50 +343,81 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
   // Updated function to check and handle quest completion with auto-cleanup
   const checkQuestCompletion = async (collectedArtefactIds: string[]) => {
     if (!activeQuest) {
+      console.log('No active quest, returning early');
       return;
     }
 
     // Check if all artefacts have been collected
     const totalArtefacts = activeQuest.artefacts.length;
     const collectedCount = collectedArtefactIds.length;
-
+    
+    console.log('Checking quest completion:', {
+      questId: activeQuest.quest_id,
+      totalArtefacts,
+      collectedCount,
+      isComplete: collectedCount >= totalArtefacts
+    });
+    
     if (collectedCount >= totalArtefacts) {
-      const token = getToken();
-
       try {
-        // Call backend to mark quest as completed
-        const res = await fetch('/api/complete-quest', {
+        // Get authentication token
+        let token = localStorage.getItem('token');
+        if (!token && typeof window !== 'undefined') {
+          const oidcKey = Object.keys(sessionStorage).find(k => k.startsWith('oidc.user:'));
+          if (oidcKey) {
+            try {
+              const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
+              token = oidcUser.id_token;
+            } catch {
+              console.error('Error parsing OIDC user from sessionStorage');
+            }
+          }
+        }
+
+        // Call complete-quest endpoint to save completion data to userData
+        const completeResponse = await fetch('/api/complete-quest', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             questId: activeQuest.quest_id,
-            collectedArtefactIds 
+            collectedArtefactIds: collectedArtefactIds,
+            questTitle: activeQuest.title,
+            prize: activeQuest.prize
           })
         });
 
-        const data = await res.json();
-
-        if (res.ok && data.success) {
-          // Show completion message
-          toast.success(`Quest "${activeQuest.title}" completed! 🎉`);
-
-          // Clear local state after successful backend confirmation
-          setActiveQuest(null); 
-          setProgress(null);
-
-          // Clear from session storage
-          sessionStorage.removeItem('activeQuest');
-        } else {
-          toast.error('Failed to complete quest: ' + (data.error || 'Unknown error'));
+        if (!completeResponse.ok) {
+          const errorData = await completeResponse.json();
+          throw new Error(errorData.error || 'Failed to complete quest');
         }
+
+        console.log('Quest completion saved to userData successfully');
+
+        // Now clean up the quest progress data since it's saved in userData
+        try {
+          await deleteQuestProgress(activeQuest.quest_id, token);
+          console.log('Quest progress data cleaned up successfully');
+        } catch (cleanupError) {
+          // Don't fail the entire completion if cleanup fails
+          console.warn('Failed to cleanup quest progress data:', cleanupError);
+        }
+
+        // Show success message
+        toast.success(`Quest "${activeQuest.title}" completed! 🎉`);
+        
+        // Clear active quest after successful completion
+        setActiveQuest(null);
+        
       } catch (err) {
+        console.error('Error completing quest:', err);
         toast.error('Error completing quest. Please try again.');
       }
     }
   };
+
   return (
     <QuestContext.Provider value={{ 
       activeQuest, 
