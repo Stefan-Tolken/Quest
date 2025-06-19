@@ -1,8 +1,8 @@
 // index.js
-import QRCode from 'qrcode';
-import PDFDocument from 'pdfkit';
-import { S3 } from 'aws-sdk';
-import JSZip from 'jszip';
+const QRCode = require('qrcode');
+const PDFDocument = require('pdfkit');
+const { S3 } = require('aws-sdk');
+const JSZip = require('jszip');
 
 const s3 = new S3();
 
@@ -93,14 +93,10 @@ const generatePDFBatch = async (
     const x = margin + col * (qrDisplaySize + spacing);
     const y = margin + row * (qrDisplaySize + 40);
 
-    // Use similar data structure as your component
-    const qrData = JSON.stringify({ 
-      artefactId: artefact.id,
-      name: artefact.name,
-      artist: artefact.artist || null
-    });
+    // Generate QR code as a link
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://quest-sable.vercel.app';
+    const qrData = `${baseUrl}/client?id=${artefact.id}`;
 
-    // Generate QR code with same error correction level
     const qrDataUrl = await QRCode.toDataURL(qrData, { 
       width: qrSize,
       margin: 1,
@@ -166,12 +162,9 @@ const generateImageBatch = async (
   const zip = new JSZip();
 
   for (const artefact of artefacts) {
-    // Use same data structure as your component
-    const qrData = JSON.stringify({ 
-      artefactId: artefact.id,
-      name: artefact.name,
-      artist: artefact.artist || null
-    });
+    // Generate QR code as a link
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://quest-sable.vercel.app';
+    const qrData = `${baseUrl}/client?id=${artefact.id}`;
 
     const qrBuffer = await QRCode.toBuffer(qrData, { 
       width: qrSize,

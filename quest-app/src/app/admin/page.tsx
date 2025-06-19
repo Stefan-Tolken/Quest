@@ -86,6 +86,8 @@ export default function AdminHome() {
       const downloadLink = document.createElement('a');
       downloadLink.href = imageUrl;
       downloadLink.download = `qr-code-${selectedArtefact.name.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.${extension}`;
+      downloadLink.target = '_blank';
+      downloadLink.rel = 'noopener noreferrer';
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
@@ -117,7 +119,7 @@ export default function AdminHome() {
         format: bulkDownloadType,
         imageType: bulkImageType
       });
-
+  
       const response = await fetch('/api/lambda', {
         method: 'POST',
         headers: {
@@ -129,7 +131,7 @@ export default function AdminHome() {
           imageType: bulkImageType
         })
       });
-
+  
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Error response text:', errorText);
@@ -144,7 +146,7 @@ export default function AdminHome() {
         console.error('Parsed error:', error);
         throw new Error(error.error || error.details || error.message || 'Failed to generate QR codes');
       }
-
+  
       const result = await response.json();
       
       const { downloadUrl } = result;
@@ -153,14 +155,23 @@ export default function AdminHome() {
         throw new Error('No download URL received from server');
       }
       
-      // Download the file
-      const downloadLink = document.createElement('a');
-      downloadLink.href = downloadUrl;
-      downloadLink.download = `qr-codes-bulk-${Date.now()}.${bulkDownloadType === 'pdf' ? 'pdf' : 'zip'}`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-
+      // Handle PDF vs ZIP downloads differently
+      if (bulkDownloadType === 'pdf') {
+        // For PDFs, open in a new tab/window
+        window.open(downloadUrl, '_blank');
+        alert('Please ensure pop-ups are allowed in your browser to download the PDF.');
+      } else {
+        // For ZIP files, use the download approach
+        const downloadLink = document.createElement('a');
+        downloadLink.href = downloadUrl;
+        downloadLink.download = `qr-codes-bulk-${Date.now()}.zip`;
+        downloadLink.target = '_blank';
+        downloadLink.rel = 'noopener noreferrer';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      }
+  
       setShowBulkQRPopup(false);
       setSelectedArtefactsForBulk([]);
       
