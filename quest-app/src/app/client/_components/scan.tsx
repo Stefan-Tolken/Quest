@@ -139,6 +139,7 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
             artefactId={scanResult} // Extracting the ID from the scan result
             isOpen={!!scanResult}
             onClose={handleDetailClose}
+            finalSubmission={finalSubmission}
             onVisibilityChange={(visible) => {
               setSwipeEnabled(!visible);
             }}

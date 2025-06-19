@@ -20,7 +20,8 @@ export default function ArtefactDetail({
   artefactId,
   isOpen,
   onClose,
-  onVisibilityChange 
+  onVisibilityChange,
+  finalSubmission
 }: ArtefactDetailProps) {
   const [artefact, setArtefact] = useState<Artefact | null>(null);
   const [loading, setLoading] = useState(false);
@@ -167,6 +168,7 @@ export default function ArtefactDetail({
               activeQuest={activeQuest}
               handleSubmit={handleSubmit}
               handleViewArtefact={handleViewArtefact}
+              finalSubmission={finalSubmission}
             >
               <Button variant="glassDark">Submit Artefact</Button>
             </SubmitDialog>
