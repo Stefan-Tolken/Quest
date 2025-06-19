@@ -394,36 +394,36 @@ export default function Quests() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                     {questToShow.dateRange && (
                       <div className="flex items-start gap-3">
-                        <CalendarDays className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                        <CalendarDays className="h-4 w-4 mt-0.5 text-foreground" />
                         <div>
                           <p className="font-medium">Available Until</p>
-                          <p className="text-muted-foreground">
+                          <p className="text-foreground">
                             {questToShow.dateRange.to ? new Date(questToShow.dateRange.to).toLocaleDateString() : 'N/A'}
                           </p>
                         </div>
                       </div>
                     )}
                     <div className="flex items-start gap-3">
-                      <MapPin className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                      <MapPin className="h-4 w-4 mt-0.5 text-foreground" />
                       <div>
                         <p className="font-medium">Artefacts</p>
-                        <p className="text-muted-foreground">
+                        <p className="text-foreground">
                           {questToShow.artefacts.length} to discover
                         </p>
                       </div>
                     </div>
                     {questToShow.prize?.title ? (
                       <div className="flex items-start gap-3">
-                        <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                        <Trophy className="h-4 w-4 mt-0.5 text-foreground" />
                         <div>
                           <p className="font-medium">Prize</p>
-                          <p className="text-muted-foreground">{questToShow.prize.title}</p>
+                          <p className="text-foreground">{questToShow.prize.title}</p>
                         </div>  
                       </div>
                     ): (
                       <div className="flex items-start gap-3">
                         <p className="font-medium">No Prize</p>
-                        <p className="text-muted-foreground">This one is just for fun</p>
+                        <p className="text-foreground">This one is just for fun</p>
                       </div>
                     )}
                   </div>              
@@ -490,8 +490,8 @@ export default function Quests() {
                                   {attempts < artefact.hints.length && (
                                     <div className="text-sm glass p-3 rounded-md">
                                       <div className="flex gap-2 items-center">
-                                        <span className="font-medium text-muted-foreground">Next Hint</span>
-                                        <span className="text-muted-foreground text-xs">
+                                        <span className="font-medium text-foreground">Next Hint</span>
+                                        <span className="text-foreground text-xs">
                                           (Unlocks after you scan again)
                                         </span>
                                       </div>
@@ -571,18 +571,18 @@ export default function Quests() {
                       </div>
                       {quest.prize?.title ? (
                         <div className="flex items-start gap-3">
-                          <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                          <Trophy className="h-4 w-4 mt-0.5 text-foreground" />
                           <div>
                             <p className="font-medium">Prize</p>
-                            <p className="text-muted-foreground">{quest.prize.title}</p>
+                            <p className="text-foreground">{quest.prize.title}</p>
                           </div>  
                         </div>
                       ): (
                         <div className="flex items-start gap-3">
-                          <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                          <Trophy className="h-4 w-4 mt-0.5 text-foreground" />
                           <div>
                             <p className="font-medium">No Prize</p>
-                            <p className="text-muted-foreground">This one is just for fun</p>
+                            <p className="text-foreground">This one is just for fun</p>
                           </div>
                         </div>
                       )}
@@ -633,18 +633,18 @@ export default function Quests() {
                       </div>
                       {quest.prize?.title ? (
                         <div className="flex items-start gap-3">
-                          <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                          <Trophy className="h-4 w-4 mt-0.5 text-foreground" />
                           <div>
                             <p className="font-medium">Prize</p>
-                            <p className="text-muted-foreground">{quest.prize.title}</p>
+                            <p className="text-foreground">{quest.prize.title}</p>
                           </div>  
                         </div>
                           ): (
                           <div className="flex items-start gap-3">
-                            <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                            <Trophy className="h-4 w-4 mt-0.5 text-foreground" />
                             <div>
                               <p className="font-medium">No Prize</p>
-                              <p className="text-muted-foreground">This one is just for fun</p>
+                              <p className="text-foreground">This one is just for fun</p>
                             </div>
                           </div>
                       )}
