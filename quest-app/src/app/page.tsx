@@ -10,6 +10,7 @@ import { ScrollSmoother } from "gsap/ScrollSmoother";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
+import Image from "next/image"
 
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
@@ -303,6 +304,17 @@ export default function Home() {
             
             {/* Footer fixed at the bottom */}
             <footer className="footer flex flex-col gap-4 w-full bottom-0 left-0 p-4 sm:p-6 text-background/70 text-xs sm:text-sm text-center z-50 pointer-events-none">
+              <div className="w-full h-full">
+                <Image
+                  src={"/3dModel_Landing/QuestLogoWhite.svg"}
+                  alt="Artifact Image"
+                  width={1280}
+                  height={720}
+                  className="rounded-lg object-cover w-full h-auto"
+                  sizes="(max-width: 640px) 95vw, 100vw"
+                />
+              </div>
+              
               <div className="pointer-events-auto">
                 <AuthButton />
               </div>
