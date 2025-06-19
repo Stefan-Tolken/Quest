@@ -60,7 +60,7 @@ function Model() {
         
         tl.to(mesh.current.rotation, {
           y: Math.PI * 2, // Full 360° rotation
-          ease: "none",
+          ease: "power1.inOut", // Smoother easing for the model rotation
         });
       }
     }, [isReady]);
@@ -112,14 +112,15 @@ export default function Home() {
       setShowScrollIndicator(true);
     }, 3000);
 
-    // Create scroll smoother with snappier settings
+    // Create scroll smoother with buttery smooth settings
     const smoother = ScrollSmoother.create({
       wrapper: "#smooth-wrapper",
       content: "#smooth-content",
-      smooth: 0.5, // Reduced from 1.2 for snappier response
+      smooth: 1.5, // Increased for silky smooth scrolling
       effects: true,
-      smoothTouch: 0.05, // Reduced from 0.1 for more immediate touch response
+      smoothTouch: 0.3, // Smooth touch response
       onUpdate: () => ScrollTrigger.update(),
+      normalizeScroll: true, // Helps with consistent scroll behavior across devices
     });
 
     // Apply animations to sections
@@ -129,28 +130,29 @@ export default function Home() {
       gsap.timeline({
         scrollTrigger: {
           trigger: el,
-          scrub: 0.5, // Reduced from true for snappier animations
+          scrub: 1, // Smoother scrub for fluid animations
           start: 'top bottom',
           end: 'bottom top',
           invalidateOnRefresh: true,
         },
       })
-      .fromTo(el, { opacity: 0, x: '100%' }, { opacity: 1, x: 0, duration: 0.5 }) // Faster duration
-      .to(el, { opacity: 0, x: '100%', duration: 0.5 }); // Faster duration
+      .fromTo(el, { opacity: 0, x: '100%' }, { opacity: 1, x: 0, duration: 0.8, ease: "power2.out" })
+      .to(el, { opacity: 0, x: '100%', duration: 0.8, ease: "power2.in" });
     });
 
-    // Snap logic with more aggressive snapping
+    // Snap logic with smooth but decisive behavior
     ScrollTrigger.create({
       trigger: ".main",
       start: "top top",
       end: () => `+=${(sectionRefs.current.length) * window.innerHeight}`,
-      scrub: 0.5, // Reduced from true for snappier response
+      scrub: 1, // Smoother scrub value
       snap: {
         snapTo: 1 / sectionRefs.current.length,
-        duration: 0.6, // Reduced from 1.5 for faster snapping
-        delay: 0, // No delay for immediate response
-        ease: "power2.inOut", // Changed from power1.out for snappier feel
-        directional: false, // Snap to nearest section regardless of direction
+        duration: 0.8, // Smooth snap duration
+        delay: 0, // Instant decision making
+        ease: "power2.inOut", // Smooth symmetric easing
+        directional: false,
+        inertia: false, // Disable inertia for quicker decisions
       },
       invalidateOnRefresh: true,
     });
@@ -280,7 +282,7 @@ export default function Home() {
                       
                       {/* Scroll indicator - only shows on first section after 3 seconds */}
                       {i === 0 && showScrollIndicator && (
-                        <div className="absolute bottom-50 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none">
+                        <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none">
                           <div className="flex flex-col items-center text-white/60 animate-bounce">
                             <span className="text-xs font-light tracking-wider uppercase mb-2">Scroll to explore</span>
                             <div className="w-px h-8 bg-white/40"></div>
