@@ -72,40 +72,6 @@ function Model() {
     );
 }
 
-// Add this hook at the top of your component for better mobile viewport handling
-const useViewportHeight = () => {
-  const [vh, setVh] = useState(0);
-  
-  useEffect(() => {
-    const updateVh = () => {
-      // Use the visual viewport API if available, fallback to window.innerHeight
-      const height = window.visualViewport?.height || window.innerHeight;
-      setVh(height);
-      // Update CSS custom property for consistent vh across the app
-      document.documentElement.style.setProperty('--vh', `${height * 0.01}px`);
-    };
-    
-    updateVh();
-    window.addEventListener('resize', updateVh);
-    window.addEventListener('orientationchange', updateVh);
-    
-    // Listen to visual viewport changes (mobile browser UI changes)
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', updateVh);
-    }
-    
-    return () => {
-      window.removeEventListener('resize', updateVh);
-      window.removeEventListener('orientationchange', updateVh);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', updateVh);
-      }
-    };
-  }, []);
-  
-  return vh;
-};
-
 export default function Home() {
   const [videoDone, setVideoDone] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
@@ -113,9 +79,6 @@ export default function Home() {
   const [canvasReady, setCanvasReady] = useState(false);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
-  
-  // Use the custom viewport height hook
-  const viewportHeight = useViewportHeight();
 
   // Handle completion of the intro video
   const handleVideoEnd = () => {
@@ -123,79 +86,75 @@ export default function Home() {
     setTimeout(() => {
       setVideoDone(true);
       
+      // Give Three.js time to initialize before triggering GSAP
       setTimeout(() => {
         setCanvasReady(true);
         
-        // Multiple refreshes with proper timing
+        // Force multiple refreshes to ensure everything is calculated correctly
         requestAnimationFrame(() => {
           ScrollTrigger.refresh();
           
+          // Do another refresh after a frame
           requestAnimationFrame(() => {
             ScrollTrigger.refresh();
           });
         });
-      }, 500);
+      }, 500); // Give canvas time to render
     }, 1000);
   };
 
-  // Updated GSAP animations with mobile fixes
+  // Set up GSAP animations when canvas is ready
   useGSAP(() => {
-    if (!videoDone || !canvasReady || !viewportHeight) return;
+    if (!videoDone || !canvasReady) return;
     
+    // Start the 3-second timer for scroll indicator
     const timer = setTimeout(() => {
       setShowScrollIndicator(true);
     }, 3000);
 
-    // Disable ScrollSmoother on mobile to prevent conflicts
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    
-    let smoother;
-    if (!isMobile) {
-      smoother = ScrollSmoother.create({
-        wrapper: "#smooth-wrapper",
-        content: "#smooth-content",
-        smooth: 1.5,
-        effects: true,
-        smoothTouch: 0.1, // Reduced for better mobile performance
-        onUpdate: () => ScrollTrigger.update(),
-        normalizeScroll: true,
-      });
-    }
+    // Create scroll smoother with buttery smooth settings
+    const smoother = ScrollSmoother.create({
+      wrapper: "#smooth-wrapper",
+      content: "#smooth-content",
+      smooth: 1.5, // Increased for silky smooth scrolling
+      effects: true,
+      smoothTouch: 0.3, // Smooth touch response
+      onUpdate: () => ScrollTrigger.update(),
+      normalizeScroll: true, // Helps with consistent scroll behavior across devices
+    });
 
-    // Apply animations to sections with mobile-specific adjustments
+    // Apply animations to sections
     sectionRefs.current.forEach((el, i) => {
       if (!el) return;
 
       gsap.timeline({
         scrollTrigger: {
           trigger: el,
-          scrub: isMobile ? 0.5 : 1, // Less scrub on mobile for better performance
+          scrub: 1, // Smoother scrub for fluid animations
           start: 'top bottom',
           end: 'bottom top',
           invalidateOnRefresh: true,
-          refreshPriority: 1, // Higher priority for mobile
         },
       })
       .fromTo(el, { opacity: 0, x: '100%' }, { opacity: 1, x: 0, duration: 0.8, ease: "power2.out" })
       .to(el, { opacity: 0, x: '100%', duration: 0.8, ease: "power2.in" });
     });
 
-    // Updated snap logic using actual viewport height
+    // Snap logic with smooth but decisive behavior
     ScrollTrigger.create({
       trigger: ".main",
       start: "top top",
-      end: () => `+=${sectionRefs.current.length * viewportHeight}`, // Use actual viewport height
-      scrub: isMobile ? 0.5 : 1,
+      end: () => `+=${(sectionRefs.current.length) * window.innerHeight}`,
+      scrub: 1, // Smoother scrub value
       snap: {
         snapTo: 1 / sectionRefs.current.length,
-        duration: isMobile ? 0.5 : 0.8, // Faster on mobile
-        delay: 0,
-        ease: "power2.inOut",
+        duration: 0.8, // Smooth snap duration
+        delay: 0, // Instant decision making
+        ease: "power2.inOut", // Smooth symmetric easing
         directional: false,
-        inertia: false,
+        inertia: false, // Disable inertia for quicker decisions
       },
       invalidateOnRefresh: true,
-      refreshPriority: 1,
     });
 
     gsap.fromTo(
@@ -210,7 +169,6 @@ export default function Home() {
           end: "bottom bottom",
           scrub: true,
           invalidateOnRefresh: true,
-          refreshPriority: 1,
         },
       }
     );
@@ -218,10 +176,10 @@ export default function Home() {
     // Clean up on unmount
     return () => {
       clearTimeout(timer);
-      if (smoother) smoother.kill();
+      smoother.kill();
       ScrollTrigger.getAll().forEach(st => st.kill());
     };
-  }, [videoDone, canvasReady, viewportHeight]); // Added viewportHeight as dependency
+  }, [videoDone, canvasReady]);
 
   const descriptions = [
     {
@@ -272,6 +230,7 @@ export default function Home() {
             alpha: true
           }}
           onCreated={({ gl, scene }) => {
+            // Force initial render
             gl.render(scene, gl.xr.getCamera());
           }}
         >
@@ -292,10 +251,10 @@ export default function Home() {
         </div>
         <div id="smooth-wrapper" className="w-full">
           <div id="smooth-content" className="w-full">
-            <main className="main flex flex-col items-center justify-center max-w-xl z-10 w-full">
+            <main className="main flex flex-col items-center justify-center max-w-xl z-10 w-full min-h-screen">
               {descriptions.map((desc, i) => (
                 <React.Fragment key={i}>
-                  <div className="h-screen w-full flex items-center justify-center relative"> {/* Changed from min-h-screen to h-screen */}
+                  <div className="h-full w-full flex items-center justify-center min-h-screen relative">
                     <section
                       ref={(el) => {
                         sectionRefs.current[i] = el as HTMLDivElement | null;
@@ -321,7 +280,7 @@ export default function Home() {
                         </div>
                       </div>
                       
-                      {/* Scroll indicator */}
+                      {/* Scroll indicator - only shows on first section after 3 seconds */}
                       {i === 0 && showScrollIndicator && (
                         <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none">
                           <div className="flex flex-col items-center text-white/60 animate-bounce">
@@ -332,16 +291,17 @@ export default function Home() {
                         </div>
                       )}
                       
+                      {/* Subtle vignette overlay to help text readability */}
                       <div className="absolute inset-0 bg-gradient-to-b pointer-events-none z-10" />
                     </section>
                   </div>
                 </React.Fragment>
               ))}
-              {/* Reduced height for mobile */}
-              <div className="w-full max-w-full h-[20vh]" /> {/* Reduced from 80vh */}
+              {/* Blank div after the sections for scroll space, height set to viewport */}
+              <div className="w-full max-w-full h-[80vh]" />
             </main>
             
-            {/* Footer */}
+            {/* Footer fixed at the bottom */}
             <footer className="footer flex flex-col gap-4 w-full bottom-0 left-0 p-4 sm:p-6 text-background/70 text-xs sm:text-sm text-center z-50 pointer-events-none">
               <div className="pointer-events-auto">
                 <AuthButton />
