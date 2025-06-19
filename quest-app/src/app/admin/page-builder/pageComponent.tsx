@@ -139,8 +139,8 @@ export const PageComponent = ({
 
           {component.type === "3DModel" && (
             <Model3DSelector
-              selectedModelUrl={getUrlFromContent(component.content)}
-              onSelectModel={url => handleUpdate({ url })}
+              selectedModelId={getUrlFromContent(component.content)}
+              onSelectModel={id => handleUpdate({ url: id })}
             />
           )}
         </div>
