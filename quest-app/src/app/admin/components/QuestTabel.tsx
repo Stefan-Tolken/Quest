@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash, ArrowUpDown } from "lucide-react";
+import { Edit, Trash, ArrowUpDown, LineChart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   ColumnDef,
@@ -26,13 +26,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Quest } from "@/lib/types";
+import LeaderboardModal from "./modals/leaderboardModal";
 
 interface QuestsTableProps {
   quests: Quest[];
   onDeleteQuest: (id: string) => void;
+  isAdmin?: boolean;
+  userId?: string; // Optional: current user ID for client-side view
+  userEmail?: string; // Add user email prop
 }
 
-export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps) {
+export default function QuestsTable({ 
+  quests, 
+  onDeleteQuest,
+  isAdmin = true,
+  userId,
+  userEmail
+}: QuestsTableProps) {
   const router = useRouter();
   
   // Table state
@@ -40,8 +50,51 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  // Column definitions
-  const columns: ColumnDef<Quest>[] = [
+  // Memoize date formatting function to prevent re-computation
+  const formatDate = useMemo(() => 
+    (dateStr: string | Date) => {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }, []
+  );
+
+  // Memoize status calculation to prevent re-computation
+  const getQuestStatus = useMemo(() => 
+    (quest: Quest) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const startDate = quest.dateRange?.from ? new Date(quest.dateRange.from) : null;
+      const endDate = quest.dateRange?.to ? new Date(quest.dateRange.to) : null;
+      
+      let status = "Unknown";
+      let statusColor = "bg-gray-500";
+      
+      if (startDate && endDate) {
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        
+        if (today >= startDate && today <= endDate) {
+          status = "Active";
+          statusColor = "bg-green-500";
+        } else if (today > endDate) {
+          status = "Past";
+          statusColor = "bg-red-500";
+        } else if (today < startDate) {
+          status = "Coming Up";
+          statusColor = "bg-yellow-500";
+        }
+      }
+      
+      return { status, statusColor };
+    }, []
+  );
+
+  // Memoize column definitions
+  const columns: ColumnDef<Quest>[] = useMemo(() => [
     {
       accessorKey: "title",
       header: ({ column }) => {
@@ -76,30 +129,7 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       },
       cell: ({ row }) => {
         const quest = row.original;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const startDate = quest.dateRange?.from ? new Date(quest.dateRange.from) : null;
-        const endDate = quest.dateRange?.to ? new Date(quest.dateRange.to) : null;
-        
-        let status = "Unknown";
-        let statusColor = "bg-gray-500";
-        
-        if (startDate && endDate) {
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setHours(23, 59, 59, 999);
-          
-          if (today >= startDate && today <= endDate) {
-            status = "Active";
-            statusColor = "bg-green-500";
-          } else if (today > endDate) {
-            status = "Past";
-            statusColor = "bg-red-500";
-          } else if (today < startDate) {
-            status = "Coming Up";
-            statusColor = "bg-yellow-500";
-          }
-        }
+        const { status, statusColor } = getQuestStatus(quest);
         
         return (
           <div className="flex items-center gap-2">
@@ -130,14 +160,6 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
         if (!startDate) {
           return <div className="text-gray-400 text-sm ml-3">No start dates set</div>;
         }
-        
-        const formatDate = (dateStr: string | Date) => {
-          return new Date(dateStr).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          });
-        };
         
         return (
           <div className="text-sm text-gray-600 ml-3">
@@ -175,14 +197,6 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
           return <div className="text-gray-400 text-sm ml-3">No end dates set</div>;
         }
         
-        const formatDate = (dateStr: string | Date) => {
-          return new Date(dateStr).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          });
-        };
-        
         return (
           <div className="text-sm ml-3 text-gray-600">
             {formatDate(endDate)}
@@ -205,36 +219,50 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
 
         return (
           <div className="flex items-center justify-end gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/admin/quest-builder?edit=${quest.quest_id}`);
-              }}
-              className="flex items-center gap-1 hover:cursor-pointer"
-            >
-              <Edit className="h-4 w-4" />
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteQuest(quest.quest_id);
-              }}
-              className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:cursor-pointer"
-            >
-              <Trash className="h-4 w-4" />
-            </Button>
+            <LeaderboardModal
+              questId={quest.quest_id}
+              questTitle={quest.title}
+              isAdmin={isAdmin}
+              userId={userId}
+              userEmail={userEmail}
+              buttonVariant="default"
+              buttonSize="sm"
+              className="text-white"
+            />
+            {isAdmin && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    router.push(`/admin/quest-builder?edit=${quest.quest_id}`);
+                  }}
+                  className="flex items-center gap-1 hover:cursor-pointer"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteQuest(quest.quest_id);
+                  }}
+                  className="flex items-center gap-1 text-red-600 hover:text-red-700 hover:cursor-pointer"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              </>
+            )}
           </div>
         );
       },
     },
-  ];
+  ], [isAdmin, userId, formatDate, getQuestStatus, router, onDeleteQuest]);
 
-  // Initialize table
+  // Initialize table with memoized data
   const table = useReactTable({
     data: quests,
     columns,
@@ -251,9 +279,9 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
       columnVisibility,
     },
     initialState: {
-        pagination: {
-            pageSize: 6, // This sets the number of rows per page to 6
-        },
+      pagination: {
+        pageSize: 6, // Sets the number of rows per page to 6
+      },
     },
   });
 
@@ -312,6 +340,14 @@ export default function QuestsTable({ quests, onDeleteQuest }: QuestsTableProps)
               className={`hover:cursor-pointer ${table.getColumn("end_date")?.getIsVisible() ? "" : "opacity-50"}`}
             >
               End
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => table.getColumn("completions")?.toggleVisibility()}
+              className={`hover:cursor-pointer ${table.getColumn("completions")?.getIsVisible() ? "" : "opacity-50"}`}
+            >
+              Completions
             </Button>
           </div>
         </div>

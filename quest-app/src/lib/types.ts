@@ -246,8 +246,10 @@ export interface DynamoDBModelItem {
 
 // Leaderboard
 
-export type LeaderboardEntry = {
+export interface LeaderboardEntry {
   userId: string;
+  userEmail?: string;
+  timeTaken: number;
   completedAt: string;
-  timeTaken: number; // Time in milliseconds
-};
+  questId?: string;
+}
