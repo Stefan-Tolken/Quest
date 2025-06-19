@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     if (questProgress?.startTime) {
       const startTime = new Date(questProgress.startTime).getTime();
       const endTime = new Date(completedAt).getTime();
-      timeTaken = Math.trunc((endTime - startTime)/100); // Time taken in seconds
+      timeTaken = Math.trunc((endTime - startTime)/1000); // Time taken in seconds
     }
 
     // Update quest progress to mark as completed
