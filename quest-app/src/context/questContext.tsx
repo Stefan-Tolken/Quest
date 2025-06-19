@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import type { Quest, QuestContextType, QuestProgress } from '@/lib/types';
+import type { Quest, QuestContextType, QuestProgress, UserData } from '@/lib/types';
 
 // Extended context type with new functionality
 interface ExtendedQuestContextType extends QuestContextType {
@@ -375,6 +375,20 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         // Call complete-quest endpoint to save completion data to userData
+        // Get userId from localStorage or sessionStorage (adjust as needed)
+        let userId = localStorage.getItem('userId');
+        if (!userId && typeof window !== 'undefined') {
+          const oidcKey = Object.keys(sessionStorage).find(k => k.startsWith('oidc.user:'));
+          if (oidcKey) {
+            try {
+              const oidcUser = JSON.parse(sessionStorage.getItem(oidcKey) || '{}');
+              userId = oidcUser.profile?.sub || oidcUser.sub || '';
+            } catch {
+              console.error('Error parsing OIDC user from sessionStorage');
+            }
+          }
+        }
+
         const completeResponse = await fetch('/api/complete-quest', {
           method: 'POST',
           headers: {
@@ -382,6 +396,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
           body: JSON.stringify({
+            userId,
             questId: activeQuest.quest_id,
             collectedArtefactIds: collectedArtefactIds,
             questTitle: activeQuest.title,
