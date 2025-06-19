@@ -24,6 +24,7 @@ interface SubmitDialogProps {
   handleSubmit: () => void;
   handleViewArtefact: () => void;
   children?: React.ReactNode;
+  finalSubmission: boolean;
 }
 
 export default function SubmitDialog({
@@ -35,13 +36,18 @@ export default function SubmitDialog({
   handleSubmit,
   handleViewArtefact,
   children,
+  finalSubmission
 }: SubmitDialogProps) {
     const isControlled = typeof open !== 'undefined';
     const { 
         activeQuest,
+        progress,
         submitArtefact: questSubmitArtefact,
         isNextSequential
     } = useQuest();
+
+    const artefactLength = activeQuest?.artefacts.length;
+    const currentArtefactLength = progress?.collectedArtefactIds.length; 
 
   return (
     <Dialog
@@ -56,26 +62,24 @@ export default function SubmitDialog({
 
       <DialogContent className="sm:max-w-md">
         <DialogHeader className="mb-4">
-          <DialogTitle className="text-xl">Ready to Submit?</DialogTitle>
+          <DialogTitle className="text-xl">
+            {finalSubmission ? "Well Done!" : submitStatus === 'error' || submitStatus === 'already' ? "Oops!" : submitStatus === 'success' ? "Nice Job!" : "Ready to Submit?"}
+          </DialogTitle>
           <DialogDescription>
-            This artefact can be submitted to your active quest. Make sure you're happy with it — submissions are final!
+            {finalSubmission ? 
+              "You can head over to the completed Quests section to view your prize." : 
+              submitStatus === 'error' ? "This seems to be the wrong artefact for this part of the Quest." :
+              submitStatus === 'already' ? "This Artefact has already been submitted to this quest" :
+              submitStatus === 'success' ? "You submitted the correct Artefact." :
+              "This artefact can be submitted to your active quest."
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4 text-sm text-muted-foreground">
-          <p>
-            Submitting this artefact will mark it as part of your progress in <strong>your current quest</strong>.
-          </p>
-
-          {!submitStatus && scanResult && !isNextSequential(scanResult) && (
-            <div className="glass rounded-lg p-3 !bg-yellow-200/40">
-              This may not be the correct artefact for the current step in your quest.
-            </div>
-          )}
-
           {submitStatus === 'success' && (
             <div className="glass rounded-lg p-3 !bg-green-200/40">
-              Artefact submitted!
+              {finalSubmission ? "Quest Completed!" : "Artefact submitted!"}
             </div>
           )}
 

@@ -16,11 +16,13 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [viewArtefact, setViewArtefact] = useState(false);
+  const [finalSubmission, setFinalSubmission] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle'|'success'|'error'|'already'|null>(null);
   const { showToast } = useToast();
   const { 
     activeQuest,
     submitArtefact: questSubmitArtefact,
+    progress,
     isNextSequential
   } = useQuest();
 
@@ -55,13 +57,6 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
     setSwipeEnabled(true);
   };
 
-  const detailPosition = {
-      top: '50%',
-      left: '50%',
-      width: 0,
-      height: 0
-  };
-
   useEffect(() => {
     setIsScannerActive(true);
     return () => setIsScannerActive(false);
@@ -71,16 +66,28 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
 
   const handleViewArtefact = () => {
     setViewArtefact(true);
+    setFinalSubmission(false);
   };
+
+  const handleClose = () => {
+    setScanResult(null);
+    setFinalSubmission(false);
+  }
 
   const handleSubmit = async () => {
     if (!activeQuest || !scanResult) return;
     setSubmitStatus(null);
+
+    const artefactLength = activeQuest.artefacts.length;
+    const currentArtefactLength = progress?.collectedArtefactIds.length;    
     
     try {
       const result = await questSubmitArtefact(scanResult);
       
       if (result.success) {
+        if (currentArtefactLength + 1 >= artefactLength) {
+          setFinalSubmission(true);
+        }
         setSubmitStatus(result.status);
       } else {
         setSubmitStatus('error');
@@ -112,17 +119,18 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
         </main>
       </div>
       ) : (<></>)}
-      {activeQuest && !viewArtefact ? (
+      {(activeQuest && !viewArtefact) || finalSubmission ? (
         <>
           <SubmitDialog
             open={scanResult !== null}
-            onClose={() => setScanResult(null)}
+            onClose={handleClose}
             scanResult={scanResult}
             submitStatus={submitStatus}
             message={message}
             activeQuest={activeQuest}
             handleSubmit={handleSubmit}
             handleViewArtefact={handleViewArtefact}
+            finalSubmission={finalSubmission}
           />
         </>
       ) : (
