@@ -8,6 +8,16 @@ import Link from 'next/link';
 import React from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from '@/components/ui/dialog';
 
 const ProfilePage = () => {
   const { user } = useAuthState();
@@ -15,8 +25,6 @@ const ProfilePage = () => {
   
   const email = user?.profile?.email || "No email available";
   const name = user?.profile?.name || user?.profile?.preferred_username || "Student";
-  const artefactsCollected = userData?.artefacts_collected.length;
-  const questsCompleted = userData?.completed_quests.length;
   const isAdmin = Array.isArray(user?.profile?.["cognito:groups"]) ? user.profile["cognito:groups"].includes("Admin") : false;
   
   // Show loading state while user data is being fetched/created
@@ -65,12 +73,6 @@ const ProfilePage = () => {
             <h1 className="text-2xl font-bold text-foreground">{name}</h1>
             <p className="text-foreground">{email}</p>
             
-            {/* Display user data info */}
-            <div className="text-sm text-foreground text-center">
-              <p>Artefacts collected: {artefactsCollected}</p>
-              <p>Quests completed: {questsCompleted}</p>
-            </div>
-            
             <div className="flex flex-col gap-3 w-full">
               {isAdmin && (
                 <Link 
@@ -82,6 +84,29 @@ const ProfilePage = () => {
                 </Link>
               )}
               <AuthButton />
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="glassDestructive">Delete Account</Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Delete Account?</DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to delete your account? This action can not be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="flex flex-row justify-end gap-2">
+                    <DialogClose asChild>
+                      <Button className="flex-1" type="button" variant="glass">
+                        Cancel
+                      </Button>
+                    </DialogClose>
+                    <Button className="flex-1" type="button" variant="glassDestructive">
+                      Delete
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>

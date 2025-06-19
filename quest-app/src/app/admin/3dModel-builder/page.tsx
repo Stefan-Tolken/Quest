@@ -1,9 +1,9 @@
 "use client";
 
 import AuthGuard from "@/components/authGuard";
-import { Suspense, useRef, useState, useEffect } from "react";
+import { Suspense, useRef, useState, useEffect, useCallback } from "react";
 import { Canvas, useFrame, useLoader, useThree, ThreeEvent } from "@react-three/fiber";
-import { OrbitControls, Html, useProgress, SpotLight} from "@react-three/drei";
+import { OrbitControls, Html } from "@react-three/drei";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
 import { v4 as uuidv4 } from "uuid";
@@ -14,6 +14,9 @@ import { ArrowLeft, Upload, Edit3, Plus, Trash2, Save, Loader2, Edit, X, Setting
 import { useRouter } from "next/navigation";
 import { ModelObject } from "@/lib/types";
 import SuccessPopup from "@/components/ui/SuccessPopup";
+import { useNavigationGuardContext } from "@/context/NavigationGuardContext";
+import { usePathname } from "next/navigation";
+import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 
 type CircleData = {
@@ -222,7 +225,6 @@ function MeshComponent({ gltfUrl, circles, setCircles, selectedIdx, setSelectedI
 }
 
 function Loader() {
-  const { progress } = useProgress();
   return (
     <Html center>
       <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md">
@@ -243,15 +245,106 @@ export default function ThreeDModelBuilderPage() {
     const [ambientIntensity, setAmbientIntensity] = useState(5);
     const [showEditOverlay, setShowEditOverlay] = useState(false);
     const [models, setModels] = useState<{ id: string, name: string }[]>([]);
-    const [selectedModelId, setSelectedModelId] = useState<string>("");
     const [showError, setShowError] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isTextModalOpen, setIsTextModalOpen] = useState(false);
     const [modalText, setModalText] = useState("");
     const [modalPointIdx, setModalPointIdx] = useState<number | null>(null);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [showExitConfirmation, setShowExitConfirmation] = useState(false);
+    const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const router = useRouter();
+
+    const { registerGuard, unregisterGuard } = useNavigationGuardContext();
+    const pathname = usePathname();
+    
+    // Determine if we should block navigation
+    const shouldBlock = 
+        modelName.trim() !== '' || 
+        uploadedFile !== null || 
+        circles.length > 0;
+    
+    // Register/unregister the navigation guard
+    useEffect(() => {
+        registerGuard(shouldBlock, pathname);
+        
+        return () => {
+            unregisterGuard();
+        };
+    }, [shouldBlock, pathname, registerGuard, unregisterGuard]);
+
+    useEffect(() => {
+        const handleNavigationAttempt = (event: CustomEvent) => {
+            if (shouldBlock) {
+                setShowExitConfirmation(true);
+                setPendingNavigationPath(event.detail.targetPath);
+            } else if (event.detail.targetPath) {
+                router.push(event.detail.targetPath);
+            }
+        };
+
+        // Add event listener
+        window.addEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+        
+        return () => {
+            window.removeEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
+        };
+    }, [shouldBlock, router]);
+
+    // Handle confirmation dialog responses
+    const handleConfirmExit = useCallback(() => {
+        setShowExitConfirmation(false);
+        
+        // If we have a pending navigation path, navigate to it
+        if (pendingNavigationPath) {
+            router.push(pendingNavigationPath);
+            setPendingNavigationPath(null);
+        } else {
+            // Resolve the pending navigation promise for the context-based navigation
+            if ((window as any).pendingNavigationResolve) {
+                (window as any).pendingNavigationResolve(true);
+                delete (window as any).pendingNavigationResolve;
+            }
+        }
+    }, [pendingNavigationPath, router]);
+
+    const handleCancelExit = useCallback(() => {
+        setShowExitConfirmation(false);
+        setPendingNavigationPath(null);
+        
+        // Resolve the pending navigation promise with false
+        if ((window as any).pendingNavigationResolve) {
+            (window as any).pendingNavigationResolve(false);
+            delete (window as any).pendingNavigationResolve;
+        }
+    }, []);
+
+    // Existing fetch models effect
+    useEffect(() => {
+        if (showEditOverlay) {
+            fetch("/api/get-3dModels")
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setModels(data.map((m: any) => ({ id: m.id, name: m.name })));
+                    } else if (Array.isArray(data.models)) {
+                        setModels(data.models.map((m: any) => ({ id: m.id, name: m.name })));
+                    }
+                });
+        }
+    }, [showEditOverlay]);
+
+    // Modified back to admin function to use navigation guard
+    const handleBackToAdmin = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (shouldBlock) {
+            setShowExitConfirmation(true);
+            setPendingNavigationPath("/admin");
+        } else {
+            router.push("/admin");
+        }
+    };
 
     // Fetch models when overlay is opened
     useEffect(() => {
@@ -393,7 +486,7 @@ export default function ThreeDModelBuilderPage() {
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => router.push("/admin")}
+                            onClick={handleBackToAdmin}
                             className="flex items-center gap-2 hover:cursor-pointer"
                         >
                             <ArrowLeft className="h-4 w-4" />
@@ -665,6 +758,18 @@ export default function ThreeDModelBuilderPage() {
                         </div>
                     </div>
                 )}
+
+                {/* Exit Confirmation Dialog */}
+                <ConfirmationDialog
+                    isOpen={showExitConfirmation}
+                    onClose={handleCancelExit}
+                    onConfirm={handleConfirmExit}
+                    title="Leave 3D Model Builder?"
+                    message="You have unsaved changes. If you leave now, your progress will be lost and nothing will be saved."
+                    confirmText="Leave Page"
+                    cancelText="Stay Here"
+                    variant="warning"
+                />
             </div>
         </AuthGuard>
     );

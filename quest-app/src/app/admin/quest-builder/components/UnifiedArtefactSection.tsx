@@ -107,7 +107,7 @@ export const UnifiedArtefactSection = ({
       </div>
 
       {/* Fixed height container to prevent layout shifts */}
-      <div className="min-h-[400px] space-y-4">
+      <div className="space-y-4">
         
         {/* Search Section - Fixed height when visible */}
         {showSearch && (

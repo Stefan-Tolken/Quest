@@ -22,7 +22,7 @@ const buttonVariants = cva(
         subtle:
           "text-primary-background",
         link: 
-          "text-primary underline-offset-4 hover:underline",
+          "text-primary underline-offset-4 hover:bg-black/10 hover:cursor-pointer",
         glass:
           "glass",
         glassDark:

@@ -40,6 +40,77 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
     imageUrl: "",
     organization: "",
   });
+  const [showDateTips, setShowDateTips] = useState(false);
+
+  // Smart preposition selector based on date format
+  const getDatePreposition = (date: string): string => {
+    if (!date || date === "unknown") return "on";
+    
+    const lowerDate = date.toLowerCase().trim();
+    
+    // Check for century patterns
+    if (lowerDate.includes("century") || lowerDate.includes("centuries")) {
+      return "in the";
+    }
+    
+    // Check for decade patterns (1990s, 2000s, etc.)
+    if (lowerDate.match(/\b\d{4}s\b/) || lowerDate.includes("decade")) {
+      return "in the";
+    }
+    
+    // Check for year ranges (1990-1995, 2000 to 2005, etc.)
+    if (lowerDate.match(/\d{4}\s*[-–—to]\s*\d{4}/) || lowerDate.includes(" to ")) {
+      return "between";
+    }
+    
+    // Check for periods/eras
+    if (lowerDate.includes("period") || lowerDate.includes("era") || 
+        lowerDate.includes("early") || lowerDate.includes("late") || 
+        lowerDate.includes("mid")) {
+      return "in the";
+    }
+    
+    // Check for seasons with year (Spring 2024, Winter 1995)
+    if (lowerDate.match(/\b(spring|summer|fall|autumn|winter)\s+\d{4}/)) {
+      return "in";
+    }
+    
+    // Check for month/year combinations (March 2024, January 1995)
+    if (lowerDate.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{4}/)) {
+      return "in";
+    }
+    
+    // Check for just years (2024, 1995)
+    if (lowerDate.match(/^\d{4}$/)) {
+      return "in";
+    }
+    
+    // Check for approximate dates (circa, around, about)
+    if (lowerDate.includes("circa") || lowerDate.includes("around") || 
+        lowerDate.includes("about") || lowerDate.includes("approximately")) {
+      return "in";
+    }
+    
+    // Default to "on" for specific dates (March 15, 2024, etc.)
+    return "on";
+  };
+
+  // Generate the restoration sentence with proper grammar
+  const generateRestorationSentence = (restoration: RestorationStep): string => {
+    const name = restoration.name || "[Restoration name]";
+    const organization = restoration.organization || "[Organization]";
+    const date = restoration.date;
+    const description = restoration.description || "[Description will appear here]";
+    
+    if (date === "unknown") {
+      return `${name} was done by ${organization} on an unknown date. ${description}`;
+    }
+    
+    const preposition = getDatePreposition(date);
+    const dateText = date || "[Date]";
+    
+    return `${name} was done by ${organization} ${preposition} ${dateText}. ${description}`;
+  };
 
   // Fix the infinite loop by adding proper dependency checks
   useEffect(() => {
@@ -80,6 +151,7 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
   const closeModal = () => {
     setShowAddModal(false);
     setEditingRestoration(null);
+    setShowDateTips(false); // Reset tips when closing modal
     setFormData({
       id: "",
       name: "",
@@ -211,19 +283,34 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                     </div>
                   </div>
 
-                  {/* Restoration Sentence */}
+                  {/* Restoration Sentence with Smart Grammar */}
                   <p className="text-sm text-gray-700 mb-3">
-                    <span className="font-medium">{restoration.name || "[Restoration name]"}</span>
-                    {" was done by the "}
-                    <span className="font-medium">{restoration.organization || "[Organization]"}</span>
-                    {" on "}
-                    <span className="font-medium">
-                      {restoration.date === "unknown" ? "an unknown date" : (restoration.date || "[Date]")}
-                    </span>
-                    {". "}
-                    <span className="text-gray-600">
-                      {restoration.description || "[Description will appear here]"}
-                    </span>
+                    {generateRestorationSentence(restoration).split('.').map((sentence, idx, arr) => (
+                      <span key={idx}>
+                        {idx === 0 ? (
+                          // First sentence with proper styling
+                          sentence.split(' ').map((word, wordIdx, words) => {
+                            const isName = wordIdx < words.findIndex(w => w === 'was');
+                            const isOrg = wordIdx > words.findIndex(w => w === 'by') && 
+                                         wordIdx < words.findIndex(w => ['on', 'in', 'between'].some(prep => w.includes(prep)));
+                            const isDate = wordIdx > words.findIndex(w => ['on', 'in', 'between'].some(prep => w.includes(prep)));
+                            
+                            if (isName && word !== 'was') {
+                              return <span key={wordIdx} className="font-medium">{word} </span>;
+                            } else if (isOrg && !['was', 'done', 'by'].includes(word)) {
+                              return <span key={wordIdx} className="font-medium">{word} </span>;
+                            } else if (isDate && !['on', 'in', 'between', 'the', 'an', 'unknown'].includes(word)) {
+                              return <span key={wordIdx} className="font-medium">{word} </span>;
+                            }
+                            return <span key={wordIdx}>{word} </span>;
+                          })
+                        ) : (
+                          // Remaining sentences
+                          <span className="text-gray-600">{sentence}</span>
+                        )}
+                        {idx < arr.length - 1 && '. '}
+                      </span>
+                    ))}
                   </p>
 
                   {/* Image */}
@@ -258,15 +345,31 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                   <span className="text-xs font-medium text-red-600">{index + 1}</span>
                 </div>
                 <p className="text-gray-700">
-                  <span className="font-medium text-gray-900">{restoration.name}</span>
-                  {" was done by the "}
-                  <span className="font-medium text-gray-900">{restoration.organization}</span>
-                  {" on "}
-                  <span className="font-medium text-gray-900">
-                    {restoration.date === "unknown" ? "an unknown date" : restoration.date}
-                  </span>
-                  {". "}
-                  {restoration.description}
+                  {generateRestorationSentence(restoration).split('.').map((sentence, idx, arr) => (
+                    <span key={idx}>
+                      {idx === 0 ? (
+                        // First sentence with styling
+                        sentence.split(' ').map((word, wordIdx, words) => {
+                          const isName = wordIdx < words.findIndex(w => w === 'was');
+                          const isOrg = wordIdx > words.findIndex(w => w === 'by') && 
+                                       wordIdx < words.findIndex(w => ['on', 'in', 'between'].some(prep => w.includes(prep)));
+                          const isDate = wordIdx > words.findIndex(w => ['on', 'in', 'between'].some(prep => w.includes(prep)));
+                          
+                          if (isName && word !== 'was') {
+                            return <span key={wordIdx} className="font-medium text-gray-900">{word} </span>;
+                          } else if (isOrg && !['was', 'done', 'by'].includes(word)) {
+                            return <span key={wordIdx} className="font-medium text-gray-900">{word} </span>;
+                          } else if (isDate && !['on', 'in', 'between', 'the', 'an', 'unknown'].includes(word)) {
+                            return <span key={wordIdx} className="font-medium text-gray-900">{word} </span>;
+                          }
+                          return <span key={wordIdx}>{word} </span>;
+                        })
+                      ) : (
+                        sentence
+                      )}
+                      {idx < arr.length - 1 && '. '}
+                    </span>
+                  ))}
                 </p>
               </div>
             ))}
@@ -297,21 +400,35 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
               <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <p className="text-sm font-medium text-gray-700 mb-2">Live Preview:</p>
                 <p className="text-gray-800">
-                  <span className={formData.name ? "font-semibold text-gray-900" : "text-gray-400"}>
-                    {formData.name || "[Restoration Name]"}
-                  </span>
-                  {" was done by "}
-                  <span className={formData.organization ? "font-semibold text-gray-900" : "text-gray-400"}>
-                    {formData.organization || "[Organization]"}
-                  </span>
-                  {" on "}
-                  <span className={formData.date ? "font-semibold text-gray-900" : "text-gray-400"}>
-                    {formData.date === "unknown" ? "an unknown date" : (formData.date || "[Date]")}
-                  </span>
-                  {". "}
-                  <span className={formData.description ? "text-gray-700" : "text-gray-400"}>
-                    {formData.description || "[Description will appear here]"}
-                  </span>
+                  {generateRestorationSentence(formData).split('.').map((sentence, idx, arr) => (
+                    <span key={idx}>
+                      {idx === 0 ? (
+                        // First sentence with conditional styling
+                        sentence.split(' ').map((word, wordIdx, words) => {
+                          const isName = wordIdx < words.findIndex(w => w === 'was');
+                          const isOrg = wordIdx > words.findIndex(w => w === 'by') && 
+                                       wordIdx < words.findIndex(w => ['on', 'in', 'between'].some(prep => w.includes(prep)));
+                          const isDate = wordIdx > words.findIndex(w => ['on', 'in', 'between'].some(prep => w.includes(prep)));
+                          
+                          if (isName && word !== 'was' && !word.includes('[')) {
+                            return <span key={wordIdx} className="font-semibold text-gray-900">{word} </span>;
+                          } else if (isOrg && !['was', 'done', 'by'].includes(word) && !word.includes('[')) {
+                            return <span key={wordIdx} className="font-semibold text-gray-900">{word} </span>;
+                          } else if (isDate && !['on', 'in', 'between', 'the', 'an', 'unknown'].includes(word) && !word.includes('[')) {
+                            return <span key={wordIdx} className="font-semibold text-gray-900">{word} </span>;
+                          } else if (word.includes('[') && word.includes(']')) {
+                            return <span key={wordIdx} className="text-gray-400">{word} </span>;
+                          }
+                          return <span key={wordIdx}>{word} </span>;
+                        })
+                      ) : (
+                        <span className={sentence.includes('[') ? "text-gray-400" : "text-gray-700"}>
+                          {sentence}
+                        </span>
+                      )}
+                      {idx < arr.length - 1 && '. '}
+                    </span>
+                  ))}
                 </p>
               </div>
 
@@ -355,7 +472,7 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                       type="text"
                       value={formData.date === "unknown" ? "" : formData.date}
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      placeholder="e.g., 1995, March 2024, 19th century"
+                      placeholder="e.g., 1995, March 2024, 19th century, 1990s, 1990-1995"
                       disabled={formData.date === "unknown"}
                       className="flex-1 h-10 px-3 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-500"
                     />
@@ -372,6 +489,71 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                       Unknown date
                     </label>
                   </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowDateTips(!showDateTips)}
+                      className="flex items-center gap-1.5 px-2 py-1 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md transition-colors"
+                    >
+                      <svg 
+                        className={`w-3 h-3 transition-transform ${showDateTips ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                      Date format examples
+                    </button>
+                  </div>
+                  
+                  {showDateTips && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100 animate-in slide-in-from-top-2 duration-200">
+                      <div className="flex items-start gap-2 mb-2">
+                        <div className="flex-shrink-0 w-4 h-4 bg-blue-100 rounded-full flex items-center justify-center mt-0.5">
+                          <div className="w-1.5 h-1.5 bg-blue-600 rounded-full"></div>
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-blue-900">Smart Grammar Examples</p>
+                          <p className="text-xs text-blue-700 mt-1">The preposition will be chosen automatically based on your date format</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div className="grid grid-cols-1 gap-1.5 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">March 15, 2024</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;on&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">1902-08-12</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;on&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">1995</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;in&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">19th century</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;in the&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">1990s</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;in the&quot;</strong></span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono bg-white px-2 py-1 rounded border text-gray-700 min-w-0 flex-shrink-0">1990-1995</span>
+                            <span className="text-blue-600">→</span>
+                            <span className="text-blue-800">uses <strong>&quot;between&quot;</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
