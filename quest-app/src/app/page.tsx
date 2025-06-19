@@ -112,13 +112,13 @@ export default function Home() {
       setShowScrollIndicator(true);
     }, 3000);
 
-    // Create scroll smoother
+    // Create scroll smoother with snappier settings
     const smoother = ScrollSmoother.create({
       wrapper: "#smooth-wrapper",
       content: "#smooth-content",
-      smooth: 1.2,
+      smooth: 0.5, // Reduced from 1.2 for snappier response
       effects: true,
-      smoothTouch: 0.1,
+      smoothTouch: 0.05, // Reduced from 0.1 for more immediate touch response
       onUpdate: () => ScrollTrigger.update(),
     });
 
@@ -129,26 +129,28 @@ export default function Home() {
       gsap.timeline({
         scrollTrigger: {
           trigger: el,
-          scrub: true,
+          scrub: 0.5, // Reduced from true for snappier animations
           start: 'top bottom',
           end: 'bottom top',
           invalidateOnRefresh: true,
         },
       })
-      .fromTo(el, { opacity: 0, x: '100%' }, { opacity: 1, x: 0, duration: 1 })
-      .to(el, { opacity: 0, x: '100%', duration: 1 });
+      .fromTo(el, { opacity: 0, x: '100%' }, { opacity: 1, x: 0, duration: 0.5 }) // Faster duration
+      .to(el, { opacity: 0, x: '100%', duration: 0.5 }); // Faster duration
     });
 
-    // Snap logic
+    // Snap logic with more aggressive snapping
     ScrollTrigger.create({
       trigger: ".main",
       start: "top top",
       end: () => `+=${(sectionRefs.current.length) * window.innerHeight}`,
-      scrub: true,
+      scrub: 0.5, // Reduced from true for snappier response
       snap: {
         snapTo: 1 / sectionRefs.current.length,
-        duration: 1.5,
-        ease: "power1.out",
+        duration: 0.6, // Reduced from 1.5 for faster snapping
+        delay: 0, // No delay for immediate response
+        ease: "power2.inOut", // Changed from power1.out for snappier feel
+        directional: false, // Snap to nearest section regardless of direction
       },
       invalidateOnRefresh: true,
     });
@@ -279,10 +281,10 @@ export default function Home() {
                       {/* Scroll indicator - only shows on first section after 3 seconds */}
                       {i === 0 && showScrollIndicator && (
                         <div className="absolute bottom-50 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none">
-                          <div className="flex flex-col items-center text-white/80 animate-bounce">
+                          <div className="flex flex-col items-center text-white/60 animate-bounce">
                             <span className="text-xs font-light tracking-wider uppercase mb-2">Scroll to explore</span>
-                            <div className="w-px h-8 bg-white/60"></div>
-                            <div className="w-2 h-2 bg-white/80 rounded-full mt-1"></div>
+                            <div className="w-px h-8 bg-white/40"></div>
+                            <div className="w-2 h-2 bg-white/60 rounded-full mt-1"></div>
                           </div>
                         </div>
                       )}
