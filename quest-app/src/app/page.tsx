@@ -7,13 +7,16 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react"
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollSmoother } from "gsap/ScrollSmoother";
+import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { Canvas, useFrame, useLoader, useThree } from "@react-three/fiber";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
 import Image from "next/image"
 
+
+
 // Register GSAP plugins
-gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
+gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
 // Separated Model component with its own animation logic
 function Model() {
@@ -25,6 +28,7 @@ function Model() {
     
     // Initialize the model when it's loaded
     useEffect(() => {
+      
       if (mesh.current && gltf.scene) {
         // Set initial rotation
         mesh.current.rotation.y = 0;
@@ -47,9 +51,13 @@ function Model() {
     
     // Add scroll-based rotation only after model is ready
     useGSAP(() => {
+      
       if (mesh.current && isReady) {
         // Create the scroll animation with a slight delay
-        const tl = gsap.timeline({
+        
+        gsap.to(mesh.current.rotation, {
+          y: Math.PI * 2, // Full 360° rotation
+          ease: "power1.inOut", // Smoother easing for the model rotation
           scrollTrigger: {
             trigger: ".main",
             start: "top top",
@@ -57,11 +65,6 @@ function Model() {
             scrub: true,
             invalidateOnRefresh: true, // Important for recalculating on refresh
           },
-        });
-        
-        tl.to(mesh.current.rotation, {
-          y: Math.PI * 2, // Full 360° rotation
-          ease: "power1.inOut", // Smoother easing for the model rotation
         });
       }
     }, [isReady]);
@@ -81,6 +84,7 @@ export default function Home() {
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
+
   // Handle completion of the intro video
   const handleVideoEnd = () => {
     setFadeOut(true);
@@ -92,15 +96,15 @@ export default function Home() {
         setCanvasReady(true);
         
         // Force multiple refreshes to ensure everything is calculated correctly
-        requestAnimationFrame(() => {
-          ScrollTrigger.refresh();
+        // requestAnimationFrame(() => {
+        //   ScrollTrigger.refresh();
           
-          // Do another refresh after a frame
-          requestAnimationFrame(() => {
-            ScrollTrigger.refresh();
-          });
-        });
-      }, 500); // Give canvas time to render
+        //   // Do another refresh after a frame
+        //   requestAnimationFrame(() => {
+        //     ScrollTrigger.refresh();
+        //   });
+        // });
+      }, 1); // Give canvas time to render
     }, 1000);
   };
 
@@ -114,45 +118,59 @@ export default function Home() {
     }, 3000);
 
     // Create scroll smoother with buttery smooth settings
-    const smoother = ScrollSmoother.create({
-      wrapper: "#smooth-wrapper",
-      content: "#smooth-content",
-      smooth: 1.5, // Increased for silky smooth scrolling
-      effects: true,
-      smoothTouch: 0.3, // Smooth touch response
-      onUpdate: () => ScrollTrigger.update(),
-      normalizeScroll: true, // Helps with consistent scroll behavior across devices
-    });
-
-    // Apply animations to sections
+          // Apply animations to sections
     sectionRefs.current.forEach((el, i) => {
       if (!el) return;
 
-      gsap.timeline({
+      // Entrance animation (scroll in)
+      gsap.fromTo(
+        el,
+        { opacity: 0, y:0},
+        {
+          opacity: 1,
+          y: 0,
+          x: 0,
+          duration: 0.4,
+          ease: "power2.inOut",
+          scrollTrigger: {
+            trigger: el,
+            start: 'top 80%',
+            end: 'center center',
+            scrub: true,
+            invalidateOnRefresh: true,
+          },
+        }
+      );
+
+      // Exit animation (scroll out)
+      gsap.fromTo(el,
+        {opacity: 1, y:0}, {
+        y: 0,
+        opacity: 0,
+        duration: 0.4,
+        ease: "power2.inOut",
         scrollTrigger: {
           trigger: el,
-          scrub: 1, // Smoother scrub for fluid animations
-          start: 'top bottom',
+          start: 'center center',
           end: 'bottom top',
+          scrub: true,
           invalidateOnRefresh: true,
         },
-      })
-      .fromTo(el, { opacity: 0, x: '100%' }, { opacity: 1, x: 0, duration: 0.8, ease: "power2.out" })
-      .to(el, { opacity: 0, x: '100%', duration: 0.8, ease: "power2.in" });
+      });
     });
 
     // Snap logic with smooth but decisive behavior
     ScrollTrigger.create({
       trigger: ".main",
       start: "top top",
-      end: () => `+=${(sectionRefs.current.length) * window.innerHeight}`,
+      end: () => `+=${(sectionRefs.current.length) * (window.visualViewport?.height ?? window.innerHeight)}`,
       scrub: 1, // Smoother scrub value
       snap: {
-        snapTo: 1 / sectionRefs.current.length,
+        snapTo: 1 / (sectionRefs.current.length),
         duration: 0.8, // Smooth snap duration
         delay: 0, // Instant decision making
-        ease: "power2.inOut", // Smooth symmetric easing
-        directional: false,
+        ease: "power2.InOut", // Smooth symmetric easing
+        directional: true,
         inertia: false, // Disable inertia for quicker decisions
       },
       invalidateOnRefresh: true,
@@ -160,10 +178,12 @@ export default function Home() {
 
     gsap.fromTo(
       ".footer",
-      { y: 100, opacity: 0 },
+      { y: 0,opacity: 0 },
       {
-        y: 0,
+        y:0,
+        duration: 2,
         opacity: 1,
+        ease: "power2.out",
         scrollTrigger: {
           trigger: ".footer",
           start: "top bottom",
@@ -177,10 +197,10 @@ export default function Home() {
     // Clean up on unmount
     return () => {
       clearTimeout(timer);
-      smoother.kill();
-      ScrollTrigger.getAll().forEach(st => st.kill());
     };
+  
   }, [videoDone, canvasReady]);
+  
 
   const descriptions = [
     {
@@ -201,7 +221,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="relative">
+    <div className="relative ">
       {/* Video overlay */}
       {!videoDone && (
         <video
@@ -219,7 +239,7 @@ export default function Home() {
       {/* 3D Canvas Background */}
       <div 
         ref={canvasContainerRef}
-        className={`fixed top-0 left-0 -z-10 w-full h-full pointer-events-none transition-opacity duration-500
+        className={`fixed top-0 left-0 w-full h-full pointer-events-none opacity-0 transition-opacity duration-1000
           ${videoDone ? "opacity-100" : "opacity-0"}`}
       >
         <Canvas 
@@ -234,9 +254,10 @@ export default function Home() {
             // Force initial render
             gl.render(scene, gl.xr.getCamera());
           }}
+          className="w-screen h-screen block"
         >
           <ambientLight intensity={2.5} />
-          <directionalLight position={[10, 10, 5]} intensity={2} />
+          <directionalLight position={[10, 10, 5]} intensity={5} />
           <Model />
         </Canvas>
         <div className="absolute inset-0 bg-black/40" />
@@ -244,16 +265,13 @@ export default function Home() {
       
       {/* Main content */}
       <div
-        className={`min-h-screen w-full flex flex-col items-center justify-center sm:px-6 transition-opacity duration-1000 overflow-x-hidden
+        className={`min-h-screen w-full flex flex-col items-center justify-center sm:px-6 overflow-x-hidden
           ${videoDone ? "opacity-100" : "opacity-0 pointer-events-none"}`}
       >
-        <div className="-z-20">
-          <CameraBackground />
-        </div>
-        <div id="smooth-wrapper" className="w-full">
-          <div id="smooth-content" className="w-full">
-            <main className="main flex flex-col items-center justify-center max-w-xl z-10 w-full min-h-screen">
-              {descriptions.map((desc, i) => (
+        <CameraBackground />
+        <main className="main flex flex-col items-center justify-center max-w-xl w-full min-h-screen">
+          
+          {descriptions.map((desc, i) => (
                 <React.Fragment key={i}>
                   <div className="h-full w-full flex items-center justify-center min-h-screen relative">
                     <section
@@ -283,8 +301,8 @@ export default function Home() {
                       
                       {/* Scroll indicator - only shows on first section after 3 seconds */}
                       {i === 0 && showScrollIndicator && (
-                        <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none">
-                          <div className="flex flex-col items-center text-white/60 animate-bounce">
+                        <div className="absolute bottom-50 left-1/2 transform -translate-x-1/2 z-30 pointer-events-none">
+                          <div className="flex flex-col items-center text-white animate-bounce">
                             <span className="text-xs font-light tracking-wider uppercase mb-2">Scroll to explore</span>
                             <div className="w-px h-8 bg-white/40"></div>
                             <div className="w-2 h-2 bg-white/60 rounded-full mt-1"></div>
@@ -299,18 +317,25 @@ export default function Home() {
                 </React.Fragment>
               ))}
               {/* Blank div after the sections for scroll space, height set to viewport */}
-              <div className="w-full max-w-full h-[80vh]" />
-            </main>
+              
+
+
+        </main>
+
+
+
+
+        {/* ----------------------- */}
             
             {/* Footer fixed at the bottom */}
-            <footer className="footer flex flex-col gap-4 w-full bottom-0 left-0 p-4 sm:p-6 text-background/70 text-xs sm:text-sm text-center z-50 pointer-events-none">
+            <footer className="footer flex flex-col gap-4 w-full h-[100vh] bottom-0 left-0 p-4 sm:p-6 text-background/70 text-xs sm:text-sm text-center z-50 pointer-events-none">
               <div className="w-full h-full">
                 <Image
-                  src={"/3dModel_Landing/QuestLogoWhite.svg"}
+                  src="/3dModel_Landing/QuestLogoWhite.svg"
                   alt="Artifact Image"
                   width={1280}
                   height={720}
-                  className="rounded-lg object-cover w-full h-auto"
+                  className="rounded-lg object-contain w-full max-w-[320px] sm:max-w-[480px] md:max-w-[640px] place-self-center"
                   sizes="(max-width: 640px) 95vw, 100vw"
                 />
               </div>
@@ -322,8 +347,6 @@ export default function Home() {
                 &copy; {new Date().getFullYear()} Quest &mdash; Where History Meets Adventure
               </p>
             </footer>
-          </div>
-        </div>
       </div>
     </div>
   );
