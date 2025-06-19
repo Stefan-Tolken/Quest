@@ -25,6 +25,7 @@ export default function ArtefactDetail({
   const [artefact, setArtefact] = useState<Artefact | null>(null);
   const [loading, setLoading] = useState(false);
   const [finalSubmission, setFinalSubmission] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitStatus, setSubmitStatus] = useState<'idle'|'success'|'error'|'already'|null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -112,6 +113,7 @@ export default function ArtefactDetail({
   };
 
   const handleDialogClose = () => {
+    setDialogOpen(false);
     setFinalSubmission(false);
     setSubmitStatus(null);
   }
@@ -173,6 +175,7 @@ export default function ArtefactDetail({
           </Button>
           {activeQuest || finalSubmission ? (
             <SubmitDialog
+              open={dialogOpen}
               onClose={handleDialogClose}
               scanResult={artefactId}
               submitStatus={submitStatus}
@@ -182,7 +185,7 @@ export default function ArtefactDetail({
               handleViewArtefact={handleViewArtefact}
               finalSubmission={finalSubmission}
             >
-              <Button variant="glassDark">Submit Artefact</Button>
+              <Button onClick={() => setDialogOpen(true)} variant="glassDark">Submit Artefact</Button>
             </SubmitDialog>
           ) : (<></>)}
         </div>
