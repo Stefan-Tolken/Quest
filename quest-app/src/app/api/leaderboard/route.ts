@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     const userIds = [...new Set(leaderboard.map(entry => entry.userId))];
     
     // Batch get user data to fetch emails
-    let userEmails: Record<string, string> = {};
+    const userEmails: Record<string, string> = {};
     
     if (userIds.length > 0) {
       try {

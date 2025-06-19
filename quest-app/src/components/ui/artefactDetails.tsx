@@ -130,7 +130,7 @@ export default function ArtefactDetail({
       const currentArtefactLength = progress?.collectedArtefactIds.length; 
       
       if (result.success) {
-        if (currentArtefactLength + 1 >= artefactLength) {
+        if (currentArtefactLength && (currentArtefactLength + 1 >= artefactLength)) {
           setFinalSubmission(true);
         }
         setSubmitStatus(result.status);

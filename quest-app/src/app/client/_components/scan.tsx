@@ -110,7 +110,7 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
       const result = await questSubmitArtefact(scanResult);
       
       if (result.success) {
-        if (currentArtefactLength + 1 >= artefactLength) {
+        if (currentArtefactLength && (currentArtefactLength + 1 >= artefactLength)) {
           setFinalSubmission(true);
         }
         setSubmitStatus(result.status);
