@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '../utils/utils';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { LeaderboardEntry } from '@/lib/types';
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -23,6 +24,26 @@ export async function POST(req: NextRequest) {
     const questResponse = await docClient.send(new GetCommand(questParams));
     const quest = questResponse.Item;
 
+    // Get the user's quest progress to calculate time taken
+    const progressParams = {
+      TableName: process.env.USER_QUEST_PROGRESS_TABLE,
+      Key: {
+        userId: userId,
+        questId: questId,
+      }
+    };
+    const progressResponse = await docClient.send(new GetCommand(progressParams));
+    const questProgress = progressResponse.Item;
+    
+    // Calculate time taken (if startTime exists)
+    const completedAt = new Date().toISOString();
+    let timeTaken: number | null = null;
+    if (questProgress?.startTime) {
+      const startTime = new Date(questProgress.startTime).getTime();
+      const endTime = new Date(completedAt).getTime();
+      timeTaken = endTime - startTime; // Time taken in milliseconds
+    }
+
     // Update quest progress to mark as completed
     const questProgressParams = {
       TableName: process.env.USER_QUEST_PROGRESS_TABLE,
@@ -30,15 +51,18 @@ export async function POST(req: NextRequest) {
         userId: userId,
         questId: questId,
       },
-      UpdateExpression: 'SET completed = :c, completedAt = :t',
+      UpdateExpression: 'SET completed = :c, completedAt = :t, endTime = :e',
       ExpressionAttributeValues: {
         ':c': true,
-        ':t': new Date().toISOString(),
+        ':t': completedAt,
+        ':e': completedAt,
       },
       ReturnValues: "ALL_NEW" as const,
     };
 
-    await docClient.send(new UpdateCommand(questProgressParams));    // First check if user exists and create if not
+    await docClient.send(new UpdateCommand(questProgressParams));
+    
+    // First check if user exists and create if not
     const getUserParams = {
       TableName: process.env.USER_TABLE,
       Key: { userId },
@@ -57,7 +81,9 @@ export async function POST(req: NextRequest) {
         },
       };
       await docClient.send(new PutCommand(createUserParams));
-    }    // Update user profile with completed quest
+    }
+    
+    // Update user profile with completed quest
     const timestamp = new Date().toISOString();
     const completedQuest = {
       questId: questId,
@@ -82,7 +108,9 @@ export async function POST(req: NextRequest) {
         '#cq': 'completed_quests'
       },
       ConditionExpression: 'attribute_not_exists(#cq) OR NOT contains(#cq, :questId)',
-    };    try {
+    };
+    
+    try {
       console.log('Attempting to update user profile with completed quest:', {
         userId,
         questId,
@@ -93,6 +121,30 @@ export async function POST(req: NextRequest) {
       
       console.log('Update result:', updateResult);
 
+      // Update the quest's leaderboard with this user's completion
+      if (timeTaken !== null) {
+        // Create leaderboard entry
+        const leaderboardEntry: LeaderboardEntry = {
+          userId,
+          completedAt,
+          timeTaken
+        };
+
+        // Update the quest with the new leaderboard entry
+        const updateQuestLeaderboardParams = {
+          TableName: process.env.QUESTS_TABLE,
+          Key: { quest_id: questId },
+          UpdateExpression: 'SET leaderboard = list_append(if_not_exists(leaderboard, :empty_list), :entry)',
+          ExpressionAttributeValues: {
+            ':empty_list': [],
+            ':entry': [leaderboardEntry]
+          },
+          ReturnValues: "ALL_NEW" as const
+        };
+
+        await docClient.send(new UpdateCommand(updateQuestLeaderboardParams));
+      }
+
       if (!updateResult.Attributes) {
         throw new Error('Update did not return updated attributes');
       }
@@ -100,7 +152,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ 
         success: true,
         message: 'Quest completed and saved to profile',
-        update: updateResult.Attributes
+        update: updateResult.Attributes,
+        timeTaken
       });
 
     } catch (conditionalError) {

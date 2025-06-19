@@ -1,0 +1,48 @@
+// app/api/leaderboard/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { LeaderboardEntry } from '@/lib/types';
+
+const client = new DynamoDBClient({ region: process.env.AWS_REGION });
+const docClient = DynamoDBDocumentClient.from(client);
+
+export async function GET(req: NextRequest) {
+  const questId = req.nextUrl.searchParams.get('questId');
+  
+  if (!questId) {
+    return NextResponse.json({ error: 'Missing questId parameter' }, { status: 400 });
+  }
+
+  try {
+    // Get the quest with leaderboard data
+    const params = {
+      TableName: process.env.QUESTS_TABLE,
+      Key: { quest_id: questId }
+    };
+
+    const response = await docClient.send(new GetCommand(params));
+    const quest = response.Item;
+    
+    if (!quest) {
+      return NextResponse.json({ error: 'Quest not found' }, { status: 404 });
+    }
+
+    // Extract leaderboard from quest
+    const leaderboard: LeaderboardEntry[] = quest.leaderboard || [];
+    
+    // Sort by time taken (ascending) and take top 10
+    const sortedLeaderboard = [...leaderboard]
+      .sort((a, b) => a.timeTaken - b.timeTaken)
+      .slice(0, 10);
+    
+    return NextResponse.json({
+      questId,
+      questTitle: quest.title,
+      leaderboard: sortedLeaderboard
+    });
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
+    return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 });
+  }
+}

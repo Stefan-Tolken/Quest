@@ -101,6 +101,7 @@ export type Quest = {
     imagePreview?: string;
   };
   createdAt: string;
+  leaderboard?: LeaderboardEntry[];
 };
 
 export type MainQuest = Omit<Quest, 'artefacts'> & {
@@ -237,3 +238,11 @@ export interface DynamoDBModelItem {
   createdAt?: AttributeValue;
   light?: AttributeValue;
 }
+
+// Leaderboard
+
+export type LeaderboardEntry = {
+  userId: string;
+  completedAt: string;
+  timeTaken: number; // Time in milliseconds
+};
