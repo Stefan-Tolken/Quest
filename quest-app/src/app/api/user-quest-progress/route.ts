@@ -1,5 +1,3 @@
-// GET /api/user-quest-progress?questId=...
-// Returns the user's progress for a quest
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '../utils/utils';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';

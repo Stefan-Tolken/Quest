@@ -26,13 +26,11 @@ export const QuestInfo = ({
   onDateRangeChange,
 }: QuestInfoProps) => {
   const [isEnhancing, setIsEnhancing] = useState(false);
-  const [enhanceError, setEnhanceError] = useState<string | null>(null);
 
   const handleEnhanceDescription = async () => {
     if (!description.trim()) return;
     
     setIsEnhancing(true);
-    setEnhanceError(null);
 
     try {
       const controller = new AbortController();
@@ -65,7 +63,6 @@ export const QuestInfo = ({
 
       const { enhancedDescription } = await response.json();
       onDescriptionChange(enhancedDescription);
-      setEnhanceError(null);
     } catch (error) {      console.error("Failed to enhance description:", error);
       let errorMessage = "Failed to enhance description. Please try again.";
       
@@ -78,8 +75,8 @@ export const QuestInfo = ({
           errorMessage = "The AI service is currently unavailable. Please try again later.";
         }
       }
-      
-      setEnhanceError(errorMessage);
+
+      console.log(errorMessage);
     } finally {
       setIsEnhancing(false);
     }

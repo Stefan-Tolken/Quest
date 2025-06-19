@@ -128,7 +128,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // New function to check and handle quest completion
+  // Updated function to check and handle quest completion with auto-cleanup
   const checkQuestCompletion = async (collectedArtefactIds: string[]) => {
     if (!activeQuest) {
       console.log('No active quest, returning early');
@@ -139,9 +139,16 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     const totalArtefacts = activeQuest.artefacts.length;
     const collectedCount = collectedArtefactIds.length;
     
+    console.log('Checking quest completion:', {
+      questId: activeQuest.quest_id,
+      totalArtefacts,
+      collectedCount,
+      isComplete: collectedCount >= totalArtefacts
+    });
+    
     if (collectedCount >= totalArtefacts) {
       try {
-        // Save quest completion - backend handles both quest progress and user profile
+        // Get authentication token
         let token = localStorage.getItem('token');
         if (!token && typeof window !== 'undefined') {
           const oidcKey = Object.keys(sessionStorage).find(k => k.startsWith('oidc.user:'));
@@ -154,9 +161,44 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
             }
           }
         }
-  
-        // Clear active quest after completion
-        setActiveQuest(null); 
+
+        // Call complete-quest endpoint to save completion data to userData
+        const completeResponse = await fetch('/api/complete-quest', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({
+            questId: activeQuest.quest_id,
+            collectedArtefactIds: collectedArtefactIds,
+            questTitle: activeQuest.title,
+            prize: activeQuest.prize
+          })
+        });
+
+        if (!completeResponse.ok) {
+          const errorData = await completeResponse.json();
+          throw new Error(errorData.error || 'Failed to complete quest');
+        }
+
+        console.log('Quest completion saved to userData successfully');
+
+        // Now clean up the quest progress data since it's saved in userData
+        try {
+          await deleteQuestProgress(activeQuest.quest_id, token);
+          console.log('Quest progress data cleaned up successfully');
+        } catch (cleanupError) {
+          // Don't fail the entire completion if cleanup fails
+          console.warn('Failed to cleanup quest progress data:', cleanupError);
+        }
+
+        // Show success message
+        toast.success(`Quest "${activeQuest.title}" completed! 🎉`);
+        
+        // Clear active quest after successful completion
+        setActiveQuest(null);
+        
       } catch (err) {
         console.error('Error completing quest:', err);
         toast.error('Error completing quest. Please try again.');
