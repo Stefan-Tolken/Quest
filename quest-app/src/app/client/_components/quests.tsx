@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { HintsToDisplay } from "@/components/ui/hintsToDisplay";
+import Image from "next/image"
 
 function parseDate(date?: string | Date): Date | undefined {
   return date ? new Date(date) : undefined;
@@ -694,14 +695,43 @@ export default function Quests() {
                         )}
                       </CardContent>
                       <CardFooter>
-                        <Button
-                          onClick={() => handleViewPrize(quest)}
-                          variant="outline"
-                          className="w-full sm:w-auto border-green-300 text-green-700 hover:bg-green-100"
-                        >
-                          <Gift className="h-4 w-4 mr-2" />
-                          View Prize
-                        </Button>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="glass"
+                              className="w-full !bg-green-200/40"
+                              disabled={completedQuestData?.prize || quest.prize?.title ? false : true }
+                            >
+                              <Gift className="h-4 w-4 mr-2" />
+                              {completedQuestData?.prize ? "View Prize" : "No prize available" }
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Prize for Completing {quest.title}</DialogTitle>
+                            </DialogHeader>
+                                {quest.prize?.image ? (
+                                  <div className="w-full h-auto">
+                                    <Image
+                                      src={quest.prize?.image}
+                                      alt={quest.prize?.title}
+                                      fill
+                                      className="object-contain"
+                                    />
+                                  </div>
+                                ) : (
+                                  <div>{quest.prize?.title}</div>
+                                )}                                
+                            
+                            <DialogFooter className="sm:justify-start">
+                              <DialogClose asChild>
+                                <Button type="button" variant="secondary">
+                                  Close
+                                </Button>
+                              </DialogClose>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>                        
                       </CardFooter>
                     </Card>
                   );

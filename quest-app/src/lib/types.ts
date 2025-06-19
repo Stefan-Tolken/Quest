@@ -117,6 +117,7 @@ export type MainQuest = Omit<Quest, 'artefacts'> & {
   questType?: 'sequential' | 'random';
   prize?: {
     title: string;
+    image: string;
   };
 };
 

@@ -1,4 +1,6 @@
-const withPWA = require("next-pwa")({
+import withPWA from "next-pwa";
+
+const withPWACfg = withPWA({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: false,
@@ -73,8 +75,21 @@ const nextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'upmuseumquestapp.s3.us-east-1.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      }
     ],
-  },
+  }
 };
 
-module.exports = withPWA(nextConfig);
+// FIXED: Remove the duplicate export and use only one
+export default withPWACfg(nextConfig);
