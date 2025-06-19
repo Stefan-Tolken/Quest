@@ -72,6 +72,7 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
   const handleClose = () => {
     setScanResult(null);
     setFinalSubmission(false);
+    setSubmitStatus(null);
   }
 
   const handleSubmit = async () => {
