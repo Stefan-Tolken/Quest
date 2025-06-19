@@ -75,12 +75,6 @@ export default function Quests() {
     );
   }, [userData?.completed_quests]);
 
-  // Placeholder function for viewing prize
-  const handleViewPrize = useCallback((quest: MainQuest) => {
-    const completedQuestData = getCompletedQuestData(quest.quest_id);
-    alert(`Prize for "${quest.title}":\n${completedQuestData?.prize || quest.prize?.title || 'No prize information available'}`);
-  }, [getCompletedQuestData]);
-
   useEffect(() => {
     // Debug logs to track quest completion flow
     console.log('Quest completion check - Conditions:', {
@@ -418,13 +412,18 @@ export default function Quests() {
                         </p>
                       </div>
                     </div>
-                    {questToShow.prize && (
+                    {questToShow.prize?.title ? (
                       <div className="flex items-start gap-3">
                         <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
                         <div>
                           <p className="font-medium">Prize</p>
                           <p className="text-muted-foreground">{questToShow.prize.title}</p>
-                        </div>
+                        </div>  
+                      </div>
+                    ): (
+                      <div className="flex items-start gap-3">
+                        <p className="font-medium">No Prize</p>
+                        <p className="text-muted-foreground">This one is just for fun</p>
                       </div>
                     )}
                   </div>              
@@ -450,7 +449,6 @@ export default function Quests() {
                             questToShow.questType === 'sequential' && 
                             originalIndex === (progress.collectedArtefactIds?.length || 0);
                           const attempts = getAttempts();
-                          const isLastAttempted = progress.lastAttemptedArtefactId === artefact.artefactId;
 
                           if (questToShow.questType === 'sequential' && !isCollected && !isNextInSequence) {
                             return null;
@@ -571,12 +569,20 @@ export default function Quests() {
                           <p>{quest.artefacts.length} to discover</p>
                         </div>
                       </div>
-                      {quest.prize && (
+                      {quest.prize?.title ? (
                         <div className="flex items-start gap-3">
-                          <Trophy className="h-4 w-4 mt-0.5" />
+                          <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
                           <div>
                             <p className="font-medium">Prize</p>
-                            <p>{quest.prize.title}</p>
+                            <p className="text-muted-foreground">{quest.prize.title}</p>
+                          </div>  
+                        </div>
+                      ): (
+                        <div className="flex items-start gap-3">
+                          <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">No Prize</p>
+                            <p className="text-muted-foreground">This one is just for fun</p>
                           </div>
                         </div>
                       )}
@@ -625,14 +631,22 @@ export default function Quests() {
                           <p>{quest.artefacts.length} to discover</p>
                         </div>
                       </div>
-                      {quest.prize && (
+                      {quest.prize?.title ? (
                         <div className="flex items-start gap-3">
-                          <Trophy className="h-4 w-4 mt-0.5" />
+                          <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
                           <div>
                             <p className="font-medium">Prize</p>
-                            <p>{quest.prize.title}</p>
-                          </div>
+                            <p className="text-muted-foreground">{quest.prize.title}</p>
+                          </div>  
                         </div>
+                          ): (
+                          <div className="flex items-start gap-3">
+                            <Trophy className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium">No Prize</p>
+                              <p className="text-muted-foreground">This one is just for fun</p>
+                            </div>
+                          </div>
                       )}
                     </CardContent>
                     <CardFooter>
@@ -700,36 +714,41 @@ export default function Quests() {
                             <Button
                               variant="glass"
                               className="w-full !bg-green-200/40"
-                              disabled={completedQuestData?.prize || quest.prize?.title ? false : true }
+                              disabled={quest.prize?.title ? false : true }
                             >
                               <Gift className="h-4 w-4 mr-2" />
-                              {completedQuestData?.prize ? "View Prize" : "No prize available" }
+                              {quest.prize?.title? "View Prize" : "No prize available" }
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
+                          <DialogContent className="sm:max-w-md gap-6">
+                            <DialogHeader className="flex-1">
                               <DialogTitle>Prize for Completing {quest.title}</DialogTitle>
                             </DialogHeader>
-                                {quest.prize?.image ? (
-                                  <div className="w-full h-auto">
-                                    <Image
-                                      src={quest.prize?.image}
-                                      alt={quest.prize?.title}
-                                      fill
-                                      className="object-contain"
-                                    />
-                                  </div>
-                                ) : (
-                                  <div>{quest.prize?.title}</div>
-                                )}                                
                             
-                            <DialogFooter className="sm:justify-start">
+                            <div>
+                              {quest.prize?.image ? (
+                                <div className="w-full relative glass !bg-white rounded-md">
+                                  <Image
+                                    src={quest.prize?.image}
+                                    alt={quest.prize?.title}
+                                    width={1280}
+                                    height={720}
+                                    className="rounded-md object-cover w-full h-auto p-1"
+                                    sizes="(max-width: 640px) 95vw, 100vw"
+                                  />
+                                </div>    
+                              ) : ( 
+                                <div>{quest.prize?.title}</div>
+                              )}
+                            </div>
+
+                            <DialogFooter>
                               <DialogClose asChild>
-                                <Button type="button" variant="secondary">
+                                <Button type="button" variant="glass">
                                   Close
                                 </Button>
                               </DialogClose>
-                            </DialogFooter>
+                            </DialogFooter> 
                           </DialogContent>
                         </Dialog>                        
                       </CardFooter>
