@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash, ArrowUpDown, LineChart } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -33,13 +33,15 @@ interface QuestsTableProps {
   onDeleteQuest: (id: string) => void;
   isAdmin?: boolean;
   userId?: string; // Optional: current user ID for client-side view
+  userEmail?: string; // Add user email prop
 }
 
 export default function QuestsTable({ 
   quests, 
   onDeleteQuest,
   isAdmin = true,
-  userId
+  userId,
+  userEmail
 }: QuestsTableProps) {
   const router = useRouter();
   
@@ -48,8 +50,51 @@ export default function QuestsTable({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  // Column definitions
-  const columns: ColumnDef<Quest>[] = [
+  // Memoize date formatting function to prevent re-computation
+  const formatDate = useMemo(() => 
+    (dateStr: string | Date) => {
+      return new Date(dateStr).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }, []
+  );
+
+  // Memoize status calculation to prevent re-computation
+  const getQuestStatus = useMemo(() => 
+    (quest: Quest) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const startDate = quest.dateRange?.from ? new Date(quest.dateRange.from) : null;
+      const endDate = quest.dateRange?.to ? new Date(quest.dateRange.to) : null;
+      
+      let status = "Unknown";
+      let statusColor = "bg-gray-500";
+      
+      if (startDate && endDate) {
+        startDate.setHours(0, 0, 0, 0);
+        endDate.setHours(23, 59, 59, 999);
+        
+        if (today >= startDate && today <= endDate) {
+          status = "Active";
+          statusColor = "bg-green-500";
+        } else if (today > endDate) {
+          status = "Past";
+          statusColor = "bg-red-500";
+        } else if (today < startDate) {
+          status = "Coming Up";
+          statusColor = "bg-yellow-500";
+        }
+      }
+      
+      return { status, statusColor };
+    }, []
+  );
+
+  // Memoize column definitions
+  const columns: ColumnDef<Quest>[] = useMemo(() => [
     {
       accessorKey: "title",
       header: ({ column }) => {
@@ -84,30 +129,7 @@ export default function QuestsTable({
       },
       cell: ({ row }) => {
         const quest = row.original;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        const startDate = quest.dateRange?.from ? new Date(quest.dateRange.from) : null;
-        const endDate = quest.dateRange?.to ? new Date(quest.dateRange.to) : null;
-        
-        let status = "Unknown";
-        let statusColor = "bg-gray-500";
-        
-        if (startDate && endDate) {
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setHours(23, 59, 59, 999);
-          
-          if (today >= startDate && today <= endDate) {
-            status = "Active";
-            statusColor = "bg-green-500";
-          } else if (today > endDate) {
-            status = "Past";
-            statusColor = "bg-red-500";
-          } else if (today < startDate) {
-            status = "Coming Up";
-            statusColor = "bg-yellow-500";
-          }
-        }
+        const { status, statusColor } = getQuestStatus(quest);
         
         return (
           <div className="flex items-center gap-2">
@@ -138,14 +160,6 @@ export default function QuestsTable({
         if (!startDate) {
           return <div className="text-gray-400 text-sm ml-3">No start dates set</div>;
         }
-        
-        const formatDate = (dateStr: string | Date) => {
-          return new Date(dateStr).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          });
-        };
         
         return (
           <div className="text-sm text-gray-600 ml-3">
@@ -182,14 +196,6 @@ export default function QuestsTable({
         if (!endDate) {
           return <div className="text-gray-400 text-sm ml-3">No end dates set</div>;
         }
-        
-        const formatDate = (dateStr: string | Date) => {
-          return new Date(dateStr).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          });
-        };
         
         return (
           <div className="text-sm ml-3 text-gray-600">
@@ -247,6 +253,7 @@ export default function QuestsTable({
               questTitle={quest.title}
               isAdmin={isAdmin}
               userId={userId}
+              userEmail={userEmail}
               buttonVariant="default"
               buttonSize="sm"
               className="text-white"
@@ -282,9 +289,9 @@ export default function QuestsTable({
         );
       },
     },
-  ];
+  ], [isAdmin, userId, formatDate, getQuestStatus, router, onDeleteQuest]);
 
-  // Initialize table
+  // Initialize table with memoized data
   const table = useReactTable({
     data: quests,
     columns,

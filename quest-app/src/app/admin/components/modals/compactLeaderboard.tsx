@@ -10,47 +10,79 @@ interface CompactLeaderboardProps {
   questId: string;
   questTitle: string;
   userId?: string; // Current user's ID to highlight their position
+  userEmail?: string; // Add userEmail prop
   className?: string;
+  autoLoad?: boolean; // New prop to control auto-loading
 }
 
 export default function CompactLeaderboard({
   questId,
   questTitle,
   userId,
+  userEmail,
   className = "",
+  autoLoad = false, // Default to false to prevent automatic loading
 }: CompactLeaderboardProps) {
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoaded, setHasLoaded] = useState<boolean>(false);
+
+  const fetchLeaderboard = async () => {
+    if (hasLoaded) return; // Prevent duplicate fetches
+    
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/leaderboard?questId=${questId}`);
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch leaderboard data");
+      }
+      
+      const data = await response.json();
+      setLeaderboardData(data.leaderboard || []);
+      setHasLoaded(true);
+    } catch (err) {
+      setError("Error loading leaderboard data");
+      console.error("Leaderboard fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/leaderboard?questId=${questId}`);
-        
-        if (!response.ok) {
-          throw new Error("Failed to fetch leaderboard data");
-        }
-        
-        const data = await response.json();
-        setLeaderboardData(data.leaderboard || []);
-      } catch (err) {
-        setError("Error loading leaderboard data");
-        console.error("Leaderboard fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (autoLoad) {
+      fetchLeaderboard();
+    }
+  }, [questId, autoLoad]);
 
-    fetchLeaderboard();
-  }, [questId]);
+  // Handle manual load when user clicks to expand/view
+  const handleLoadData = () => {
+    if (!hasLoaded) {
+      fetchLeaderboard();
+    }
+  };
+
+  // Format user display name
+  const formatUserName = (entry: LeaderboardEntry) => {
+    if (entry.userId === userId) {
+      return "You";
+    }
+    
+    if (entry.userEmail) {
+      // Show just the username part before @ for cleaner display
+      return entry.userEmail.split('@')[0];
+    }
+    
+    // Fallback to truncated user ID
+    return `${entry.userId.substring(0, 6)}...`;
+  };
 
   // Format time taken (milliseconds) to a readable format
-  const formatTimeTaken = (ms: number) => {
-    const seconds = Math.floor((ms / 1000) % 60);
-    const minutes = Math.floor((ms / (1000 * 60)) % 60);
-    const hours = Math.floor((ms / (1000 * 60 * 60)));
+  const formatTimeTaken = (secondsTotal: number) => {
+    const seconds = Math.floor(secondsTotal % 60);
+    const minutes = Math.floor((secondsTotal / 60) % 60);
+    const hours = Math.floor(secondsTotal / 3600);
     
     if (hours > 0) {
       return `${hours}h ${minutes}m ${seconds}s`;
@@ -87,7 +119,18 @@ export default function CompactLeaderboard({
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4">
-        {loading ? (
+        {!hasLoaded && !loading ? (
+          <div className="text-center py-4">
+            <Button
+              variant="outline"
+              onClick={handleLoadData}
+              className="mb-2"
+            >
+              Load Leaderboard
+            </Button>
+            <p className="text-sm text-gray-500">Click to view rankings</p>
+          </div>
+        ) : loading ? (
           <div className="flex justify-center items-center h-24">
             <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
           </div>
@@ -115,7 +158,7 @@ export default function CompactLeaderboard({
                         <span className="font-semibold w-5 text-center">{index + 1}</span>
                       )}
                       <span className="text-sm font-medium">
-                        {entry.userId === userId ? "You" : `${entry.userId.substring(0, 6)}...`}
+                        {formatUserName(entry)}
                       </span>
                     </div>
                     <span className="text-sm text-gray-600">
@@ -143,19 +186,20 @@ export default function CompactLeaderboard({
                 </div>
               </div>
             )}
-
-            <div className="mt-4">
-              <LeaderboardModal
-                questId={questId}
-                questTitle={questTitle}
-                userId={userId}
-                buttonVariant="outline"
-                buttonSize="sm"
-                className="w-full"
-              />
-            </div>
           </>
         )}
+
+        <div className="mt-4">
+          <LeaderboardModal
+            questId={questId}
+            questTitle={questTitle}
+            userId={userId}
+            userEmail={userEmail}
+            buttonVariant="outline"
+            buttonSize="sm"
+            className="w-full"
+          />
+        </div>
       </CardContent>
     </Card>
   );

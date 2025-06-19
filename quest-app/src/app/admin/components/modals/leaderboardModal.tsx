@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ interface LeaderboardModalProps {
   questTitle: string;
   isAdmin?: boolean;
   userId?: string;
+  userEmail?: string; // Add userEmail prop
   buttonVariant?: "default" | "outline" | "secondary" | "destructive" | "ghost" | "link";
   buttonSize?: "default" | "sm" | "lg" | "icon";
   className?: string;
@@ -26,12 +27,15 @@ export default function LeaderboardModal({
   questTitle,
   isAdmin = false,
   userId,
+  userEmail, // Accept userEmail prop
   buttonVariant = "default",
   buttonSize = "sm",
   className = "",
 }: LeaderboardModalProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button
           variant={buttonVariant}
@@ -49,12 +53,16 @@ export default function LeaderboardModal({
             View completion statistics for this quest
           </DialogDescription>
         </DialogHeader>
-        <LeaderboardComponent
-          questId={questId}
-          questTitle={questTitle}
-          isAdmin={isAdmin}
-          userId={userId}
-        />
+        {/* Only render LeaderboardComponent when modal is open */}
+        {isOpen && (
+          <LeaderboardComponent
+            questId={questId}
+            questTitle={questTitle}
+            isAdmin={isAdmin}
+            userId={userId}
+            userEmail={userEmail}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

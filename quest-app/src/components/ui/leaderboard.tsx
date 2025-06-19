@@ -33,6 +33,7 @@ interface LeaderboardProps {
   questTitle: string;
   isAdmin?: boolean;
   userId?: string; // Current user's ID to highlight their position (for client view)
+  userEmail?: string;
 }
 
 export default function LeaderboardComponent({
@@ -40,6 +41,7 @@ export default function LeaderboardComponent({
   questTitle,
   isAdmin = false,
   userId,
+  userEmail
 }: LeaderboardProps) {
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -71,11 +73,26 @@ export default function LeaderboardComponent({
     fetchLeaderboard();
   }, [questId]);
 
-  // Format time taken (milliseconds) to a readable format
-  const formatTimeTaken = (ms: number) => {
-    const seconds = Math.floor((ms / 1000) % 60);
-    const minutes = Math.floor((ms / (1000 * 60)) % 60);
-    const hours = Math.floor((ms / (1000 * 60 * 60)));
+  // Format user display name
+  const formatUserName = (entry: LeaderboardEntry) => {
+    if (entry.userId === userId) {
+      return "You";
+    }
+    
+    if (entry.userEmail) {
+      // Show just the username part before @ for cleaner display
+      return entry.userEmail;
+    }
+    
+    // Fallback to truncated user ID
+    return `${entry.userId.substring(0, 8)}...`;
+  };
+
+  // Format time taken (seconds) to a readable format
+  const formatTimeTaken = (secondsTotal: number) => {
+    const seconds = Math.floor(secondsTotal % 60);
+    const minutes = Math.floor((secondsTotal / 60) % 60);
+    const hours = Math.floor(secondsTotal / 3600);
     
     if (hours > 0) {
       return `${hours}h ${minutes}m ${seconds}s`;
@@ -106,7 +123,7 @@ export default function LeaderboardComponent({
       const csvRows: string[][] = [];
       
       // Headers
-      csvRows.push(["Rank", "User ID", "Completed At", "Time Taken (ms)", "Time Taken (formatted)"]);
+      csvRows.push(["Rank", "User ID", "User Email", "Completed At", "Time Taken (seconds)", "Time Taken (formatted)"]);
       
       // Sort by time taken
       const sortedData = [...leaderboardData].sort((a, b) => a.timeTaken - b.timeTaken);
@@ -116,6 +133,7 @@ export default function LeaderboardComponent({
         csvRows.push([
           (index + 1).toString(),
           entry.userId,
+          entry.userEmail || '',
           entry.completedAt,
           entry.timeTaken.toString(),
           formatTimeTaken(entry.timeTaken)
@@ -335,11 +353,7 @@ export default function LeaderboardComponent({
                         )}
                       </td>
                       <td className="px-4 py-3 font-medium">
-                        {entry.userId === userId ? (
-                          <span className="font-semibold">You</span>
-                        ) : (
-                          <span>{entry.userId.substring(0, 8)}...</span>
-                        )}
+                        {formatUserName(entry)}
                       </td>
                       <td className="px-4 py-3 text-gray-700 font-medium">
                         {formatTimeTaken(entry.timeTaken)}
@@ -385,11 +399,7 @@ export default function LeaderboardComponent({
                         )}
                       </td>
                       <td className="px-4 py-3 font-medium">
-                        {entry.userId === userId ? (
-                          <span className="font-semibold">You</span>
-                        ) : (
-                          <span>{entry.userId.substring(0, 8)}...</span>
-                        )}
+                        {formatUserName(entry)}
                       </td>
                       <td className="px-4 py-3 text-gray-700 font-medium">
                         {formatDate(entry.completedAt)}
