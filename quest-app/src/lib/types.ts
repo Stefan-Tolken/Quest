@@ -117,6 +117,7 @@ export type MainQuest = Omit<Quest, 'artefacts'> & {
   questType?: 'sequential' | 'random';
   prize?: {
     title: string;
+    image: string;
   };
 };
 
@@ -139,14 +140,18 @@ export interface CalendarProps {
   numberOfMonths?: number
 }
 
-export type QuestContextType = {
+export interface QuestContextType {
   activeQuest: Quest | null;
   isLoading: boolean;
-  acceptQuest: (quest: Quest) => void;
-  cancelQuest: () => void;
-  submitArtefact: (artefactId: string) => boolean;
-  checkQuestCompletion: (collectedArtefactIds: string[]) => Promise<void>;
-};
+  acceptQuest: (quest: Quest) => Promise<void>;
+  cancelQuest: () => Promise<void>;
+  submitArtefact: (artefactId: string) => Promise<{
+    success: boolean;
+    status: 'success' | 'error' | 'already';
+    message?: string;
+    progress?: QuestProgress;
+  }>;
+}
 
 export interface UserQuestProgress {
   userId: string;
