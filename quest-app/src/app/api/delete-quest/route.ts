@@ -17,7 +17,7 @@ export async function DELETE(request: Request) {
   try {
     await dynamoDB.send(
       new DeleteItemCommand({
-        TableName: "quests",
+        TableName: process.env.QUESTS_TABLE || "quests",
         Key: { quest_id: { S: id } },
       })
     );

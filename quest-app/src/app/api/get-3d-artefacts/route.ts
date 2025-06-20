@@ -25,7 +25,7 @@ function extractKeyFromProxyUrl(url: string): string | null {
 export async function GET() {
   try {
     const params = {
-      TableName: 'artefacts',
+      TableName: process.env.ARTEFACTS_TABLE || 'artefacts',
     };
 
     const result = await dynamoDB.send(new ScanCommand(params));

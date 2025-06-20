@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
     // Prepare DynamoDB item
     const params = {
-      TableName: "quests",
+      TableName: process.env.QUESTS_TABLE || "quests",
       Item: {
         quest_id: { S: quest.quest_id },
         title: { S: quest.title },

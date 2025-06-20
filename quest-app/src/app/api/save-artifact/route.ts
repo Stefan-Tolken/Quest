@@ -149,7 +149,7 @@ export async function POST(request: Request) {
 
     // Build DynamoDB item with correct image URL
     const params: PutItemCommandInput = {
-      TableName: "artefacts",
+      TableName: process.env.ARTEFACTS_TABLE || "artefacts",
       Item: {
         id: { S: artifactData.id },
         name: { S: artifactData.name },

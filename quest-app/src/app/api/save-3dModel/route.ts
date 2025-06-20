@@ -59,7 +59,7 @@ export async function POST(request: Request) {
 
     // Save metadata to DynamoDB
     const params = {
-      TableName: "models3d",
+      TableName: process.env.MODEL_3D_TABLE || "models3d",
       Item: {
         id: { S: model.id },
         name: { S: model.name },

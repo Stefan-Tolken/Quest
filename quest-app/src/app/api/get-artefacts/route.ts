@@ -37,7 +37,7 @@ function parseItem(item: DynamoDBItem) {
 export async function GET() {
   try {
     const params = {
-      TableName: 'artefacts',
+      TableName: process.env.ARTEFACTS_TABLE || 'artefacts',
     };
 
     const data = await dynamoDB.send(new ScanCommand(params));

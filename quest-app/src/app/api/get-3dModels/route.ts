@@ -27,7 +27,7 @@ function parseModelItem(item: DynamoDBModelItem) {
 export async function GET() {
   try {
     const params = {
-      TableName: "models3d",
+      TableName: process.env.MODEL_3D_TABLE || "models3d",
     };
     const data = await dynamoDB.send(new ScanCommand(params));
     const models =

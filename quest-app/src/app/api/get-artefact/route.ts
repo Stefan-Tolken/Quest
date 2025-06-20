@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     }
 
     const params = {
-      TableName: 'artefacts',
+      TableName: process.env.ARTEFACTS_TABLE || 'artefacts',
       Key: {
         id: { S: id }
       }
