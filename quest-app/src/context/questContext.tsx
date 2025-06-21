@@ -389,6 +389,12 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
+        console.log('Calling complete-quest API with:', {
+          userId,
+          questId: activeQuest.quest_id,
+          tokenExists: !!token
+        });
+
         const completeResponse = await fetch('/api/complete-quest', {
           method: 'POST',
           headers: {
@@ -404,9 +410,26 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
           })
         });
 
-        if (!completeResponse.ok) {
-          const errorData = await completeResponse.json();
-          throw new Error(errorData.error || 'Failed to complete quest');
+        // Debug the API response
+        const responseText = await completeResponse.text();
+        console.log('API Response Status:', completeResponse.status);
+        console.log('API Response Headers:', Object.fromEntries(completeResponse.headers.entries()));
+        
+        // Try to parse as JSON if possible
+        try {
+          const responseData = JSON.parse(responseText);
+          console.log('API Response Data:', responseData);
+          
+          if (!completeResponse.ok) {
+            throw new Error(responseData.error || responseData.message || 'Failed to complete quest');
+          }
+        } catch (parseError) {
+          console.error('Error parsing response as JSON:', parseError);
+          console.log('Raw response text:', responseText);
+          
+          if (!completeResponse.ok) {
+            throw new Error('Failed to complete quest: ' + responseText);
+          }
         }
 
         console.log('Quest completion saved to userData successfully');

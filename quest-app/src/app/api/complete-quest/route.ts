@@ -16,6 +16,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    console.log('Starting quest completion process:', { userId, questId });
+    
     // First, get the quest details to find the prize
     const questParams = {
       TableName: process.env.QUESTS_TABLE,
@@ -23,6 +25,11 @@ export async function POST(req: NextRequest) {
     };
     const questResponse = await docClient.send(new GetCommand(questParams));
     const quest = questResponse.Item;
+    
+    if (!quest) {
+      console.error('Quest not found:', questId);
+      return NextResponse.json({ error: 'Quest not found' }, { status: 404 });
+    }
 
     // Get the user's quest progress to calculate time taken
     const progressParams = {
@@ -46,7 +53,6 @@ export async function POST(req: NextRequest) {
       timeTaken = Math.trunc((endTime - startTime) / 1000); // Time taken in seconds
     } else {
       // If no startTime exists, use the createdAt time from quest progress or current time
-      // This ensures we always have a timeTaken value for the leaderboard
       const fallbackStartTime = questProgress?.createdAt ? new Date(questProgress.createdAt).getTime() : new Date().getTime();
       const endTime = new Date(completedAt).getTime();
       timeTaken = Math.trunc((endTime - fallbackStartTime) / 1000);
@@ -56,6 +62,8 @@ export async function POST(req: NextRequest) {
         timeTaken = 1; // 1 second minimum
       }
     }
+
+    console.log('Time taken to complete quest:', timeTaken, 'seconds');
 
     // Update quest progress to mark as completed
     const questProgressParams = {
@@ -74,6 +82,7 @@ export async function POST(req: NextRequest) {
     };
 
     await docClient.send(new UpdateCommand(questProgressParams));
+    console.log('Quest progress updated successfully');
     
     // First check if user exists and create if not
     const getUserParams = {
@@ -91,6 +100,7 @@ export async function POST(req: NextRequest) {
           completed_quests: [],
           artefacts_collected: [],
           createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
       };
       await docClient.send(new PutCommand(createUserParams));
@@ -105,11 +115,56 @@ export async function POST(req: NextRequest) {
       completedQuest.questId === questId
     );
     
+    // *** FIX 1: Always create a leaderboard entry ***
+    // Create leaderboard entry with the calculated timeTaken
+    const leaderboardEntry: LeaderboardEntry = {
+      userId,
+      completedAt,
+      timeTaken: timeTaken || 1 // Ensure we always have a time value
+    };
+
+    console.log('Creating leaderboard entry:', leaderboardEntry);
+
+    // *** FIX 2: Handle leaderboard update separately and more robustly ***
+    try {
+      // Check if user is already in the quest's leaderboard to avoid duplicates
+      const questLeaderboard = quest?.leaderboard || [];
+      const isInLeaderboard = questLeaderboard.some((entry: LeaderboardEntry) => 
+        entry.userId === userId
+      );
+      
+      if (!isInLeaderboard) {
+        console.log('User not in leaderboard, adding entry...');
+        
+        // Update the quest with the new leaderboard entry
+        // *** FIX 3: Use a more reliable update expression ***
+        const updateQuestLeaderboardParams = {
+          TableName: process.env.QUESTS_TABLE,
+          Key: { quest_id: questId },
+          UpdateExpression: 'SET leaderboard = list_append(if_not_exists(leaderboard, :empty_list), :entry)',
+          ExpressionAttributeValues: {
+            ':empty_list': [],
+            ':entry': [leaderboardEntry]
+          },
+          ReturnValues: "ALL_NEW" as const
+        };
+
+        const leaderboardResult = await docClient.send(new UpdateCommand(updateQuestLeaderboardParams));
+        console.log('Added user to leaderboard successfully', leaderboardResult.Attributes?.leaderboard?.length || 0, 'entries total');
+      } else {
+        console.log('User already in leaderboard, skipping');
+      }
+    } catch (leaderboardError) {
+      // *** FIX 4: Better error handling, but don't fail the whole request ***
+      console.error('Error updating leaderboard (continuing with quest completion):', leaderboardError);
+    }
+    
     if (isAlreadyCompleted) {
       console.log('Quest already completed by user');
       return NextResponse.json({ 
         success: true,
-        message: 'Quest was already marked as completed'
+        message: 'Quest was already marked as completed',
+        timeTaken
       });
     }
     
@@ -121,58 +176,29 @@ export async function POST(req: NextRequest) {
       prize: quest?.prize?.title || null
     };
 
-    console.log('Preparing to add completed quest:', completedQuest);
+    console.log('Adding completed quest to user profile:', completedQuest);
 
+    // *** FIX 5: Also update the updatedAt timestamp ***
     const userProfileParams = {
       TableName: process.env.USER_TABLE,
       Key: { userId },
-      UpdateExpression: 'SET completed_quests = list_append(if_not_exists(completed_quests, :empty_list), :quest)',
+      UpdateExpression: 'SET completed_quests = list_append(if_not_exists(completed_quests, :empty_list), :quest), updatedAt = :updated',
       ExpressionAttributeValues: {
         ':empty_list': [],
-        ':quest': [completedQuest]
+        ':quest': [completedQuest],
+        ':updated': timestamp
       },
       ReturnValues: "ALL_NEW" as const,
     };
     
     try {
-      console.log('Attempting to update user profile with completed quest:', {
-        userId,
-        questId,
-        userProfileParams
-      });
-
       const updateResult = await docClient.send(new UpdateCommand(userProfileParams));
       
-      console.log('Update result:', updateResult);
-
-      // CRITICAL FIX: Always update the quest's leaderboard when quest is completed
-      // Create leaderboard entry with the calculated timeTaken
-      const leaderboardEntry: LeaderboardEntry = {
-        userId,
-        completedAt,
-        timeTaken: timeTaken || 1 // Ensure we always have a time value
-      };
-
-      console.log('Updating quest leaderboard with entry:', leaderboardEntry);
-
-      // Update the quest with the new leaderboard entry
-      const updateQuestLeaderboardParams = {
-        TableName: process.env.QUESTS_TABLE,
-        Key: { quest_id: questId },
-        UpdateExpression: 'SET leaderboard = list_append(if_not_exists(leaderboard, :empty_list), :entry)',
-        ExpressionAttributeValues: {
-          ':empty_list': [],
-          ':entry': [leaderboardEntry]
-        },
-        ReturnValues: "ALL_NEW" as const
-      };
-
-      const leaderboardUpdateResult = await docClient.send(new UpdateCommand(updateQuestLeaderboardParams));
-      console.log('Leaderboard update result:', leaderboardUpdateResult);
-
       if (!updateResult.Attributes) {
         throw new Error('Update did not return updated attributes');
       }
+
+      console.log('User profile updated successfully with completed quest');
 
       return NextResponse.json({ 
         success: true,
@@ -183,11 +209,14 @@ export async function POST(req: NextRequest) {
 
     } catch (updateError) {
       console.error('Error updating user profile:', updateError);
-      throw updateError;
+      return NextResponse.json({ error: 'Failed to update user profile' }, { status: 500 });
     }
 
-  } catch (error) {
-    console.error('Error completing quest:', error);
-    return NextResponse.json({ error: 'Failed to complete quest' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error completing quest:', error.message || error);
+    return NextResponse.json({ 
+      error: 'Failed to complete quest', 
+      message: error.message || 'Unknown error'
+    }, { status: 500 });
   }
 }
