@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { UserData } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -26,6 +26,57 @@ const s3 = new S3Client({
 
 const docClient = DynamoDBDocumentClient.from(dynamoDB);
 const TABLE_NAME = 'userData';
+
+// Helper function to extract S3 key from profile image URL
+const extractS3KeyFromUrl = (url: string): string | null => {
+  try {
+    // Handle URLs in format: /api/get-image?key=profile/userId/profile-image-uuid.ext
+    if (url.includes('/api/get-image?key=')) {
+      const keyParam = url.split('key=')[1];
+      return decodeURIComponent(keyParam);
+    }
+    
+    // Handle direct S3 URLs if they exist in a different format
+    if (url.includes('amazonaws.com/')) {
+      const parts = url.split('amazonaws.com/');
+      if (parts.length > 1) {
+        return parts[1].split('?')[0]; // Remove query parameters if any
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error extracting S3 key from URL:', error);
+    return null;
+  }
+};
+
+// Helper function to delete old profile image from S3
+const deleteOldProfileImage = async (oldImageUrl: string): Promise<void> => {
+  try {
+    const s3Key = extractS3KeyFromUrl(oldImageUrl);
+    
+    if (!s3Key) {
+      console.log('Could not extract S3 key from URL:', oldImageUrl);
+      return;
+    }
+
+    console.log('Attempting to delete old profile image:', s3Key);
+
+    await s3.send(
+      new DeleteObjectCommand({
+        Bucket: process.env.AWS_BUCKET_NAME!,
+        Key: s3Key,
+      })
+    );
+
+    console.log('Successfully deleted old profile image:', s3Key);
+  } catch (error) {
+    // Log the error but don't fail the whole operation
+    console.error('Error deleting old profile image:', error);
+    console.error('Old image URL was:', oldImageUrl);
+  }
+};
 
 export async function POST(request: Request) {
   try {
@@ -59,6 +110,7 @@ export async function POST(request: Request) {
 
     const user = userResult.Items[0] as UserData;
     let profileImageUrl = user.profileImage; // Keep existing image if no new one uploaded
+    const oldProfileImageUrl = user.profileImage; // Store the old URL for deletion
 
     // Handle profile image upload to S3 (following your pattern)
     if (profileImageFile) {
@@ -68,7 +120,7 @@ export async function POST(request: Request) {
         const fileExtension = profileImageFile.name.split('.').pop() || 'jpg';
         const imageKey = `profile/${user.userId}/profile-image-${uuidv4()}.${fileExtension}`;
 
-        // Upload to S3 using your pattern
+        // Upload new image to S3 using your pattern
         await s3.send(
           new PutObjectCommand({
             Bucket: process.env.AWS_BUCKET_NAME!,
@@ -78,10 +130,19 @@ export async function POST(request: Request) {
           })
         );
 
-        // Construct the URL using your API pattern
+        // Construct the new URL using your API pattern
         profileImageUrl = `/api/get-image?key=${encodeURIComponent(imageKey)}`;
         
-        console.log('Profile image uploaded successfully:', profileImageUrl);
+        console.log('New profile image uploaded successfully:', profileImageUrl);
+
+        // Delete the old profile image if it exists and is different from the new one
+        if (oldProfileImageUrl && oldProfileImageUrl !== profileImageUrl) {
+          // Delete old image asynchronously to not block the response
+          deleteOldProfileImage(oldProfileImageUrl).catch(error => {
+            console.error('Failed to delete old profile image:', error);
+          });
+        }
+        
       } catch (uploadError) {
         console.error('Error uploading profile image:', uploadError);
         return NextResponse.json({ 

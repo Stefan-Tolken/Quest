@@ -22,7 +22,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
-import { CompletedQuest, Quest, LeaderboardEntry } from '@/lib/types';
+import { CompletedQuest, Quest, LeaderboardEntry, UserData } from '@/lib/types';
 
 interface CompletedQuestsDisplayProps {
   userId: string;
@@ -38,6 +38,10 @@ interface QuestWithLeaderboard extends Quest {
   top10?: LeaderboardEntry[];
 }
 
+interface EnhancedLeaderboardEntry extends LeaderboardEntry {
+  displayName?: string;
+}
+
 const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
   userId,
   userEmail,
@@ -47,6 +51,29 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
   const [questsWithData, setQuestsWithData] = useState<QuestWithLeaderboard[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedQuests, setExpandedQuests] = useState<Set<string>>(new Set());
+  const [usersData, setUsersData] = useState<Map<string, UserData>>(new Map());
+
+  // Fetch all users data for display names
+  useEffect(() => {
+    const fetchUsersData = async () => {
+      try {
+        const response = await fetch('/api/users');
+        const data = await response.json();
+        
+        if (response.ok && data.users) {
+          const usersMap = new Map<string, UserData>();
+          data.users.forEach((user: UserData) => {
+            usersMap.set(user.userId, user);
+          });
+          setUsersData(usersMap);
+        }
+      } catch (error) {
+        console.error('Error fetching users data:', error);
+      }
+    };
+
+    fetchUsersData();
+  }, []);
 
   // Fetch quest details and leaderboard data
   useEffect(() => {
@@ -132,7 +159,15 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
 
   const formatUserName = (entry: LeaderboardEntry) => {
     if (entry.userId === userId) return "You";
-    return entry.userEmail || `${entry.userId.substring(0, 8)}...`;
+    
+    // Try to get display name from users data
+    const userData = usersData.get(entry.userId);
+    if (userData?.displayName) {
+      return userData.displayName;
+    }
+    
+    // Fallback to some name
+    return "Student";
   };
 
   const getRankBadge = (rank: number) => {
