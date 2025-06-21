@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
     
     // Get quest details to check completion requirements
     const questParams = {
-      TableName: 'quests',
+      TableName: process.env.QUESTS_TABLE || 'quests',
       Key: {
         quest_id: questId,
       },

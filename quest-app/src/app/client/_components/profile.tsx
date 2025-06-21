@@ -4,7 +4,7 @@ import { useAuthState } from "@/lib/useAuth";
 import { useUserData } from "@/hooks/useUserData";
 import AuthButton from '@/components/ui/authButton';
 import CameraBackground from '@/components/ui/cameraBackground';
-import CompletedQuestsDisplay from '@/components/ui/completedQuestsdisplay'; // Import the new component
+import CompletedQuestsDisplay from '@/components/ui/completedQuestsdisplay';
 import Link from 'next/link';
 import React, { useState } from 'react';
 import Image from 'next/image';
@@ -25,11 +25,56 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { User, Trophy, Settings } from "lucide-react";
+import { User, Trophy, Settings, Trash2, AlertTriangle } from "lucide-react";
 
 const ProfilePage = () => {
   const { user } = useAuthState();
   const { userData, error } = useUserData();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDelete = async () => {
+    if (!user?.profile?.email) {
+      setDeleteError('No email found for user');
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    try {
+      const response = await fetch('/api/delete-user', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: user.profile.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete account');
+      }
+
+      console.log('Account deleted successfully:', data);
+      
+      // Optionally show success message before redirecting
+      alert('Account deleted successfully. You will be signed out.');
+      
+      // Sign out the user after successful deletion
+      // This will depend on your auth implementation
+      window.location.href = '/';
+      
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      setDeleteError(error instanceof Error ? error.message : 'Failed to delete account');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
   
   const email = user?.profile?.email || "No email available";
   const name = user?.profile?.name || user?.profile?.preferred_username || "Student";
@@ -133,24 +178,59 @@ const ProfilePage = () => {
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="glassDestructive" className="w-full">
+                          <Trash2 className="h-4 w-4 mr-2" />
                           Delete Account
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                          <DialogTitle>Delete Account?</DialogTitle>
-                          <DialogDescription>
-                            Are you sure you want to delete your account? This action cannot be undone.
+                          <DialogTitle className="flex items-center gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
+                            Delete Account?
+                          </DialogTitle>
+                          <DialogDescription className="space-y-2">
+                            <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+                            <p className="text-sm text-muted-foreground">
+                              This will permanently delete your account and remove you from all quest leaderboards.
+                            </p>
                           </DialogDescription>
                         </DialogHeader>
+                        
+                        {deleteError && (
+                          <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                            <p className="text-sm text-red-600">{deleteError}</p>
+                          </div>
+                        )}
+                        
                         <DialogFooter className="flex flex-row justify-end gap-2">
                           <DialogClose asChild>
-                            <Button className="flex-1" type="button" variant="glass">
+                            <Button 
+                              className="flex-1" 
+                              type="button" 
+                              variant="glass"
+                              disabled={isDeleting}
+                            >
                               Cancel
                             </Button>
                           </DialogClose>
-                          <Button className="flex-1" type="button" variant="glassDestructive">
-                            Delete
+                          <Button 
+                            onClick={handleDelete} 
+                            className="flex-1" 
+                            type="button" 
+                            variant="glassDestructive"
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Deleting...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </>
+                            )}
                           </Button>
                         </DialogFooter>
                       </DialogContent>
