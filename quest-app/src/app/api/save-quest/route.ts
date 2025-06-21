@@ -31,9 +31,33 @@ export async function POST(request: Request) {
     );
     const prizeImage = formData.get("prizeImage") as File | null;
     
-    // Check if this is an edit operation by looking for quest_id in questData
-    const isEdit = !!(questData as any).quest_id;
-    const questId = isEdit ? (questData as any).quest_id : uuidv4();
+    // Check if this is an edit operation by looking for an existing quest with this ID
+    const potentialQuestId = (questData as any).quest_id;
+    let isEdit = false;
+    let questId = uuidv4(); // Default to new ID
+    
+    if (potentialQuestId) {
+      // Check if a quest with this ID exists in the database
+      try {
+        const checkCommand = new GetCommand({
+          TableName: process.env.QUESTS_TABLE || "quests",
+          Key: {
+            quest_id: potentialQuestId,
+          },
+        });
+        
+        const checkResult = await docClient.send(checkCommand);
+        if (checkResult.Item) {
+          // Quest exists, this is an edit
+          isEdit = true;
+          questId = potentialQuestId;
+        }
+        // If quest doesn't exist, treat as new quest with new ID
+      } catch (error) {
+        console.log('Error checking for existing quest, treating as new quest:', error);
+        // On error, treat as new quest
+      }
+    }
 
     // Validate required fields
     if (!questData.title || !questData.description || questData.artefacts.length === 0) {
