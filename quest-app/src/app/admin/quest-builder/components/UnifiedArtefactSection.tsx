@@ -256,7 +256,7 @@ export const UnifiedArtefactSection = ({
                 />
                 <span className="ml-3 text-base">Sequential (Story-based order)</span>
               </label>
-              <label
+              {/* <label
                 className={`flex items-center cursor-pointer ${
                   questArtefacts.length < 3 ? "opacity-50" : ""
                 }`}
@@ -274,7 +274,7 @@ export const UnifiedArtefactSection = ({
                     (Requires 3+ artefacts)
                   </span>
                 )}
-              </label>
+              </label> */}
             </div>
             {validationErrors.questType && (
               <p className="mt-2 text-sm text-red-600">
