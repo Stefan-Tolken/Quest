@@ -76,7 +76,6 @@ const ProfilePage = () => {
                   <div className="w-full mt-2">
                     <button 
                       onClick={() => {
-                        // Instead of navigating, we'll trigger a custom event
                         window.dispatchEvent(new CustomEvent('showCompletedQuests'));
                       }}
                       className="text-center hover:bg-foreground/10 rounded-lg p-2 transition-colors w-full"
@@ -109,9 +108,8 @@ const ProfilePage = () => {
                     userId={userData.userId}
                     userEmail={userData.email}
                     completedQuests={userData.completed_quests || []}
-                    onQuestClick={(questId) => {
-                      // Handle quest click - could navigate to quest details
-                      console.log('View quest:', questId);
+                    onQuestClick={() => {
+                      window.dispatchEvent(new CustomEvent('showCompletedQuests'));
                     }}
                   />
                 )}
