@@ -5,6 +5,7 @@ import { useUserData } from "@/hooks/useUserData";
 import AuthButton from '@/components/ui/authButton';
 import CameraBackground from '@/components/ui/cameraBackground';
 import CompletedQuestsDisplay from '@/components/ui/completedQuestsdisplay';
+import EditProfileModal from '@/components/ui/editprofilemodal';
 import Link from 'next/link';
 import React, { useState } from 'react';
 import Image from 'next/image';
@@ -25,14 +26,15 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { User, Trophy, Settings, Trash2, AlertTriangle } from "lucide-react";
+import { User, Trophy, Settings, Trash2, AlertTriangle, Edit3 } from "lucide-react";
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ProfilePage = () => {
   const { user } = useAuthState();
-  const { userData, error } = useUserData();
+  const { userData, error, updateUserData } = useUserData();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   const handleDelete = async () => {
     if (!user?.profile?.email) {
@@ -66,7 +68,6 @@ const ProfilePage = () => {
       alert('Account deleted successfully. You will be signed out.');
       
       // Sign out the user after successful deletion
-      // This will depend on your auth implementation
       window.location.href = '/';
       
     } catch (error) {
@@ -76,9 +77,40 @@ const ProfilePage = () => {
       setIsDeleting(false);
     }
   };
+
+  const handleSaveProfile = async (profileData: { displayName: string; profileImage?: File }) => {
+    if (!user?.profile?.email) {
+      throw new Error('No email found for user');
+    }
+
+    const formData = new FormData();
+    formData.append('email', user.profile.email);
+    formData.append('displayName', profileData.displayName);
+    
+    if (profileData.profileImage) {
+      formData.append('profileImage', profileData.profileImage);
+    }
+
+    const response = await fetch('/api/save-user', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to save profile');
+    }
+
+    console.log('Profile saved successfully:', data);
+    
+    // Refresh user data
+    await updateUserData({});
+  };
   
   const email = user?.profile?.email || "No email available";
-  const name = user?.profile?.name || user?.profile?.preferred_username || "Student";
+  const displayName = userData?.displayName || user?.profile?.name || user?.profile?.preferred_username || "Student";
+  const profileImage = userData?.profileImage;
   const isAdmin = Array.isArray(user?.profile?.["cognito:groups"]) ? user.profile["cognito:groups"].includes("Admin") : false;
 
   // Show error state if there's an error
@@ -106,18 +138,55 @@ const ProfilePage = () => {
           <div className="max-w-2xl mx-auto h-full min-h-0 flex flex-col">
             {/* User Profile Card */}
             <div className="glass rounded-xl shadow-lg p-6 mb-6">
-              <div className="flex items-center gap-6">
-                {/* Avatar SVG */}
-                <div className="w-10 h-10 rounded-full bg-foreground/20 flex items-center justify-center flex-shrink-0">
-                  <svg className="w-7 h-7 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.25a7.75 7.75 0 0115 0v.25a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.25z" />
-                  </svg>
+              <div className="flex items-center gap-4">
+                {/* Profile Image */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-foreground/20 flex items-center justify-center">
+                    {profileImage ? (
+                      <Image
+                        src={profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                        width={64}
+                        height={64}
+                        unoptimized
+                      />
+                    ) : (
+                      <svg className="w-8 h-8 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.25a7.75 7.75 0 0115 0v.25a.75.75 0 01-.75-.75h-13.5a.75.75 0 01-.75-.75v-.25z" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
+
                 {/* Name and Email */}
                 <div className="flex flex-col justify-center flex-1 min-w-0">
-                  <h1 className="text-lg font-bold text-foreground truncate">{name}</h1>
-                  <p className="text-foreground text-sm truncate">{email}</p>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg font-bold text-foreground truncate">{displayName}</h1>
+                    <button
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="opacity-60 hover:opacity-100 transition-opacity"
+                    >
+                      <Edit3 className="w-4 h-4 text-foreground" />
+                    </button>
+                  </div>
+                  <p className="text-foreground/70 text-sm truncate">{email}</p>
                 </div>
+
+                {/* Quest Stats */}
+                {userData && (
+                  <div className="flex flex-col items-end">
+                    <button
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('showCompletedQuests'));
+                      }}
+                      className="text-center"
+                    >
+                      <p className="text-lg font-bold text-foreground">{userData.completed_quests?.length || 0}</p>
+                      <p className="text-xs text-foreground/70">Quests Completed</p>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -135,29 +204,20 @@ const ProfilePage = () => {
               </TabsList>
 
               <TabsContent value="achievements" className="flex flex-col h-full min-h-0">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <h2 className="text-2xl font-bold">Your Completed Quests</h2>
+                </div>
                 {userData && (
-                  <>
-                    <div className="flex justify-center mb-4">
-                      <button
-                        onClick={() => {
-                          window.dispatchEvent(new CustomEvent('showCompletedQuests'));
-                        }}
-                        className="text-center flex items-center"
-                      >
-                        <p className="text-2xl font-bold text-foreground">{userData.completed_quests?.length || 0} Quests Completed</p>
-                      </button>
-                    </div>
-                    <ScrollArea className="flex-1 min-h-0 max-w-full mb-9 rounded-xl">
-                      <CompletedQuestsDisplay
-                        userId={userData.userId}
-                        userEmail={userData.email}
-                        completedQuests={userData.completed_quests || []}
-                        onQuestClick={() => {
-                          window.dispatchEvent(new CustomEvent('showCompletedQuests'));
-                        }}
-                      />
-                    </ScrollArea>
-                  </>
+                  <ScrollArea className="flex-1 min-h-0 max-w-full mb-9 rounded-xl">
+                    <CompletedQuestsDisplay
+                      userId={userData.userId}
+                      userEmail={userData.email}
+                      completedQuests={userData.completed_quests || []}
+                      onQuestClick={() => {
+                        window.dispatchEvent(new CustomEvent('showCompletedQuests'));
+                      }}
+                    />
+                  </ScrollArea>
                 )}
               </TabsContent>
 
@@ -240,6 +300,16 @@ const ProfilePage = () => {
                 </div>
               </TabsContent>
             </Tabs>
+
+            {/* Edit Profile Modal */}
+            <EditProfileModal
+              isOpen={isEditModalOpen}
+              onClose={() => setIsEditModalOpen(false)}
+              onSave={handleSaveProfile}
+              currentName={displayName}
+              currentImage={profileImage}
+              userEmail={email}
+            />
           </div>
         </div>
       ) : (
