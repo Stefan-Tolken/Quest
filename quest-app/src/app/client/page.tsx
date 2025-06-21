@@ -93,6 +93,13 @@ export default function AppPage() {
   ];
 
   useEffect(() => {
+    // If the previous page was Quests (index 0) and we left it, reset questTab
+    if (previousIndex === 0 && currentIndex !== 0) {
+      setQuestTab('ongoing');
+    }
+  }, [currentIndex, previousIndex]);
+
+  useEffect(() => {
     setIsScannerActive(currentIndex === 1); // 1 is the index of Scan page
   }, [currentIndex]);
 

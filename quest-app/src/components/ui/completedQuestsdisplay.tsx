@@ -186,10 +186,8 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Trophy className="h-5 w-5 text-yellow-500" />
-        <h2 className="text-lg font-bold">Your Completed Quests</h2>
-        <Badge variant="secondary">{completedQuests.length}</Badge>
+      <div className="flex items-center justify-center gap-2 mb-4">
+        <h2 className="text-2xl font-bold">Your Completed Quests</h2>
       </div>
 
       {questsWithData.map((quest) => {
@@ -201,7 +199,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
             <CardHeader className="">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-foreground line-clamp-2 leading-tight text-2xl">
+                  <CardTitle className="text-foreground line-clamp-2 leading-tight text-xl">
                     {quest.title}
                   </CardTitle>
                 </div>
@@ -217,7 +215,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
               {/* Summary Stats */}
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-blue-500" />
+                  <Clock className="h-4 w-4" />
                   <div>
                     <p className="text-xs text-foreground">Your Time</p>
                     <p className="font-medium text-sm">
@@ -227,7 +225,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-green-500" />
+                  <Users className="h-4 w-4" />
                   <div>
                     <p className="text-xs text-foreground">Total Players</p>
                     <p className="font-medium text-sm">{quest.totalCompletions || 0}</p>
@@ -270,19 +268,19 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                   </CollapsibleTrigger>
                   
                   <CollapsibleContent className="mt-4">
-                    <div className="border rounded-lg overflow-hidden">
+                    <div className="glass rounded-lg overflow-hidden">
                       {/* Top 10 */}
-                      <div className="glass px-3 py-2 border-b">
+                      <div className="px-3 py-2">
                         <h4 className="text-sm font-medium text-foreground">Top 10 Fastest Times</h4>
                       </div>
                       
-                      <div className="max-h-64 overflow-y-auto">
+                      <div className="max-h-64 overflow-y-auto rounded-b-lg">
                         {quest.top10.map((entry, index) => (
                           <div 
                             key={`${entry.userId}-${entry.completedAt}`}
                             className={`flex items-center justify-between px-3 py-2 text-sm ${
-                              entry.userId === userId ? 'bg-blue-50 border-l-2 border-l-blue-400' : ''
-                            } ${index < quest.top10!.length - 1 ? 'border-b' : ''}`}
+                              entry.userId === userId ? 'bg-background/20 ' : ''
+                            } ${index < quest.top10!.length - 1 ? 'border-y border-background/50' : ''}`}
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <span className="flex-shrink-0 w-6 text-center font-medium text-foreground">
@@ -326,7 +324,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
               {/* Action Button */}
               {onQuestClick && (
                 <Button 
-                  variant="ghost" 
+                  variant="glass" 
                   size="sm" 
                   className="w-full mt-3"
                   onClick={() => onQuestClick(quest.quest_id)}
