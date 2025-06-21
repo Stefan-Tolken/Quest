@@ -25,7 +25,7 @@ export async function DELETE(request: Request) {
 
     // Step 1: Get all users to check for completed quests containing this quest
     const usersParams = {
-      TableName: 'userData',
+      TableName: process.env.USER_TABLE || 'userData',
     };
 
     const usersResult = await docClient.send(new ScanCommand(usersParams));
@@ -62,7 +62,7 @@ export async function DELETE(request: Request) {
     const updatePromises = usersToUpdate.map(async ({ userId, updatedCompletedQuests }) => {
       try {
         const updateUserCommand = new UpdateCommand({
-          TableName: 'userData',
+          TableName: process.env.USER_TABLE || 'userData',
           Key: {
             userId: userId,
           },

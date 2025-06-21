@@ -119,7 +119,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'upmuseumquestapp.s3.us-east-1.amazonaws.com',
+        hostname: `${process.env.AWS_BUCKET_NAME}.s3.us-east-1.amazonaws.com`,
         port: '',
         pathname: '/**',
       },

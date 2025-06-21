@@ -14,7 +14,7 @@ const client = new DynamoDBClient({
 });
 
 const docClient = DynamoDBDocumentClient.from(client);
-const TABLE_NAME = 'userData';
+const TABLE_NAME = process.env.USER_TABLE || 'userData';
 
 // GET - Retrieve all users
 export async function GET() {

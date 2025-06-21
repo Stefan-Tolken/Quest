@@ -1,7 +1,7 @@
 // app/api/user/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, ScanCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand, UpdateCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { UserData, ProfileSettings } from '@/lib/types';
 
 // Initialize DynamoDB client
@@ -178,127 +178,5 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating user:', error);
     return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
-  }
-}
-
-// DELETE - Delete user account
-export async function DELETE(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { email } = body;
-
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-    }
-
-    // First, find the user by email to get their userId
-    const scanCommand = new ScanCommand({
-      TableName: TABLE_NAME,
-      FilterExpression: 'email = :email',
-      ExpressionAttributeValues: {
-        ':email': email,
-      },
-    });
-
-    const userResult = await docClient.send(scanCommand);
-
-    if (!userResult.Items || userResult.Items.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const user = userResult.Items[0] as UserData;
-    const userId = user.userId;
-
-    console.log('Deleting user:', userId, 'Email:', email);
-
-    // Step 1: Get all quests to check for leaderboards containing this user
-    const questsParams = {
-      TableName: process.env.QUESTS_TABLE || 'quests',
-    };
-
-    const questsResult = await docClient.send(new ScanCommand(questsParams));
-    const questsToUpdate: any[] = [];
-
-    // Step 2: Check each quest's leaderboard for the user
-    if (questsResult.Items) {
-      for (const questItem of questsResult.Items) {
-        const quest = {
-          quest_id: questItem.quest_id,
-          leaderboard: questItem.leaderboard || []
-        };
-
-        // Check if the leaderboard contains this user
-        const leaderboard = Array.isArray(quest.leaderboard) ? quest.leaderboard : [];
-        const userInLeaderboard = leaderboard.some((entry: any) => 
-          entry && typeof entry === 'object' && entry.userId === userId
-        );
-
-        if (userInLeaderboard) {
-          // Filter out the user from the leaderboard
-          const updatedLeaderboard = leaderboard.filter((entry: any) => 
-            entry && typeof entry === 'object' && entry.userId !== userId
-          );
-          
-          questsToUpdate.push({
-            questId: quest.quest_id,
-            updatedLeaderboard
-          });
-        }
-      }
-    }
-
-    console.log(`Found ${questsToUpdate.length} quests to update leaderboards for user ${userId}`);
-
-    // Step 3: Update quest leaderboards to remove the user
-    const updatePromises = questsToUpdate.map(async ({ questId, updatedLeaderboard }) => {
-      try {
-        const updateQuestCommand = new UpdateCommand({
-          TableName: process.env.QUESTS_TABLE || 'quests',
-          Key: {
-            quest_id: questId,
-          },
-          UpdateExpression: 'SET leaderboard = :leaderboard',
-          ExpressionAttributeValues: {
-            ':leaderboard': updatedLeaderboard,
-          },
-        });
-
-        await docClient.send(updateQuestCommand);
-        console.log(`Updated leaderboard for quest ${questId}`);
-      } catch (error) {
-        console.error(`Failed to update leaderboard for quest ${questId}:`, error);
-      }
-    });
-
-    // Wait for all leaderboard updates to complete
-    await Promise.all(updatePromises);
-
-    // Step 4: Delete the user from userData table
-    const deleteCommand = new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: {
-        userId: user.userId,
-      },
-      ReturnValues: 'ALL_OLD',
-    });
-
-    const result = await docClient.send(deleteCommand);
-
-    if (!result.Attributes) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    return NextResponse.json({ 
-      message: 'User account deleted successfully',
-      deletedUser: {
-        userId: result.Attributes.userId,
-        email: result.Attributes.email,
-      },
-      leaderboardsUpdated: questsToUpdate.length
-    }, { status: 200 });
-
-  } catch (error) {
-    console.error('Error deleting user:', error);
-    return NextResponse.json({ error: 'Failed to delete user account' }, { status: 500 });
   }
 }
