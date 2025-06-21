@@ -105,11 +105,45 @@ export async function POST(req: NextRequest) {
       completedQuest.questId === questId
     );
     
+    // Check if user is already in the quest's leaderboard
+    const questLeaderboard = quest?.leaderboard || [];
+    const isInLeaderboard = questLeaderboard.some((entry: LeaderboardEntry) => 
+      entry.userId === userId
+    );
+    
+    // If not in leaderboard, add them even if quest was already marked as completed
+    if (!isInLeaderboard) {
+      console.log('User not in leaderboard, adding entry...');
+      
+      // Create leaderboard entry
+      const leaderboardEntry: LeaderboardEntry = {
+        userId,
+        completedAt,
+        timeTaken: timeTaken || 1
+      };
+
+      // Update the quest with the new leaderboard entry
+      const updateQuestLeaderboardParams = {
+        TableName: process.env.QUESTS_TABLE,
+        Key: { quest_id: questId },
+        UpdateExpression: 'SET leaderboard = list_append(if_not_exists(leaderboard, :empty_list), :entry)',
+        ExpressionAttributeValues: {
+          ':empty_list': [],
+          ':entry': [leaderboardEntry]
+        },
+        ReturnValues: "ALL_NEW" as const
+      };
+
+      await docClient.send(new UpdateCommand(updateQuestLeaderboardParams));
+      console.log('Added user to leaderboard successfully');
+    }
+    
     if (isAlreadyCompleted) {
       console.log('Quest already completed by user');
       return NextResponse.json({ 
         success: true,
-        message: 'Quest was already marked as completed'
+        message: 'Quest was already marked as completed',
+        addedToLeaderboard: !isInLeaderboard
       });
     }
     
