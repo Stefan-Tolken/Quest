@@ -26,7 +26,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { User, Trophy, Settings, Trash2, AlertTriangle, Edit3 } from "lucide-react";
+import { User, Trophy, Settings, Trash2, AlertTriangle, Edit3, ArrowRight } from "lucide-react";
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ProfilePage = () => {
@@ -141,14 +141,14 @@ const ProfilePage = () => {
               <div className="flex items-center gap-4">
                 {/* Profile Image */}
                 <div className="relative flex-shrink-0">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-foreground/20 flex items-center justify-center">
+                  <div className="w-20 h-20 mb-4 rounded-full overflow-hidden bg-foreground/20 flex items-center justify-center">
                     {profileImage ? (
                       <Image
                         src={profileImage}
                         alt="Profile"
                         className="w-full h-full object-cover"
-                        width={64}
-                        height={64}
+                        width={128}
+                        height={128}
                         unoptimized
                       />
                     ) : (
@@ -160,7 +160,7 @@ const ProfilePage = () => {
                 </div>
 
                 {/* Name and Email */}
-                <div className="flex flex-col justify-center flex-1 min-w-0">
+                <div className="flex flex-col justify-center flex-1 min-w-0 mb-5">
                   <div className="flex items-center gap-2">
                     <h1 className="text-lg font-bold text-foreground truncate">{displayName}</h1>
                     <button
@@ -172,27 +172,12 @@ const ProfilePage = () => {
                   </div>
                   <p className="text-foreground/70 text-sm truncate">{email}</p>
                 </div>
-
-                {/* Quest Stats */}
-                {userData && (
-                  <div className="flex flex-col items-end">
-                    <button
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('showCompletedQuests'));
-                      }}
-                      className="text-center"
-                    >
-                      <p className="text-lg font-bold text-foreground">{userData.completed_quests?.length || 0}</p>
-                      <p className="text-xs text-foreground/70">Quests Completed</p>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
             {/* Main Content Tabs */}
             <Tabs defaultValue="achievements" className="w-full h-full min-h-0 flex flex-col">
-              <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsList className="grid w-full grid-cols-2 mb-5">
                 <TabsTrigger value="achievements" className="flex items-center gap-2">
                   <Trophy className="h-4 w-4" />
                   <span className="">Achievements</span>
@@ -204,9 +189,21 @@ const ProfilePage = () => {
               </TabsList>
 
               <TabsContent value="achievements" className="flex flex-col h-full min-h-0">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <h2 className="text-2xl font-bold">Your Completed Quests</h2>
-                </div>
+                {userData && (
+                  <Button
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('showCompletedQuests'));
+                    }}
+                    variant={"glass"}
+                    className="p-8 mb-5"
+                  >
+                    <div className="flex items-center justify-center gap-3">
+                      <h2 className="text-xl font-bold text-black">
+                        You Completed {userData.completed_quests?.length || 0} Quests
+                      </h2>
+                    </div>
+                  </Button>
+                )}
                 {userData && (
                   <ScrollArea className="flex-1 min-h-0 max-w-full mb-9 rounded-xl">
                     <CompletedQuestsDisplay

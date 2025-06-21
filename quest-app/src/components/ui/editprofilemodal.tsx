@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Camera, Save, X, AlertTriangle } from "lucide-react";
+import { Camera, Save, X, AlertTriangle, Upload } from "lucide-react";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -108,30 +108,35 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     return null;
   };
 
+  const validateAndProcessImage = (file: File) => {
+    // Clear previous image error
+    setErrors(prev => ({ ...prev, image: undefined }));
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrors(prev => ({ ...prev, image: 'Please select a valid image file' }));
+      return false;
+    }
+    
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, image: 'Image must be smaller than 5MB' }));
+      return false;
+    }
+
+    setEditedImage(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    return true;
+  };
+
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Clear previous image error
-      setErrors(prev => ({ ...prev, image: undefined }));
-
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        setErrors(prev => ({ ...prev, image: 'Please select a valid image file' }));
-        return;
-      }
-      
-      // Validate file size (5MB limit)
-      if (file.size > 5 * 1024 * 1024) {
-        setErrors(prev => ({ ...prev, image: 'Image must be smaller than 5MB' }));
-        return;
-      }
-
-      setEditedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      validateAndProcessImage(file);
     }
   };
 
@@ -184,55 +189,65 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg bg-white/90 backdrop-blur-md border border-white/20 shadow-xl">
         <DialogHeader>
-          <DialogTitle>Edit Profile</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl text-gray-900">Edit Profile</DialogTitle>
+          <DialogDescription className="text-gray-600">
             Update your display name and profile picture
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Profile Image Section */}
-          <div className="flex flex-col items-center gap-3">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-full overflow-hidden bg-foreground/20 flex items-center justify-center">
+        <div className="space-y-6">
+          {/* Profile Image Section with Drag & Drop */}
+          <div className="flex flex-col items-center gap-4">
+            <div 
+              className={`relative group cursor-pointer transition-all duration-200`}
+              onClick={() => !isSaving && fileInputRef.current?.click()}
+            >
+              <div className={`w-32 h-32 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border-4 transition-all duration-200`}>
                 {imagePreview ? (
                   <Image
                     src={imagePreview}
                     alt="Profile preview"
                     className="w-full h-full object-cover"
-                    width={80}
-                    height={80}
+                    width={128}
+                    height={128}
                     unoptimized
                   />
                 ) : (
-                  <svg className="w-10 h-10 text-foreground/60" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.25a7.75 7.75 0 0115 0v.25a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.25z" />
-                  </svg>
+                  <div className="flex flex-col items-center gap-2 text-gray-400">
+                    <svg className="w-12 h-12" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.25a7.75 7.75 0 0115 0v.25a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.25z" />
+                    </svg>
+                  </div>
                 )}
               </div>
+
+              {/* Camera Icon Overlay */}
+              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                <div className="text-white text-center">
+                  <Camera className="w-8 h-8 mx-auto mb-1" />
+                  <p className="text-sm font-medium">Change Photo</p>
+                </div>
+              </div>
+
+              {/* Camera Button */}
               <button
-                onClick={() => fileInputRef.current?.click()}
                 disabled={isSaving}
-                className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors"
+                className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors shadow-lg"
               >
-                <Camera className="w-4 h-4 text-white" />
+                <Camera className="w-5 h-5 text-white" />
               </button>
             </div>
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isSaving}
-              className="text-xs"
-            >
-              Change Photo
-            </Button>
+            <div className="text-center">
+              <p className="text-sm text-gray-600 mb-2">
+                Click To Edit Your Profile Image
+              </p>
+            </div>
 
             {errors.image && (
-              <div className="flex items-center gap-2 text-red-600 text-sm">
+              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">
                 <AlertTriangle className="w-4 h-4" />
                 {errors.image}
               </div>
@@ -249,8 +264,8 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           </div>
 
           {/* Username Section */}
-          <div className="space-y-2">
-            <label htmlFor="username" className="text-sm font-medium">
+          <div className="space-y-3">
+            <label htmlFor="username" className="text-sm font-medium text-gray-700">
               Display Name
             </label>
             <Input
@@ -259,11 +274,13 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="Enter your display name"
               disabled={isSaving}
-              className={errors.name ? "border-red-500" : ""}
+              className={`bg-white/80 border-gray-200 text-gray-900 placeholder:text-gray-500 ${
+                errors.name ? "border-red-500 bg-red-50" : ""
+              }`}
               maxLength={MAX_USERNAME_LENGTH}
             />
-            <div className="flex justify-between items-center text-xs text-muted-foreground">
-              <span>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-gray-500">
                 {editedName.length}/{MAX_USERNAME_LENGTH} characters
               </span>
               {errors.name && (
@@ -275,21 +292,9 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Email (read-only) */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-muted-foreground">
-              Email (cannot be changed)
-            </label>
-            <Input
-              value={userEmail}
-              disabled
-              className="bg-muted"
-            />
-          </div>
-
           {/* General Error */}
           {errors.general && (
-            <div className="bg-red-50 border border-red-200 rounded-md p-3">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
               <div className="flex items-center gap-2 text-red-600 text-sm">
                 <AlertTriangle className="w-4 h-4" />
                 {errors.general}
@@ -298,29 +303,29 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           )}
         </div>
 
-        <DialogFooter className="flex flex-row gap-2 sm:justify-end">
+        <DialogFooter className="flex flex-row gap-3 pt-2">
           <Button 
             variant="outline" 
             onClick={handleClose}
             disabled={isSaving}
-            className="flex-1 sm:flex-none"
+            className="flex-1"
           >
-            <X className="h-4 w-4 mr-1" />
+            <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
           <Button 
             onClick={handleSave}
             disabled={isSaving || !!errors.name || !!errors.image}
-            className="flex-1 sm:flex-none"
+            className="flex-1"
           >
             {isSaving ? (
               <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                 Saving...
               </>
             ) : (
               <>
-                <Save className="h-4 w-4 mr-1" />
+                <Save className="h-4 w-4 mr-2" />
                 Save Changes
               </>
             )}
