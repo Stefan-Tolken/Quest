@@ -26,6 +26,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { User, Trophy, Settings, Trash2, AlertTriangle } from "lucide-react";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ProfilePage = () => {
   const { user } = useAuthState();
@@ -98,34 +99,35 @@ const ProfilePage = () => {
   }
   
   return (
-    <div className="relative min-h-screen w-full">
+    <>
       <CameraBackground />
       {user ? (
-        <div className="absolute inset-0 p-4 overflow-y-auto">
-          <div className="max-w-2xl mx-auto">
+        <div className="p-4 h-full min-h-0 ">
+          <div className="max-w-2xl mx-auto h-full min-h-0 flex flex-col">
             {/* User Profile Card */}
             <div className="glass rounded-xl shadow-lg p-6 mb-6">
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-foreground/20 flex items-center justify-center">
-                  <svg className="w-12 h-12 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+              <div className="flex items-center gap-6">
+                {/* Avatar SVG */}
+                <div className="w-10 h-10 rounded-full bg-foreground/20 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-7 h-7 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.25a7.75 7.75 0 0115 0v.25a.75.75 0 01-.75.75h-13.5a.75.75 0 01-.75-.75v-.25z" />
                   </svg>
                 </div>
-                <div className="text-center">
-                  <h1 className="text-xl font-bold text-foreground">{name}</h1>
-                  <p className="text-foreground/80 text-sm">{email}</p>
+                {/* Name and Email */}
+                <div className="flex flex-col justify-center flex-1 min-w-0">
+                  <h1 className="text-lg font-bold text-foreground truncate">{name}</h1>
+                  <p className="text-foreground text-sm truncate">{email}</p>
                 </div>
-                
                 {/* Quick Stats */}
                 {userData && (
-                  <div className="w-full mt-2">
-                    <button 
+                  <div className="flex flex-col items-end ml-4">
+                    <button
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('showCompletedQuests'));
                       }}
-                      className="text-center hover:bg-foreground/10 rounded-lg p-2 transition-colors w-full"
+                      className="text-center"
                     >
-                      <p className="text-2xl font-bold text-foreground">{userData.completed_quests?.length || 0}</p>
+                      <p className="text-lg font-bold text-foreground">{userData.completed_quests?.length || 0}</p>
                       <p className="text-xs text-foreground/70">Quests Completed</p>
                     </button>
                   </div>
@@ -134,12 +136,11 @@ const ProfilePage = () => {
             </div>
 
             {/* Main Content Tabs */}
-            <Tabs defaultValue="achievements" className="w-full">
+            <Tabs defaultValue="achievements" className="w-full h-full min-h-0 flex flex-col">
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="achievements" className="flex items-center gap-2">
                   <Trophy className="h-4 w-4" />
-                  <span className="hidden sm:inline">Achievements</span>
-                  <span className="sm:hidden">Quests</span>
+                  <span className="">Achievements</span>
                 </TabsTrigger>
                 <TabsTrigger value="settings" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
@@ -147,16 +148,21 @@ const ProfilePage = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="achievements" className="space-y-4">
+              <TabsContent value="achievements" className="flex flex-col h-full min-h-0">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <h2 className="text-2xl font-bold">Your Completed Quests</h2>
+                </div>
                 {userData && (
-                  <CompletedQuestsDisplay
-                    userId={userData.userId}
-                    userEmail={userData.email}
-                    completedQuests={userData.completed_quests || []}
-                    onQuestClick={() => {
-                      window.dispatchEvent(new CustomEvent('showCompletedQuests'));
-                    }}
-                  />
+                  <ScrollArea className="flex-1 min-h-0 max-w-full mb-9 rounded-xl">
+                    <CompletedQuestsDisplay
+                      userId={userData.userId}
+                      userEmail={userData.email}
+                      completedQuests={userData.completed_quests || []}
+                      onQuestClick={() => {
+                        window.dispatchEvent(new CustomEvent('showCompletedQuests'));
+                      }}
+                    />
+                  </ScrollArea>
                 )}
               </TabsContent>
 
@@ -167,7 +173,7 @@ const ProfilePage = () => {
                   <div className="space-y-4">
                     {isAdmin && (
                       <Link href="/admin">
-                        <Button variant="glassDark" className="w-full">
+                        <Button variant="glass" className="w-full mb-4">
                           Admin Dashboard
                         </Button>
                       </Link>
@@ -258,7 +264,7 @@ const ProfilePage = () => {
           </footer>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
