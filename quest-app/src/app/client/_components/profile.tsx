@@ -26,7 +26,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { User, Trophy, Settings, Trash2, AlertTriangle, Edit3, ArrowRight } from "lucide-react";
+import { User, Trophy, Settings, Trash2, AlertTriangle, Edit3, ArrowRight, Clock, Award } from "lucide-react";
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ProfilePage = () => {
@@ -35,6 +35,7 @@ const ProfilePage = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [leaderboardMode, setLeaderboardMode] = useState<'fastest' | 'first'>('fastest');
 
   const handleDelete = async () => {
     if (!user?.profile?.email) {
@@ -106,6 +107,12 @@ const ProfilePage = () => {
     
     // Refresh user data
     await updateUserData({});
+  };
+
+  const handleQuestClick = () => {
+    window.dispatchEvent(new CustomEvent('showCompletedQuests', {
+      detail: { leaderboardMode }
+    }));
   };
   
   const email = user?.profile?.email || "No email available";
@@ -191,9 +198,7 @@ const ProfilePage = () => {
               <TabsContent value="achievements" className="flex flex-col h-full min-h-0">
                 {userData && (
                   <Button
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('showCompletedQuests'));
-                    }}
+                    onClick={handleQuestClick}
                     variant={"glass"}
                     className="p-8 mb-5"
                   >
@@ -204,15 +209,44 @@ const ProfilePage = () => {
                     </div>
                   </Button>
                 )}
+                
+                {/* Leaderboard Mode Toggle */}
+                <div className="flex items-center gap-2 mb-4 p-2 glass rounded-lg">
+                  <span className="text-sm font-medium text-foreground">View:</span>
+                  <div className="flex rounded-md overflow-hidden border border-foreground/20">
+                    <button
+                      onClick={() => setLeaderboardMode('fastest')}
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
+                        leaderboardMode === 'fastest'
+                          ? 'bg-foreground text-background'
+                          : 'bg-transparent text-foreground hover:bg-foreground/10'
+                      }`}
+                    >
+                      <Clock className="h-4 w-4" />
+                      Fastest Times
+                    </button>
+                    <button
+                      onClick={() => setLeaderboardMode('first')}
+                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
+                        leaderboardMode === 'first'
+                          ? 'bg-foreground text-background'
+                          : 'bg-transparent text-foreground hover:bg-foreground/10'
+                      }`}
+                    >
+                      <Award className="h-4 w-4" />
+                      First to Complete
+                    </button>
+                  </div>
+                </div>
+
                 {userData && (
                   <ScrollArea className="flex-1 min-h-0 max-w-full mb-9 rounded-xl">
                     <CompletedQuestsDisplay
                       userId={userData.userId}
                       userEmail={userData.email}
                       completedQuests={userData.completed_quests || []}
-                      onQuestClick={() => {
-                        window.dispatchEvent(new CustomEvent('showCompletedQuests'));
-                      }}
+                      onQuestClick={handleQuestClick}
+                      leaderboardMode={leaderboardMode}
                     />
                   </ScrollArea>
                 )}

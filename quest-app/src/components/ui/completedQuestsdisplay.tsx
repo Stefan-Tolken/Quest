@@ -7,7 +7,8 @@ import {
   Medal,
   Calendar,
   Users,
-  Target
+  Target,
+  Award
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,13 +30,16 @@ interface CompletedQuestsDisplayProps {
   userEmail?: string;
   completedQuests: CompletedQuest[];
   onQuestClick?: (questId: string) => void;
+  leaderboardMode?: 'fastest' | 'first';
 }
 
 interface QuestWithLeaderboard extends Quest {
   userRank?: number;
+  userFirstRank?: number;
   totalCompletions?: number;
   userTime?: number;
   top10?: LeaderboardEntry[];
+  top10First?: LeaderboardEntry[];
 }
 
 interface EnhancedLeaderboardEntry extends LeaderboardEntry {
@@ -46,7 +50,8 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
   userId,
   userEmail,
   completedQuests,
-  onQuestClick
+  onQuestClick,
+  leaderboardMode = 'fastest'
 }) => {
   const [questsWithData, setQuestsWithData] = useState<QuestWithLeaderboard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,15 +105,24 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
               
               // Sort by fastest times for ranking
               const sortedByTime = [...leaderboard].sort((a, b) => a.timeTaken - b.timeTaken);
-              const userEntry = sortedByTime.find(entry => entry.userId === userId);
-              const userRank = userEntry ? sortedByTime.indexOf(userEntry) + 1 : undefined;
+              const userEntryByTime = sortedByTime.find(entry => entry.userId === userId);
+              const userRank = userEntryByTime ? sortedByTime.indexOf(userEntryByTime) + 1 : undefined;
+              
+              // Sort by completion date for "first to complete" ranking
+              const sortedByDate = [...leaderboard].sort((a, b) => 
+                new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
+              );
+              const userEntryByDate = sortedByDate.find(entry => entry.userId === userId);
+              const userFirstRank = userEntryByDate ? sortedByDate.indexOf(userEntryByDate) + 1 : undefined;
               
               return {
                 ...questData.quest,
                 userRank,
+                userFirstRank,
                 totalCompletions: leaderboard.length,
-                userTime: userEntry?.timeTaken,
-                top10: sortedByTime.slice(0, 10)
+                userTime: userEntryByTime?.timeTaken,
+                top10: sortedByTime.slice(0, 10),
+                top10First: sortedByDate.slice(0, 10)
               };
             } else {
               console.warn(`Failed to fetch leaderboard for quest ${completedQuest.questId}:`, leaderboardData.error);
@@ -116,9 +130,11 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
               return {
                 ...questData.quest,
                 userRank: undefined,
+                userFirstRank: undefined,
                 totalCompletions: 0,
                 userTime: undefined,
-                top10: []
+                top10: [],
+                top10First: []
               };
             }
           } catch (error) {
@@ -157,6 +173,16 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
     }
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const formatUserName = (entry: LeaderboardEntry) => {
     if (entry.userId === userId) return "You";
     
@@ -187,6 +213,19 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
       newExpanded.add(questId);
     }
     setExpandedQuests(newExpanded);
+  };
+
+  // Get the appropriate data based on leaderboard mode
+  const getCurrentRank = (quest: QuestWithLeaderboard) => {
+    return leaderboardMode === 'fastest' ? quest.userRank : quest.userFirstRank;
+  };
+
+  const getCurrentTop10 = (quest: QuestWithLeaderboard) => {
+    return leaderboardMode === 'fastest' ? quest.top10 : quest.top10First;
+  };
+
+  const getLeaderboardTitle = () => {
+    return leaderboardMode === 'fastest' ? 'Top 10 Fastest Times' : 'Top 10 First to Complete';
   };
 
   if (loading) {
@@ -224,9 +263,11 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
       {questsWithData.map((quest) => {
         const isExpanded = expandedQuests.has(quest.quest_id);
         const completedQuest = completedQuests.find(cq => cq.questId === quest.quest_id);
+        const currentRank = getCurrentRank(quest);
+        const currentTop10 = getCurrentTop10(quest);
         
         return (
-          <Card key={quest.quest_id} className={`overflow-hidden mb-4 ${quest.userRank === 1 ? "!bg-yellow-300/20" : ""}`}>
+          <Card key={quest.quest_id} className={`overflow-hidden mb-4 ${currentRank === 1 ? "!bg-yellow-300/20" : ""}`}>
             <CardHeader className="">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -234,9 +275,9 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                     {quest.title}
                   </CardTitle>
                 </div>
-                {quest.userRank && (
+                {currentRank && (
                   <div className="flex-shrink-0">
-                    {getRankBadge(quest.userRank)}
+                    {getRankBadge(currentRank)}
                   </div>
                 )}
               </div>
@@ -246,11 +287,20 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
               {/* Summary Stats */}
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div className="flex gap-2">
-                  <Clock className="h-4 w-4" />
+                  {leaderboardMode === 'fastest' ? (
+                    <Clock className="h-4 w-4" />
+                  ) : (
+                    <Award className="h-4 w-4" />
+                  )}
                   <div>
-                    <p className="text-xs text-foreground">Your Time</p>
+                    <p className="text-xs text-foreground">
+                      {leaderboardMode === 'fastest' ? 'Your Time' : 'Your Position'}
+                    </p>
                     <p className="font-medium text-sm">
-                      {quest.userTime ? formatTime(quest.userTime) : 'N/A'}
+                      {leaderboardMode === 'fastest' 
+                        ? (quest.userTime ? formatTime(quest.userTime) : 'N/A')
+                        : (quest.userFirstRank ? `#${quest.userFirstRank}` : 'N/A')
+                      }
                     </p>
                   </div>
                 </div>
@@ -279,7 +329,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
               )}
 
               {/* Leaderboard Toggle */}
-              {quest.top10 && quest.top10.length > 0 && (
+              {currentTop10 && currentTop10.length > 0 && (
                 <Collapsible 
                   open={isExpanded} 
                   onOpenChange={() => toggleExpanded(quest.quest_id)}
@@ -302,16 +352,16 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                     <div className="glass rounded-lg overflow-hidden">
                       {/* Top 10 */}
                       <div className="px-3 py-2 border-b border-background/50">
-                        <h4 className="text-sm font-medium text-foreground">Top 10 Fastest Times</h4>
+                        <h4 className="text-sm font-medium text-foreground">{getLeaderboardTitle()}</h4>
                       </div>
                       
                       <div className="max-h-64 overflow-y-auto rounded-b-lg">
-                        {quest.top10.map((entry, index) => (
+                        {currentTop10.map((entry, index) => (
                           <div 
                             key={`${entry.userId}-${entry.completedAt}`}
                             className={`flex items-center justify-between px-3 py-2 text-sm ${
                               entry.userId === userId ? 'bg-background/20 ' : ''
-                            } ${index < quest.top10!.length - 1 ? 'border-b border-background/50' : ''}`}
+                            } ${index < currentTop10.length - 1 ? 'border-b border-background/50' : ''}`}
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <span className="flex-shrink-0 w-6 text-center font-medium text-foreground">
@@ -322,24 +372,30 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                               </span>
                             </div>
                             <span className="flex-shrink-0 font-medium text-foreground">
-                              {formatTime(entry.timeTaken)}
+                              {leaderboardMode === 'fastest' 
+                                ? formatTime(entry.timeTaken)
+                                : formatDate(entry.completedAt)
+                              }
                             </span>
                           </div>
                         ))}
                       </div>
 
                       {/* User's Position (if not in top 10) */}
-                      {quest.userRank && quest.userRank > 10 && (
+                      {currentRank && currentRank > 10 && (
                         <div className="border-t border-background/50 bg-background/20 px-3 py-2">
                           <div className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-3">
                               <span className="w-6 text-center font-bold text-foreground">
-                                {quest.userRank}
+                                {currentRank}
                               </span>
                               <span className="font-medium text-foreground">You</span>
                             </div>
                             <span className="font-medium text-foreground">
-                              {quest.userTime ? formatTime(quest.userTime) : 'N/A'}
+                              {leaderboardMode === 'fastest' 
+                                ? (quest.userTime ? formatTime(quest.userTime) : 'N/A')
+                                : (completedQuest?.completedAt ? formatDate(completedQuest.completedAt) : 'N/A')
+                              }
                             </span>
                           </div>
                           <p className="text-xs text-foreground mt-1 pl-9">
