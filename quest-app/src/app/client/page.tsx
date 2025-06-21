@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import AppNavbar from '@/components/ui/appNavbar';
 import Quests from './_components/quests';
@@ -61,11 +61,32 @@ export default function AppPage() {
   const [isSwipeEnabled, setSwipeEnabled] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(1);
   const [showCameraPopup, setShowCameraPopup] = useState(false);
+  const [questTab, setQuestTab] = useState<'ongoing' | 'upcoming' | 'completed'>('ongoing');
 
   const touchStartX = useRef<number | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
+
+  const scrollToSection = useCallback((index: number) => {
+    setPreviousIndex(currentIndex);
+    setCurrentIndex(index);
+  }, [currentIndex]);
+
+  // Listen for the custom event from profile component
+  useEffect(() => {
+    const handleShowCompletedQuests = () => {
+      setQuestTab('completed');
+      scrollToSection(0); // Navigate to quests tab (index 0)
+    };
+
+    window.addEventListener('showCompletedQuests', handleShowCompletedQuests);
+    
+    return () => {
+      window.removeEventListener('showCompletedQuests', handleShowCompletedQuests);
+    };
+  }, [scrollToSection]);
+
   const pages = [
-    <Quests key="quests" />,
+    <Quests key="quests" initialTab={questTab} />,
     <Scan key="scan" setSwipeEnabled={setSwipeEnabled} />,
     <Profile key="profile" />,
   ];
@@ -111,11 +132,6 @@ export default function AppPage() {
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.touches[0].clientX;
-  };
-
-  const scrollToSection = (index: number) => {
-    setPreviousIndex(currentIndex);
-    setCurrentIndex(index);
   };
 
   return (

@@ -28,8 +28,6 @@ export default function RegisterSW() {
                   if (installingWorker.state === 'installed') {
                     if (navigator.serviceWorker.controller) {
                       console.log('🆕 New content available! Please refresh.');
-                      // You could show a toast notification here
-                      // Example: toast.info('New version available! Refresh to update.');
                     } else {
                       console.log('💾 Content is cached for offline use.');
                     }
@@ -39,8 +37,7 @@ export default function RegisterSW() {
             });
           } else {
             console.log('⏳ Service Worker not yet registered, waiting...');
-            // Wait a bit and check again (next-pwa handles the registration)
-            setTimeout(registerSW, 1000);
+            setTimeout(registerSW, 60000);
           }
         } catch (error) {
           console.error('❌ Service Worker check failed:', error);
