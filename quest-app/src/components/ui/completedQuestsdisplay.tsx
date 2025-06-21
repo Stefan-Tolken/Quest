@@ -295,19 +295,19 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
 
                       {/* User's Position (if not in top 10) */}
                       {quest.userRank && quest.userRank > 10 && (
-                        <div className="border-t bg-blue-50 px-3 py-2">
+                        <div className="border-t border-background/50 bg-background/20 px-3 py-2">
                           <div className="flex items-center justify-between text-sm">
                             <div className="flex items-center gap-3">
-                              <span className="w-6 text-center font-bold text-blue-600">
+                              <span className="w-6 text-center font-bold text-foreground">
                                 {quest.userRank}
                               </span>
-                              <span className="font-medium text-blue-800">You</span>
+                              <span className="font-medium text-foreground">You</span>
                             </div>
-                            <span className="font-medium text-blue-700">
+                            <span className="font-medium text-foreground">
                               {quest.userTime ? formatTime(quest.userTime) : 'N/A'}
                             </span>
                           </div>
-                          <p className="text-xs text-blue-600 mt-1 pl-9">
+                          <p className="text-xs text-foreground mt-1 pl-9">
                             Your ranking out of {quest.totalCompletions} players
                           </p>
                         </div>
