@@ -1,91 +1,113 @@
-// app/api/leaderboard/route.ts
+// src/app/api/leaderboard/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, BatchGetCommand } from '@aws-sdk/lib-dynamodb';
-import { LeaderboardEntry } from '@/lib/types';
 
 const client = new DynamoDBClient({ region: process.env.AWS_REGION });
 const docClient = DynamoDBDocumentClient.from(client);
 
 export async function GET(req: NextRequest) {
-  const questId = req.nextUrl.searchParams.get('questId');
+  const url = new URL(req.url);
+  const questId = url.searchParams.get('questId');
   
   if (!questId) {
     return NextResponse.json({ error: 'Missing questId parameter' }, { status: 400 });
   }
 
   try {
-    // Get the quest with leaderboard data
-    const params = {
+    console.log('Fetching leaderboard for quest:', questId);
+    
+    // Get the quest to access its leaderboard
+    const questParams = {
       TableName: process.env.QUESTS_TABLE,
       Key: { quest_id: questId }
     };
-
-    const response = await docClient.send(new GetCommand(params));
-    const quest = response.Item;
+    
+    const questResponse = await docClient.send(new GetCommand(questParams));
+    const quest = questResponse.Item;
     
     if (!quest) {
       return NextResponse.json({ error: 'Quest not found' }, { status: 404 });
     }
-
-    // Extract leaderboard from quest
-    const leaderboard: LeaderboardEntry[] = quest.leaderboard || [];
     
-    if (leaderboard.length === 0) {
-      return NextResponse.json({
-        questId,
-        questTitle: quest.title,
-        leaderboard: []
+    // Safely handle the leaderboard data
+    const leaderboard = Array.isArray(quest.leaderboard) ? quest.leaderboard : [];
+    
+    console.log('Leaderboard data:', leaderboard, 'Type:', typeof leaderboard);
+    
+    if (!leaderboard.length) {
+      console.log('Leaderboard is empty, returning empty array');
+      return NextResponse.json({ leaderboard: [] });
+    }
+    
+    // Safely get unique user IDs from leaderboard
+    let userIds: string[] = [];
+    try {
+      // Make sure we're working with an array and each entry has a userId
+      userIds = [...new Set(
+        leaderboard
+          .filter(entry => entry && typeof entry === 'object' && 'userId' in entry)
+          .map(entry => entry.userId)
+      )];
+    } catch (error) {
+      console.error('Error extracting userIds from leaderboard:', error);
+      // Return the leaderboard without user emails if there's an error
+      return NextResponse.json({ 
+        leaderboard,
+        error: 'Could not process user IDs'
       });
     }
-
-    // Get unique user IDs from leaderboard
-    const userIds = [...new Set(leaderboard.map(entry => entry.userId))];
+    
+    console.log('Extracted user IDs:', userIds);
     
     // Batch get user data to fetch emails
     const userEmails: Record<string, string> = {};
     
     if (userIds.length > 0) {
       try {
-        // Create batch get request for users
-        const userKeys = userIds.map(userId => ({ userId }));
-        
         const batchParams = {
           RequestItems: {
-            [process.env.USER_TABLE || 'userData']: {
-              Keys: userKeys
+            [process.env.USER_TABLE!]: {
+              Keys: userIds.map(id => ({ userId: id }))
             }
           }
         };
-
-        const userResponse = await docClient.send(new BatchGetCommand(batchParams));
-        const users = userResponse.Responses?.[process.env.USER_TABLE || 'userData'] || [];
         
-        // Create userId -> email mapping
+        const batchResponse = await docClient.send(new BatchGetCommand(batchParams));
+        const users = batchResponse.Responses?.[process.env.USER_TABLE!] || [];
+        
+        // Create a map of userId to email
         users.forEach(user => {
           if (user.userId && user.email) {
             userEmails[user.userId] = user.email;
           }
         });
-      } catch (userError) {
-        console.warn('Error fetching user emails:', userError);
+      } catch (error) {
+        console.error('Error fetching user emails:', error);
+        // Continue without emails if there's an error
       }
     }
     
-    // Add user emails to leaderboard entries
-    const enrichedLeaderboard = leaderboard.map(entry => ({
+    // Add emails to leaderboard entries
+    const leaderboardWithEmails = leaderboard.map(entry => ({
       ...entry,
-      userEmail: userEmails[entry.userId] || undefined
+      userEmail: userEmails[entry.userId] || 'Unknown'
     }));
     
-    // Return ALL leaderboard entries (let the frontend handle pagination and sorting)
-    return NextResponse.json({
-      questId,
-      questTitle: quest.title,
-      leaderboard: enrichedLeaderboard
+    // Sort by time taken (ascending)
+    const sortedLeaderboard = leaderboardWithEmails.sort((a, b) => {
+      const timeA = typeof a.timeTaken === 'number' ? a.timeTaken : Infinity;
+      const timeB = typeof b.timeTaken === 'number' ? b.timeTaken : Infinity;
+      return timeA - timeB;
     });
-  } catch (error) {
+    
+    return NextResponse.json({ leaderboard: sortedLeaderboard });
+    
+  } catch (error: any) {
     console.error('Error fetching leaderboard:', error);
-    return NextResponse.json({ error: 'Failed to fetch leaderboard' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch leaderboard', message: error.message || 'Unknown error' }, 
+      { status: 500 }
+    );
   }
 }

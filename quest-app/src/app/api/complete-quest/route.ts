@@ -128,29 +128,57 @@ export async function POST(req: NextRequest) {
     // *** FIX 2: Handle leaderboard update separately and more robustly ***
     try {
       // Check if user is already in the quest's leaderboard to avoid duplicates
-      const questLeaderboard = quest?.leaderboard || [];
-      const isInLeaderboard = questLeaderboard.some((entry: LeaderboardEntry) => 
-        entry.userId === userId
-      );
+      // Ensure leaderboard is an array
+      const questLeaderboard = Array.isArray(quest?.leaderboard) ? quest.leaderboard : [];
+      console.log('Current leaderboard:', quest?.leaderboard, 'Type:', typeof quest?.leaderboard);
+      
+      // Safely check if user is in leaderboard
+      let isInLeaderboard = false;
+      try {
+        isInLeaderboard = questLeaderboard.some((entry: LeaderboardEntry) => 
+          entry.userId === userId
+        );
+      } catch (error) {
+        console.log('Error checking leaderboard, assuming user is not in it:', error);
+        isInLeaderboard = false;
+      }
       
       if (!isInLeaderboard) {
         console.log('User not in leaderboard, adding entry...');
         
         // Update the quest with the new leaderboard entry
-        // *** FIX 3: Use a more reliable update expression ***
-        const updateQuestLeaderboardParams = {
-          TableName: process.env.QUESTS_TABLE,
-          Key: { quest_id: questId },
-          UpdateExpression: 'SET leaderboard = list_append(if_not_exists(leaderboard, :empty_list), :entry)',
-          ExpressionAttributeValues: {
-            ':empty_list': [],
-            ':entry': [leaderboardEntry]
-          },
-          ReturnValues: "ALL_NEW" as const
-        };
+        // First check if leaderboard exists
+        if (!quest.leaderboard || typeof quest.leaderboard !== 'object' || !Array.isArray(quest.leaderboard)) {
+          // Initialize the leaderboard as a fresh array
+          console.log('Initializing leaderboard as a new array');
+          const initLeaderboardParams = {
+            TableName: process.env.QUESTS_TABLE,
+            Key: { quest_id: questId },
+            UpdateExpression: 'SET leaderboard = :entries',
+            ExpressionAttributeValues: {
+              ':entries': [leaderboardEntry]
+            },
+            ReturnValues: "ALL_NEW" as const
+          };
+          
+          const initResult = await docClient.send(new UpdateCommand(initLeaderboardParams));
+          console.log('Initialized new leaderboard:', initResult.Attributes?.leaderboard);
+        } else {
+          // Append to existing leaderboard
+          console.log('Appending to existing leaderboard');
+          const updateQuestLeaderboardParams = {
+            TableName: process.env.QUESTS_TABLE,
+            Key: { quest_id: questId },
+            UpdateExpression: 'SET leaderboard = list_append(leaderboard, :entry)',
+            ExpressionAttributeValues: {
+              ':entry': [leaderboardEntry]
+            },
+            ReturnValues: "ALL_NEW" as const
+          };
 
-        const leaderboardResult = await docClient.send(new UpdateCommand(updateQuestLeaderboardParams));
-        console.log('Added user to leaderboard successfully', leaderboardResult.Attributes?.leaderboard?.length || 0, 'entries total');
+          const leaderboardResult = await docClient.send(new UpdateCommand(updateQuestLeaderboardParams));
+          console.log('Added user to existing leaderboard:', leaderboardResult.Attributes?.leaderboard?.length || 0, 'entries total');
+        }
       } else {
         console.log('User already in leaderboard, skipping');
       }
