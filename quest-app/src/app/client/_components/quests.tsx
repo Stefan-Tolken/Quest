@@ -201,7 +201,7 @@ export default function Quests() {
       completedQuests: completed,
       questToShow: toShow,
     };
-  }, [quests, userData, activeQuest, isQuestCompleted, isDataLoading]);
+  }, [quests, activeQuest, isQuestCompleted, isDataLoading]);
 
   if (loading) {
     return (

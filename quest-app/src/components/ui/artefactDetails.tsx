@@ -184,6 +184,7 @@ export default function ArtefactDetail({
               handleSubmit={handleSubmit}
               handleViewArtefact={handleViewArtefact}
               finalSubmission={finalSubmission}
+              isSubmitting={true}
             >
               <Button onClick={() => setDialogOpen(true)} variant="glassDark">Submit Artefact</Button>
             </SubmitDialog>
