@@ -83,6 +83,23 @@ export async function POST(req: NextRequest) {
       await docClient.send(new PutCommand(createUserParams));
     }
     
+    // Check if quest is already completed by examining existing completed_quests
+    const existingUser = userResponse.Item;
+    const existingCompletedQuests = existingUser?.completed_quests || [];
+    
+    // Check if this questId already exists in completed_quests
+    const isAlreadyCompleted = existingCompletedQuests.some((completedQuest: any) => 
+      completedQuest.questId === questId
+    );
+    
+    if (isAlreadyCompleted) {
+      console.log('Quest already completed by user');
+      return NextResponse.json({ 
+        success: true,
+        message: 'Quest was already marked as completed'
+      });
+    }
+    
     // Update user profile with completed quest
     const timestamp = new Date().toISOString();
     const completedQuest = {
@@ -99,15 +116,9 @@ export async function POST(req: NextRequest) {
       UpdateExpression: 'SET completed_quests = list_append(if_not_exists(completed_quests, :empty_list), :quest)',
       ExpressionAttributeValues: {
         ':empty_list': [],
-        ':quest': [completedQuest],
-        ':questId': questId
+        ':quest': [completedQuest]
       },
-      ReturnValues: "ALL_NEW" as const, // Make sure we get the updated item back
-      // Only prevent duplicates based on questId
-      ExpressionAttributeNames: {
-        '#cq': 'completed_quests'
-      },
-      ConditionExpression: 'attribute_not_exists(#cq) OR NOT contains(#cq, :questId)',
+      ReturnValues: "ALL_NEW" as const,
     };
     
     try {
@@ -156,18 +167,9 @@ export async function POST(req: NextRequest) {
         timeTaken
       });
 
-    } catch (conditionalError) {
-      console.error('Error updating user profile:', conditionalError);
-      
-      // Check if it's a conditional check failure
-      if ((conditionalError as any)?.name === 'ConditionalCheckFailedException') {
-        return NextResponse.json({ 
-          success: true,
-          message: 'Quest was already marked as completed'
-        });
-      }
-
-      throw conditionalError; // Re-throw if it's not a conditional check error
+    } catch (updateError) {
+      console.error('Error updating user profile:', updateError);
+      throw updateError;
     }
 
   } catch (error) {

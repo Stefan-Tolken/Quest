@@ -54,144 +54,144 @@ export default function LeaderboardComponent({
   const [firstCurrentPage, setFirstCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-//   const fetchLeaderboard = useCallback(async () => {
-//     try {
-//       setLoading(true);
-//       setError(null); // Clear any previous errors
-//       const response = await fetch(`/api/leaderboard?questId=${questId}`);
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null); // Clear any previous errors
+      const response = await fetch(`/api/leaderboard?questId=${questId}`);
       
-//       if (!response.ok) {
-//         throw new Error("Failed to fetch leaderboard data");
-//       }
+      if (!response.ok) {
+        throw new Error("Failed to fetch leaderboard data");
+      }
       
-//       const data = await response.json();
-//       setLeaderboardData(data.leaderboard || []);
-//     } catch (err) {
-//       setError("Error loading leaderboard data");
-//       setLeaderboardData([]); // Set empty array to trigger "No users found" display
-//       console.error("Leaderboard fetch error:", err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [questId]);
-
-  // DEMO: Inject dummy leaderboard data
-  useEffect(() => {
-    setTimeout(() => {
-      setLeaderboardData([
-        {
-          userId: "b40874b8-b011-7084-c99b-0b6a838ff063",
-          userEmail: "alice@example.com",
-          timeTaken: 95,
-          completedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "bob@example.com",
-          timeTaken: 62,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142884a8-3031-7496-147c-cdefa495fe88",
-          userEmail: "mandie@example.com",
-          timeTaken: 1004,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142884a8-3031-7496-147c-cdefa4232e88",
-          userEmail: "marcellerouxsomethinglong@example.com",
-          timeTaken: 26,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142884a8-3351-7496-147c-cdefa495fe88",
-          userEmail: "james@example.com",
-          timeTaken: 74,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142834a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "rob@example.com",
-          timeTaken: 6562,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "243884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "charlie@example.com",
-          timeTaken: 156,
-          completedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "343884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "diana@example.com",
-          timeTaken: 89,
-          completedAt: new Date(Date.now() - 1000 * 60 * 50).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "443884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "eve@example.com",
-          timeTaken: 234,
-          completedAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "543884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "frank@example.com",
-          timeTaken: 178,
-          completedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "643884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "grace@example.com",
-          timeTaken: 299,
-          completedAt: new Date(Date.now() - 1000 * 60 * 65).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "743884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "henry@example.com",
-          timeTaken: 134,
-          completedAt: new Date(Date.now() - 1000 * 60 * 70).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "843884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "iris@example.com",
-          timeTaken: 87,
-          completedAt: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "943884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "jack@example.com",
-          timeTaken: 445,
-          completedAt: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "a43884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "kate@example.com",
-          timeTaken: 67,
-          completedAt: new Date(Date.now() - 1000 * 60 * 85).toISOString(),
-          questId: questId
-        }
-      ]);
+      const data = await response.json();
+      setLeaderboardData(data.leaderboard || []);
+    } catch (err) {
+      setError("Error loading leaderboard data");
+      setLeaderboardData([]); // Set empty array to trigger "No users found" display
+      console.error("Leaderboard fetch error:", err);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   }, [questId]);
 
+  // DEMO: Inject dummy leaderboard data
 //   useEffect(() => {
-//     fetchLeaderboard();
-//   }, [questId, fetchLeaderboard]);
+//     setTimeout(() => {
+//       setLeaderboardData([
+//         {
+//           userId: "b40874b8-b011-7084-c99b-0b6a838ff063",
+//           userEmail: "alice@example.com",
+//           timeTaken: 95,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "142884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "bob@example.com",
+//           timeTaken: 62,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "142884a8-3031-7496-147c-cdefa495fe88",
+//           userEmail: "mandie@example.com",
+//           timeTaken: 1004,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "142884a8-3031-7496-147c-cdefa4232e88",
+//           userEmail: "marcellerouxsomethinglong@example.com",
+//           timeTaken: 26,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "142884a8-3351-7496-147c-cdefa495fe88",
+//           userEmail: "james@example.com",
+//           timeTaken: 74,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "142834a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "rob@example.com",
+//           timeTaken: 6562,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "243884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "charlie@example.com",
+//           timeTaken: 156,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "343884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "diana@example.com",
+//           timeTaken: 89,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 50).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "443884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "eve@example.com",
+//           timeTaken: 234,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "543884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "frank@example.com",
+//           timeTaken: 178,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "643884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "grace@example.com",
+//           timeTaken: 299,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 65).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "743884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "henry@example.com",
+//           timeTaken: 134,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 70).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "843884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "iris@example.com",
+//           timeTaken: 87,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "943884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "jack@example.com",
+//           timeTaken: 445,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
+//           questId: questId
+//         },
+//         {
+//           userId: "a43884a8-3031-7096-147c-cdefa495fe88",
+//           userEmail: "kate@example.com",
+//           timeTaken: 67,
+//           completedAt: new Date(Date.now() - 1000 * 60 * 85).toISOString(),
+//           questId: questId
+//         }
+//       ]);
+//       setLoading(false);
+//     }, 500);
+//   }, [questId]);
+
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [questId, fetchLeaderboard]);
 
   // Reset pagination when tab changes
   useEffect(() => {
