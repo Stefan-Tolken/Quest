@@ -140,11 +140,14 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     if (!isSequential) return null;
     
     const foundIds = Array.isArray(progress.collectedArtefactIds) ? progress.collectedArtefactIds : [];
+    
+    // Find the next artifact that hasn't been collected yet
     const nextArtefact = questArtefacts.find((a: any) => {
       const artefactId = typeof a === 'object' && a !== null ? a.artefactId ?? '' : a ?? '';
       return !foundIds.includes(artefactId);
     });
     
+    // If there's no next artifact (all collected) or the next artifact isn't an object, return null
     if (!nextArtefact || typeof nextArtefact !== 'object') return null;
     
     const hints = nextArtefact.hints || [];
@@ -153,9 +156,12 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     // Get the number of attempts for this quest to determine which hint to show
     const attempts = progress.attempts || 0;
     
+    // Log for debugging
+    console.log(`artefact at index: ${questArtefacts.findIndex((a: any) => a.artefactId === nextArtefact.artefactId)} is ${nextArtefact.artefactId} attempts: safeAttempts: ${attempts}`);
+    
     // Show hints based on attempts: first hint after first attempt (attempts >= 1)
     // Cap at the last available hint
-    const hintIndex = Math.min( attempts, hints.length - 1 );
+    const hintIndex = Math.min(attempts, hints.length - 1);
     
     return hints[hintIndex];
   }, [activeQuest?.artefacts, progress]);

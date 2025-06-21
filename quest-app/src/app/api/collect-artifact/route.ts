@@ -197,61 +197,47 @@ export async function POST(req: NextRequest) {
 
     // Check if already collected
     if (existingCollectedArtefacts.includes(artefactId)) {
-      return NextResponse.json({ 
-        success: true, 
-        alreadyCollected: true,
-        message: 'Artefact already collected',
-        progress: currentProgress
-      });
-    }
-
-    // For sequential quests, check if we can collect this artifact
-    if (quest.questType === 'sequential') {
-      const expectedIndex = existingCollectedArtefacts.length;
-      if (artefactId !== quest.artefacts[expectedIndex]?.artefactId) {
-        // Find the current artefact to check hints
-        const currentArtefact = quest.artefacts.find(a => a.artefactId === artefactId);
-        
-        // Increment attempt counter and update lastAttemptedArtefactId
+      // Instead of immediately returning, we should increment attempts if this is part of
+      // a sequential quest and not the next expected artifact
+      if (quest.questType === 'sequential') {
+        // Keep the current attempts, don't reset them for "already collected" artifacts
+        // This ensures that hints for the next expected artifact will display correctly
         const updatedProgress = {
           ...currentProgress,
-          attempts: currentProgress.attempts + 1,
+          attempts: currentProgress.attempts,  // Maintain the current attempt count
           lastAttemptedArtefactId: artefactId
         };
-
-        // Get newly available hints
-        const newHints = currentArtefact ? 
-          getNewlyAvailableHints(currentArtefact, updatedProgress.attempts, currentProgress.displayedHints) : 
-          [];
-
-        // Mark new hints as displayed
-        const updatedDisplayedHints = { ...currentProgress.displayedHints };
-        for (const hintId of newHints) {
-          updatedDisplayedHints[hintId] = true;
-        }
-
-        // Update attempts, lastAttemptedArtefactId, and displayedHints
-        const incrementAttemptParams: UpdateCommandInput = {
+        
+        // Update only the lastAttemptedArtefactId, preserve attempts
+        const updateParams: UpdateCommandInput = {
           TableName: process.env.USER_QUEST_PROGRESS_TABLE,
           Key: { userId, questId },
-          UpdateExpression: 'SET attempts = :a, lastAttemptedArtefactId = :l, displayedHints = :h, startTime = if_not_exists(startTime, :st)',
+          UpdateExpression: 'SET lastAttemptedArtefactId = :l, startTime = if_not_exists(startTime, :st)',
           ExpressionAttributeValues: {
-            ':a': updatedProgress.attempts,
             ':l': updatedProgress.lastAttemptedArtefactId,
-            ':h': updatedDisplayedHints,
             ':st': updatedProgress.startTime
           },
           ReturnValues: "ALL_NEW"
         };
         
-        const result = await docClient.send(new UpdateCommand(incrementAttemptParams));
+        const result = await docClient.send(new UpdateCommand(updateParams));
         
         return NextResponse.json({ 
-          success: false,
-          error: 'Cannot collect this artifact yet. Must collect artifacts in order.',
-          attempts: result.Attributes?.attempts || 0,
-          lastAttemptedArtefactId: result.Attributes?.lastAttemptedArtefactId,
-          progress: result.Attributes
+          success: false, 
+          status: 'already',
+          alreadyCollected: true,
+          message: 'Artefact already collected',
+          progress: result.Attributes,
+          attempts: result.Attributes?.attempts || currentProgress.attempts
+        });
+      } else {
+        // For non-sequential quests, just return as before
+        return NextResponse.json({ 
+          success: true, 
+          status: 'already',
+          alreadyCollected: true,
+          message: 'Artefact already collected',
+          progress: currentProgress
         });
       }
     }
