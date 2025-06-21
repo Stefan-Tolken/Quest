@@ -194,6 +194,8 @@ export type CompletedQuest = {
 export type UserData = {
   userId: string;
   email: string;
+  displayName?: string;
+  profileImage?: string;
   profile_settings: ProfileSettings;
   completed_quests: CompletedQuest[];
   artefacts_collected: string[];
@@ -250,6 +252,7 @@ export interface DynamoDBModelItem {
 export interface LeaderboardEntry {
   userId: string;
   userEmail?: string;
+  displayName?: string;
   timeTaken: number;
   completedAt: string;
   questId?: string;

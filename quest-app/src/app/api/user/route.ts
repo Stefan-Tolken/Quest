@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, userId } = body;
+    const { email, userId, displayName } = body;
 
     if (!email || !userId) {
       return NextResponse.json({ error: 'Email and userId are required' }, { status: 400 });
@@ -87,6 +87,8 @@ export async function POST(request: NextRequest) {
     const newUser: UserData = {
       userId,
       email,
+      displayName: displayName || undefined,
+      profileImage: undefined,
       profile_settings: defaultProfileSettings,
       completed_quests: [],
       artefacts_collected: [],
