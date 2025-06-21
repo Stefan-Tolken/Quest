@@ -210,7 +210,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
             <CardContent className="pt-0">
               {/* Summary Stats */}
               <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2">
                   <Clock className="h-4 w-4" />
                   <div>
                     <p className="text-xs text-foreground">Your Time</p>
@@ -220,7 +220,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2">
                   <Users className="h-4 w-4" />
                   <div>
                     <p className="text-xs text-foreground">Total Players</p>
@@ -266,7 +266,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                   <CollapsibleContent className="mt-4">
                     <div className="glass rounded-lg overflow-hidden">
                       {/* Top 10 */}
-                      <div className="px-3 py-2">
+                      <div className="px-3 py-2 border-b border-background/50">
                         <h4 className="text-sm font-medium text-foreground">Top 10 Fastest Times</h4>
                       </div>
                       
@@ -276,7 +276,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                             key={`${entry.userId}-${entry.completedAt}`}
                             className={`flex items-center justify-between px-3 py-2 text-sm ${
                               entry.userId === userId ? 'bg-background/20 ' : ''
-                            } ${index < quest.top10!.length - 1 ? 'border-y border-background/50' : ''}`}
+                            } ${index < quest.top10!.length - 1 ? 'border-b border-background/50' : ''}`}
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               <span className="flex-shrink-0 w-6 text-center font-medium text-foreground">
@@ -286,7 +286,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                                 {formatUserName(entry)}
                               </span>
                             </div>
-                            <span className="flex-shrink-0 font-medium text-gray-700">
+                            <span className="flex-shrink-0 font-medium text-foreground">
                               {formatTime(entry.timeTaken)}
                             </span>
                           </div>
