@@ -32,7 +32,7 @@ function NoCameraFallback() {
 
 export default function Scan({ 
   setSwipeEnabled, 
-  cameraAvailable 
+  cameraAvailable
 }: { 
   setSwipeEnabled: (enabled: boolean) => void;
   cameraAvailable: boolean | null;
@@ -51,7 +51,8 @@ export default function Scan({
     activeQuest,
     submitArtefact: questSubmitArtefact,
     progress,
-    isNextSequential
+    isNextSequential,
+    getNextHint
   } = useQuest();
 
   const handleScanSuccess = (decodedText: string) => {
@@ -175,11 +176,19 @@ export default function Scan({
         }
         setSubmitStatus(result.status);
       } else {
-        setSubmitStatus('error');
-        if (result.status !== "already") {
-          setMessage(`Hint: ${getHint()}`);
+        // Set the correct status - use 'already' if that's what the result says
+        if (result.status === 'already') {
+          setSubmitStatus('already'); // Set to 'already' instead of 'error'
+          setMessage('Already submitted.');
         } else {
-          setMessage(result.message);
+          setSubmitStatus('error');
+          if (result.message) {
+            setMessage(result.message);
+          } else {
+            // Get next hint only for genuine errors, not for "already" status
+            const nextHint = getNextHint();
+            setMessage(nextHint?.description ? `Hint: ${nextHint.description}` : 'Try another artifact.');
+          }
         }
         setIsSubmitting(false);
       }
