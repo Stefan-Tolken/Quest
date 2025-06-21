@@ -78,15 +78,11 @@ export async function GET(req: NextRequest) {
       userEmail: userEmails[entry.userId] || undefined
     }));
     
-    // Sort by time taken (ascending) and take top 10
-    const sortedLeaderboard = [...enrichedLeaderboard]
-      .sort((a, b) => a.timeTaken - b.timeTaken)
-      .slice(0, 10);
-    
+    // Return ALL leaderboard entries (let the frontend handle pagination and sorting)
     return NextResponse.json({
       questId,
       questTitle: quest.title,
-      leaderboard: sortedLeaderboard
+      leaderboard: enrichedLeaderboard
     });
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
