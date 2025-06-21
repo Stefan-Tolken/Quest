@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, GetCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 import { Quest } from "@/lib/types"
@@ -30,8 +30,10 @@ export async function POST(request: Request) {
       formData.get("quest") as string
     );
     const prizeImage = formData.get("prizeImage") as File | null;
-    const isEdit = formData.get("isEdit") === "true";
-    const editQuestId = formData.get("editQuestId") as string | null;
+    
+    // Check if this is an edit operation by looking for quest_id in questData
+    const isEdit = !!(questData as any).quest_id;
+    const questId = isEdit ? (questData as any).quest_id : uuidv4();
 
     // Validate required fields
     if (!questData.title || !questData.description || questData.artefacts.length === 0) {
@@ -41,15 +43,12 @@ export async function POST(request: Request) {
       );
     }
 
-    let questId: string;
     let existingQuest: Quest | null = null;
     let existingLeaderboard: any[] = [];
     let createdAt: string;
 
-    if (isEdit && editQuestId) {
+    if (isEdit) {
       // This is an edit operation - get existing quest data
-      questId = editQuestId;
-      
       try {
         const getCommand = new GetCommand({
           TableName: process.env.QUESTS_TABLE || "quests",
@@ -80,7 +79,6 @@ export async function POST(request: Request) {
       }
     } else {
       // This is a new quest
-      questId = uuidv4();
       createdAt = new Date().toISOString();
       existingLeaderboard = []; // Only empty for new quests
       console.log(`Creating new quest ${questId}`);
@@ -123,47 +121,118 @@ export async function POST(request: Request) {
       };
     }
 
-    // Prepare complete quest object - preserve existing leaderboard for edits
-    const quest: Quest = {
-      quest_id: questId,
-      ...questData,
-      prize: updatedPrize,
-      createdAt: createdAt,
-      leaderboard: existingLeaderboard, // Preserve existing leaderboard data
-    };
+    if (isEdit) {
+      // For edits, use UpdateCommand to preserve leaderboard
+      const updateExpressions: string[] = [];
+      const expressionAttributeNames: Record<string, string> = {};
+      const expressionAttributeValues: Record<string, any> = {};
 
-    // Prepare DynamoDB item
-    const params = {
-      TableName: process.env.QUESTS_TABLE || "quests",
-      Item: {
-        quest_id: { S: quest.quest_id },
-        title: { S: quest.title },
-        description: { S: quest.description },
-        artefacts: { S: JSON.stringify(quest.artefacts) },
-        questType: { S: quest.questType },
-        dateRange: quest.dateRange
-          ? { S: JSON.stringify(quest.dateRange) }
-          : { NULL: true },
-        prize: quest.prize
-          ? { S: JSON.stringify(quest.prize) }
-          : { NULL: true },
-        leaderboard: { S: JSON.stringify(existingLeaderboard) }, // Use preserved leaderboard
-        createdAt: { S: quest.createdAt },
-      },
-    };
+      // Build update expression for each field
+      updateExpressions.push('#title = :title');
+      expressionAttributeNames['#title'] = 'title';
+      expressionAttributeValues[':title'] = questData.title;
 
-    await dynamoDB.send(new PutItemCommand(params));
+      updateExpressions.push('#description = :description');
+      expressionAttributeNames['#description'] = 'description';
+      expressionAttributeValues[':description'] = questData.description;
 
-    const operation = isEdit ? 'updated' : 'created';
-    console.log(`Quest ${operation} successfully: ${questId}`);
+      updateExpressions.push('#artefacts = :artefacts');
+      expressionAttributeNames['#artefacts'] = 'artefacts';
+      expressionAttributeValues[':artefacts'] = JSON.stringify(questData.artefacts);
 
-    return NextResponse.json({
-      success: true,
-      message: `Quest ${operation} successfully`,
-      quest_id: questId,
-      shouldRefresh: true,
-      leaderboardEntriesPreserved: existingLeaderboard.length
-    });
+      updateExpressions.push('#questType = :questType');
+      expressionAttributeNames['#questType'] = 'questType';
+      expressionAttributeValues[':questType'] = questData.questType;
+
+      if (questData.dateRange) {
+        updateExpressions.push('#dateRange = :dateRange');
+        expressionAttributeNames['#dateRange'] = 'dateRange';
+        expressionAttributeValues[':dateRange'] = JSON.stringify(questData.dateRange);
+      }
+
+      if (updatedPrize) {
+        updateExpressions.push('#prize = :prize');
+        expressionAttributeNames['#prize'] = 'prize';
+        expressionAttributeValues[':prize'] = JSON.stringify(updatedPrize);
+      }
+
+      // Always update the updatedAt timestamp
+      updateExpressions.push('#updatedAt = :updatedAt');
+      expressionAttributeNames['#updatedAt'] = 'updatedAt';
+      expressionAttributeValues[':updatedAt'] = new Date().toISOString();
+
+      // EXPLICITLY preserve the leaderboard (this is the key fix)
+      updateExpressions.push('#leaderboard = :leaderboard');
+      expressionAttributeNames['#leaderboard'] = 'leaderboard';
+      expressionAttributeValues[':leaderboard'] = existingLeaderboard;
+
+      const updateParams = {
+        TableName: process.env.QUESTS_TABLE || "quests",
+        Key: { quest_id: questId },
+        UpdateExpression: `SET ${updateExpressions.join(', ')}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
+        ReturnValues: 'ALL_NEW' as const,
+      };
+
+      console.log('Updating quest with preserved leaderboard:', existingLeaderboard.length, 'entries');
+      
+      const result = await docClient.send(new UpdateCommand(updateParams));
+
+      console.log(`Quest updated successfully: ${questId}, leaderboard preserved with ${existingLeaderboard.length} entries`);
+
+      return NextResponse.json({
+        success: true,
+        message: "Quest updated successfully",
+        quest_id: questId,
+        shouldRefresh: true,
+        leaderboardEntriesPreserved: existingLeaderboard.length,
+        quest: result.Attributes
+      });
+
+    } else {
+      // For new quests, use PutItemCommand as before
+      const quest: Quest = {
+        quest_id: questId,
+        ...questData,
+        prize: updatedPrize,
+        createdAt: createdAt,
+        leaderboard: [], // New quests start with empty leaderboard
+      };
+
+      // Prepare DynamoDB item for new quest
+      const params = {
+        TableName: process.env.QUESTS_TABLE || "quests",
+        Item: {
+          quest_id: { S: quest.quest_id },
+          title: { S: quest.title },
+          description: { S: quest.description },
+          artefacts: { S: JSON.stringify(quest.artefacts) },
+          questType: { S: quest.questType },
+          dateRange: quest.dateRange
+            ? { S: JSON.stringify(quest.dateRange) }
+            : { NULL: true },
+          prize: quest.prize
+            ? { S: JSON.stringify(quest.prize) }
+            : { NULL: true },
+          leaderboard: { S: JSON.stringify([]) }, // Empty leaderboard for new quests
+          createdAt: { S: quest.createdAt },
+        },
+      };
+
+      await dynamoDB.send(new PutItemCommand(params));
+
+      console.log(`Quest created successfully: ${questId}`);
+
+      return NextResponse.json({
+        success: true,
+        message: "Quest created successfully",
+        quest_id: questId,
+        shouldRefresh: true,
+        leaderboardEntriesPreserved: 0
+      });
+    }
+
   } catch (error) {
     console.error("Error:", error);
     return NextResponse.json(
