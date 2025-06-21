@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import AppNavbar from '@/components/ui/appNavbar';
 import Quests from './_components/quests';
@@ -10,20 +10,20 @@ import CameraBackground from '@/components/ui/cameraBackground';
 
 function CameraRequiredPopup({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col items-center animate-fade-in max-w-xs">
         <svg className="w-16 h-16 text-yellow-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
         </svg>
         <div className="text-lg font-semibold text-gray-800 mb-4 text-center">
-          This app heavily relies on camera usage.<br />
+          This app requires camera access for scanning.<br />
           Please allow camera access in your browser settings.
         </div>
         <button
           onClick={onClose}
           className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded mt-2"
         >
-          OK
+          Continue Anyway
         </button>
       </div>
     </div>
@@ -61,12 +61,34 @@ export default function AppPage() {
   const [isSwipeEnabled, setSwipeEnabled] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(1);
   const [showCameraPopup, setShowCameraPopup] = useState(false);
+  const [questTab, setQuestTab] = useState<'ongoing' | 'upcoming' | 'completed'>('ongoing');
+  const [cameraAvailable, setCameraAvailable] = useState<boolean | null>(null);
 
   const touchStartX = useRef<number | null>(null);
   const [isScannerActive, setIsScannerActive] = useState(false);
+
+  const scrollToSection = useCallback((index: number) => {
+    setPreviousIndex(currentIndex);
+    setCurrentIndex(index);
+  }, [currentIndex]);
+
+  // Listen for the custom event from profile component
+  useEffect(() => {
+    const handleShowCompletedQuests = () => {
+      setQuestTab('completed');
+      scrollToSection(0); // Navigate to quests tab (index 0)
+    };
+
+    window.addEventListener('showCompletedQuests', handleShowCompletedQuests);
+    
+    return () => {
+      window.removeEventListener('showCompletedQuests', handleShowCompletedQuests);
+    };
+  }, [scrollToSection]);
+
   const pages = [
-    <Quests key="quests" />,
-    <Scan key="scan" setSwipeEnabled={setSwipeEnabled} />,
+    <Quests key="quests" initialTab={questTab} />,
+    <Scan key="scan" setSwipeEnabled={setSwipeEnabled} cameraAvailable={cameraAvailable} />,
     <Profile key="profile" />,
   ];
 
@@ -75,16 +97,64 @@ export default function AppPage() {
   }, [currentIndex]);
 
   useEffect(() => {
-    // Only check on mount
+    // Check camera availability on mount
     async function checkCamera() {
       try {
+        // First check if mediaDevices is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          console.log('MediaDevices not supported');
+          setCameraAvailable(false);
+          setShowCameraPopup(true);
+          return;
+        }
+
+        // Check for camera devices first
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const hasCamera = devices.some((d) => d.kind === 'videoinput');
-        if (!hasCamera) setShowCameraPopup(true);
-      } catch {
+        const videoDevices = devices.filter((d) => d.kind === 'videoinput');
+        
+        if (videoDevices.length === 0) {
+          console.log('No video input devices found');
+          setCameraAvailable(false);
+          setShowCameraPopup(true);
+          return;
+        }
+
+        // Try to actually access the camera to verify it works
+        let stream;
+        try {
+          // Suppress console errors during camera test
+          const originalError = console.error;
+          console.error = () => {};
+          
+          stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 640 },
+              height: { ideal: 480 }
+            } 
+          });
+          
+          // Restore console.error
+          console.error = originalError;
+          
+          // If we get here, camera is working
+          setCameraAvailable(true);
+        } catch (permissionError) {
+          // Restore console.error
+          setCameraAvailable(false);
+          setShowCameraPopup(true);
+        } finally {
+          // Clean up stream if it was created
+          if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+          }
+        }
+      } catch (error) {
+        setCameraAvailable(false);
         setShowCameraPopup(true);
       }
     }
+    
     checkCamera();
   }, []);
 
@@ -111,11 +181,6 @@ export default function AppPage() {
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.touches[0].clientX;
-  };
-
-  const scrollToSection = (index: number) => {
-    setPreviousIndex(currentIndex);
-    setCurrentIndex(index);
   };
 
   return (

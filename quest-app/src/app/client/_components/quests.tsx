@@ -6,6 +6,7 @@ import { useData } from '@/context/dataContext';
 import { useQuest } from '@/context/questContext';
 import { useUserData } from '@/hooks/useUserData'; // Import the user data hook
 import { Button } from '@/components/ui/button';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { CalendarDays, Trophy, MapPin, Gift, Info } from 'lucide-react';
 import type { Hint, QuestProgress, MainQuest } from '@/lib/types';
@@ -35,17 +36,41 @@ function isMainQuest(q: unknown): q is MainQuest {
          Array.isArray(quest.artefacts);
 }
 
-export default function Quests() {
+interface QuestsProps {
+  initialTab?: 'ongoing' | 'upcoming' | 'completed';
+}
+
+export default function Quests({ initialTab = 'ongoing' }: QuestsProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { quests, loading, error } = useData();
   const { activeQuest, acceptQuest, cancelQuest, checkQuestCompletion } = useQuest();
   const { userData } = useUserData(); // Get user data to check completed quests
   const [progress, setProgress] = useState<QuestProgress | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
-  // Filter state
-  const [ongoing, setOngoing] = useState(true);
-  const [upcoming, setUpcoming] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  
+  // Filter state - initialize based on initialTab prop
+  const [ongoing, setOngoing] = useState(initialTab === 'ongoing');
+  const [upcoming, setUpcoming] = useState(initialTab === 'upcoming');
+  const [completed, setCompleted] = useState(initialTab === 'completed');
+
+  // Update state when initialTab prop changes
+  useEffect(() => {
+    if (initialTab === 'completed') {
+      setOngoing(false);
+      setUpcoming(false);
+      setCompleted(true);
+    } else if (initialTab === 'upcoming') {
+      setOngoing(false);
+      setUpcoming(true);
+      setCompleted(false);
+    } else {
+      setOngoing(true);
+      setUpcoming(false);
+      setCompleted(false);
+    }
+  }, [initialTab]);
   
   // Get the single attempts number
   const getAttempts = useCallback((): number => {
@@ -707,7 +732,7 @@ export default function Quests() {
                         </CardTitle>
                         <CardDescription>{quest.description}</CardDescription>
                       </CardHeader>
-                      <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                         {completedQuestData && (
                           <div className="flex items-start gap-3">
                             <CalendarDays className="h-4 w-4 mt-0.5 text-green-600" />
@@ -722,8 +747,8 @@ export default function Quests() {
                         <div className="flex items-start gap-3">
                           <MapPin className="h-4 w-4 mt-0.5 text-green-600" />
                           <div>
-                            <p className="font-medium">Artefacts Found</p>
-                            <p className="text-green-700">{quest.artefacts.length} / {quest.artefacts.length}</p>
+                            <p className="font-medium">Quest Type</p>
+                            <p className="text-green-700 capitalize">{quest.questType || 'Standard'}</p>
                           </div>
                         </div>
                         {quest.prize && (
