@@ -35,13 +35,26 @@ export async function POST(req: NextRequest) {
     const progressResponse = await docClient.send(new GetCommand(progressParams));
     const questProgress = progressResponse.Item;
     
-    // Calculate time taken (if startTime exists)
+    // Calculate time taken
     const completedAt = new Date().toISOString();
     let timeTaken: number | null = null;
+    
+    // If we have a startTime, calculate the time taken
     if (questProgress?.startTime) {
       const startTime = new Date(questProgress.startTime).getTime();
       const endTime = new Date(completedAt).getTime();
-      timeTaken = Math.trunc((endTime - startTime)/1000); // Time taken in seconds
+      timeTaken = Math.trunc((endTime - startTime) / 1000); // Time taken in seconds
+    } else {
+      // If no startTime exists, use the createdAt time from quest progress or current time
+      // This ensures we always have a timeTaken value for the leaderboard
+      const fallbackStartTime = questProgress?.createdAt ? new Date(questProgress.createdAt).getTime() : new Date().getTime();
+      const endTime = new Date(completedAt).getTime();
+      timeTaken = Math.trunc((endTime - fallbackStartTime) / 1000);
+      
+      // If the calculated time is 0 or negative (edge case), set a default minimum time
+      if (timeTaken <= 0) {
+        timeTaken = 1; // 1 second minimum
+      }
     }
 
     // Update quest progress to mark as completed
@@ -132,29 +145,30 @@ export async function POST(req: NextRequest) {
       
       console.log('Update result:', updateResult);
 
-      // Update the quest's leaderboard with this user's completion
-      if (timeTaken !== null) {
-        // Create leaderboard entry
-        const leaderboardEntry: LeaderboardEntry = {
-          userId,
-          completedAt,
-          timeTaken
-        };
+      // CRITICAL FIX: Always update the quest's leaderboard when quest is completed
+      // Create leaderboard entry with the calculated timeTaken
+      const leaderboardEntry: LeaderboardEntry = {
+        userId,
+        completedAt,
+        timeTaken: timeTaken || 1 // Ensure we always have a time value
+      };
 
-        // Update the quest with the new leaderboard entry
-        const updateQuestLeaderboardParams = {
-          TableName: process.env.QUESTS_TABLE,
-          Key: { quest_id: questId },
-          UpdateExpression: 'SET leaderboard = list_append(if_not_exists(leaderboard, :empty_list), :entry)',
-          ExpressionAttributeValues: {
-            ':empty_list': [],
-            ':entry': [leaderboardEntry]
-          },
-          ReturnValues: "ALL_NEW" as const
-        };
+      console.log('Updating quest leaderboard with entry:', leaderboardEntry);
 
-        await docClient.send(new UpdateCommand(updateQuestLeaderboardParams));
-      }
+      // Update the quest with the new leaderboard entry
+      const updateQuestLeaderboardParams = {
+        TableName: process.env.QUESTS_TABLE,
+        Key: { quest_id: questId },
+        UpdateExpression: 'SET leaderboard = list_append(if_not_exists(leaderboard, :empty_list), :entry)',
+        ExpressionAttributeValues: {
+          ':empty_list': [],
+          ':entry': [leaderboardEntry]
+        },
+        ReturnValues: "ALL_NEW" as const
+      };
+
+      const leaderboardUpdateResult = await docClient.send(new UpdateCommand(updateQuestLeaderboardParams));
+      console.log('Leaderboard update result:', leaderboardUpdateResult);
 
       if (!updateResult.Attributes) {
         throw new Error('Update did not return updated attributes');
