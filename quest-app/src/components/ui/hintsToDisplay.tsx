@@ -1,36 +1,27 @@
 import { useEffect } from 'react';
 import type { Hint, QuestProgress, MainQuest } from '@/lib/types';
-import { useQuest } from '@/context/questContext';
-import { useMemo } from 'react';
+
 
 // Separate component for hints display to properly handle hooks
 export const HintsToDisplay = ({ 
   artefact, 
   questId, 
+  hints,
+  attempts,
   isCollected, 
-  completed
+  completed,
+  displayedHints,
+  onUpdateProgress 
 }: { 
   artefact: MainQuest['artefacts'][0],
   questId: string,
+  hints: Hint[],
   isCollected: boolean,
+  attempts: number,
   completed: boolean,
+  displayedHints: Record<string, boolean>,
+  onUpdateProgress: (updates: Partial<QuestProgress>) => void
 }) => {
-  // Get context from useQuest hook directly
-  const { 
-    progress, 
-    getCurrentArtefactHints,
-    getCurrentArtefactAttempts,
-    updateProgress
-  } = useQuest();
-
-  // Get hints for the current artifact
-  const hints = getCurrentArtefactHints(artefact.artefactId);
-  
-  // Get attempts for the current artifact
-  const attempts = getCurrentArtefactAttempts(artefact.artefactId);
-
-  const displayedHints = useMemo(() => progress?.displayedHints || {}, [progress]);
-
   useEffect(() => {
     if (!isCollected && !completed) {
       hints.forEach((hint, idx) => {
@@ -46,7 +37,7 @@ export const HintsToDisplay = ({
             })
           }).catch(console.error);
 
-          updateProgress({
+          onUpdateProgress({
             displayedHints: {
               ...displayedHints,
               [hintKey]: true
@@ -55,7 +46,7 @@ export const HintsToDisplay = ({
         }
       });
     }
-  }, [artefact.artefactId, hints, isCollected, completed, displayedHints, questId, updateProgress]);
+  }, [artefact.artefactId, hints, isCollected, completed, displayedHints, questId, onUpdateProgress]);
 
   return (
     <>

@@ -2,15 +2,13 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import type { Quest, QuestContextType, QuestProgress, UserData, Hint } from '@/lib/types';
+import type { Quest, QuestContextType, QuestProgress, UserData } from '@/lib/types';
 
 // Extended context type with new functionality
 interface ExtendedQuestContextType extends QuestContextType {
   progress: QuestProgress | null;
   isNextSequential: (artefactId: string) => boolean;
   getNextHint: () => { description: string } | null;
-  getCurrentArtefactHints: (artefactId: string) => Hint[];
-  getCurrentArtefactAttempts: (artefactId: string) => number;
   submitArtefact: (artefactId: string) => Promise<{
     success: boolean;
     status: 'success' | 'error' | 'already';
@@ -20,7 +18,6 @@ interface ExtendedQuestContextType extends QuestContextType {
   refreshProgress: () => Promise<void>;
   checkQuestCompletion: (collectedArtefactIds: string[]) => Promise<void>;
   setActiveQuest: (quest: Quest | null) => void;
-  updateProgress: (updates: Partial<QuestProgress>) => void;
 }
 
 const QuestContext = createContext<ExtendedQuestContextType | undefined>(undefined);
@@ -46,14 +43,6 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
     return token;
-  }, []);
-
-  // Helper function to update progress
-  const updateProgress = useCallback((updates: Partial<QuestProgress>) => {
-    setProgress((currentProgress) => {
-      if (!currentProgress) return updates as QuestProgress;
-      return { ...currentProgress, ...updates };
-    });
   }, []);
 
   // Restore active quest from sessionStorage on mount
@@ -120,37 +109,6 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     refreshProgress();
   }, [refreshProgress]);
 
-  // Get hints for the current artifact being attempted
-  const getCurrentArtefactHints = useCallback((artefactId: string): Hint[] => {
-    if (!activeQuest?.artefacts || !artefactId) return [];
-    
-    const artefact = activeQuest.artefacts.find(a => 
-      typeof a === 'object' && a?.artefactId === artefactId
-    );
-    
-    if (!artefact || typeof artefact !== 'object' || !artefact.hints) return [];
-    
-    return artefact.hints;
-  }, [activeQuest?.artefacts]);
-
-  // Get the current number of attempts for a specific artifact
-  const getCurrentArtefactAttempts = useCallback((artefactId: string): number => {
-    if (!progress) return 0;
-    
-    // If this is the lastAttemptedArtefactId, return the attempts count
-    if (progress.lastAttemptedArtefactId === artefactId) {
-      return progress.attempts;
-    }
-    
-    // If this artifact is already collected, show all hints
-    if (progress.collectedArtefactIds.includes(artefactId)) {
-      const hints = getCurrentArtefactHints(artefactId);
-      return hints.length;
-    }
-    
-    return 0;
-  }, [progress, getCurrentArtefactHints]);
-
   // Check if this is a sequential quest and if given artefact is the next one
   const isNextSequential = useCallback((artefactId: string): boolean => {
     if (!activeQuest?.artefacts || !progress) return false;
@@ -197,7 +155,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     
     // Show hints based on attempts: first hint after first attempt (attempts >= 1)
     // Cap at the last available hint
-    const hintIndex = Math.min(attempts, hints.length - 1);
+    const hintIndex = Math.min( attempts, hints.length - 1 );
     
     return hints[hintIndex];
   }, [activeQuest?.artefacts, progress]);
@@ -281,7 +239,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
           completed: data.completed || false,
           completedAt: data.completedAt,
           attempts: data.attempts || 0,
-          lastAttemptedArtefactId: artefactId, // Ensure we track the current artifact
+          lastAttemptedArtefactId: data.lastAttemptedArtefactId,
           displayedHints: data.displayedHints || {}
         };
         setProgress(newProgress);
@@ -318,16 +276,14 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } else if (!data.success && data.error) {
         // Handle incorrect answers (both wrong artefact and wrong sequence)
-        if (data.attempts !== undefined) {
+        if (data.attempts !== undefined && data.progress) {
           const updatedProgress: QuestProgress = {
-            ...(progress || {
-              collectedArtefactIds: [],
-              completed: false,
-              attempts: 0,
-              displayedHints: {}
-            } as QuestProgress),
+            collectedArtefactIds: progress?.collectedArtefactIds || [],
+            completed: progress?.completed || false,
+            completedAt: progress?.completedAt,
             attempts: data.attempts,
-            lastAttemptedArtefactId: artefactId // Always update to the current artifact
+            lastAttemptedArtefactId: artefactId,
+            displayedHints: progress?.displayedHints || {}
           };
           setProgress(updatedProgress);
         }
@@ -512,10 +468,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
       checkQuestCompletion,
       isNextSequential,
       getNextHint,
-      getCurrentArtefactHints,
-      getCurrentArtefactAttempts,
-      refreshProgress,
-      updateProgress
+      refreshProgress
     }}>
       {children}
     </QuestContext.Provider>
