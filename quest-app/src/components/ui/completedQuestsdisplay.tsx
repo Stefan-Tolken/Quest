@@ -52,32 +52,52 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
   useEffect(() => {
     const fetchQuestData = async () => {
       try {
+        // Fetch quest details and leaderboard data for each completed quest
         const questPromises = completedQuests.map(async (completedQuest) => {
-          // Fetch quest details
-          const questResponse = await fetch(`/api/quests/${completedQuest.questId}`);
-          const questData = await questResponse.json();
-          
-          // Fetch leaderboard data
-          const leaderboardResponse = await fetch(`/api/leaderboard?questId=${completedQuest.questId}`);
-          const leaderboardData = await leaderboardResponse.json();
-          
-          if (questResponse.ok && leaderboardResponse.ok) {
-            const leaderboard: LeaderboardEntry[] = leaderboardData.leaderboard || [];
+          try {
+            // Fetch individual quest details
+            const questResponse = await fetch(`/api/get-quest?questId=${completedQuest.questId}`);
+            const questData = await questResponse.json();
             
-            // Sort by fastest times for ranking
-            const sortedByTime = [...leaderboard].sort((a, b) => a.timeTaken - b.timeTaken);
-            const userEntry = sortedByTime.find(entry => entry.userId === userId);
-            const userRank = userEntry ? sortedByTime.indexOf(userEntry) + 1 : undefined;
+            if (!questResponse.ok) {
+              console.warn(`Failed to fetch quest ${completedQuest.questId}:`, questData.error);
+              return null;
+            }
+
+            // Fetch leaderboard data
+            const leaderboardResponse = await fetch(`/api/leaderboard?questId=${completedQuest.questId}`);
+            const leaderboardData = await leaderboardResponse.json();
             
-            return {
-              ...questData.quest,
-              userRank,
-              totalCompletions: leaderboard.length,
-              userTime: userEntry?.timeTaken,
-              top10: sortedByTime.slice(0, 10)
-            };
+            if (leaderboardResponse.ok) {
+              const leaderboard: LeaderboardEntry[] = leaderboardData.leaderboard || [];
+              
+              // Sort by fastest times for ranking
+              const sortedByTime = [...leaderboard].sort((a, b) => a.timeTaken - b.timeTaken);
+              const userEntry = sortedByTime.find(entry => entry.userId === userId);
+              const userRank = userEntry ? sortedByTime.indexOf(userEntry) + 1 : undefined;
+              
+              return {
+                ...questData.quest,
+                userRank,
+                totalCompletions: leaderboard.length,
+                userTime: userEntry?.timeTaken,
+                top10: sortedByTime.slice(0, 10)
+              };
+            } else {
+              console.warn(`Failed to fetch leaderboard for quest ${completedQuest.questId}:`, leaderboardData.error);
+              // Return quest data without leaderboard info
+              return {
+                ...questData.quest,
+                userRank: undefined,
+                totalCompletions: 0,
+                userTime: undefined,
+                top10: []
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching data for quest ${completedQuest.questId}:`, error);
+            return null;
           }
-          return null;
         });
 
         const results = await Promise.all(questPromises);
