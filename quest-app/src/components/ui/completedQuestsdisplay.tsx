@@ -136,9 +136,9 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
   };
 
   const getRankBadge = (rank: number) => {
-    if (rank === 1) return <Badge className="bg-yellow-500 text-white">🥇 1st</Badge>;
-    if (rank === 2) return <Badge className="bg-gray-400 text-white">🥈 2nd</Badge>;
-    if (rank === 3) return <Badge className="bg-amber-700 text-white">🥉 3rd</Badge>;
+    if (rank === 1) return <Badge className="bg-yellow-300 text-foreground">1st</Badge>;
+    if (rank === 2) return <Badge className="bg-gray-400 text-foreground">2nd</Badge>;
+    if (rank === 3) return <Badge className="bg-amber-700 text-foreground">3rd</Badge>;
     if (rank <= 10) return <Badge variant="secondary">Top 10</Badge>;
     if (rank <= 50) return <Badge variant="outline">Top 50</Badge>;
     return <Badge variant="outline">#{rank}</Badge>;
@@ -176,9 +176,9 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
     return (
       <Card className="text-center py-8">
         <CardContent>
-          <Target className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-500 text-lg font-medium">No completed quests yet</p>
-          <p className="text-gray-400 text-sm mt-1">Start exploring to see your achievements here!</p>
+          <Target className="h-12 w-12 text-foreground mx-auto mb-4" />
+          <p className="text-foreground text-lg font-medium">No completed quests yet</p>
+          <p className="text-foreground text-sm mt-1">Start exploring to see your achievements here!</p>
         </CardContent>
       </Card>
     );
@@ -197,16 +197,13 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
         const completedQuest = completedQuests.find(cq => cq.questId === quest.quest_id);
         
         return (
-          <Card key={quest.quest_id} className="overflow-hidden">
-            <CardHeader className="pb-3">
+          <Card key={quest.quest_id} className={`overflow-hidden ${quest.userRank === 1 ? "!bg-yellow-300/20" : ""}`}>
+            <CardHeader className="">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base line-clamp-2 leading-tight">
+                  <CardTitle className="text-foreground line-clamp-2 leading-tight text-2xl">
                     {quest.title}
                   </CardTitle>
-                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                    {quest.description}
-                  </p>
                 </div>
                 {quest.userRank && (
                   <div className="flex-shrink-0">
@@ -222,7 +219,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-blue-500" />
                   <div>
-                    <p className="text-xs text-gray-500">Your Time</p>
+                    <p className="text-xs text-foreground">Your Time</p>
                     <p className="font-medium text-sm">
                       {quest.userTime ? formatTime(quest.userTime) : 'N/A'}
                     </p>
@@ -232,7 +229,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4 text-green-500" />
                   <div>
-                    <p className="text-xs text-gray-500">Total Players</p>
+                    <p className="text-xs text-foreground">Total Players</p>
                     <p className="font-medium text-sm">{quest.totalCompletions || 0}</p>
                   </div>
                 </div>
@@ -240,7 +237,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
 
               {/* Completion Date */}
               {completedQuest?.completedAt && (
-                <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
+                <div className="flex items-center gap-2 mb-4 text-sm text-foreground">
                   <Calendar className="h-4 w-4" />
                   <span>
                     Completed {new Date(completedQuest.completedAt).toLocaleDateString('en-US', {
@@ -260,7 +257,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                 >
                   <CollapsibleTrigger asChild>
                     <Button 
-                      variant="outline" 
+                      variant="glass" 
                       size="sm" 
                       className="w-full justify-between"
                     >
@@ -275,8 +272,8 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                   <CollapsibleContent className="mt-4">
                     <div className="border rounded-lg overflow-hidden">
                       {/* Top 10 */}
-                      <div className="bg-gray-50 px-3 py-2 border-b">
-                        <h4 className="text-sm font-medium text-gray-700">Top 10 Fastest Times</h4>
+                      <div className="glass px-3 py-2 border-b">
+                        <h4 className="text-sm font-medium text-foreground">Top 10 Fastest Times</h4>
                       </div>
                       
                       <div className="max-h-64 overflow-y-auto">
@@ -288,7 +285,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
                             } ${index < quest.top10!.length - 1 ? 'border-b' : ''}`}
                           >
                             <div className="flex items-center gap-3 flex-1 min-w-0">
-                              <span className="flex-shrink-0 w-6 text-center font-medium text-gray-500">
+                              <span className="flex-shrink-0 w-6 text-center font-medium text-foreground">
                                 {index + 1}
                               </span>
                               <span className="truncate font-medium">
