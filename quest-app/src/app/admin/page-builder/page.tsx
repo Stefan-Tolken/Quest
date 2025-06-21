@@ -37,7 +37,8 @@ const basicComponents: ComponentData[] = [
       origin: "",
       currentLocation: "",
       dimensions: "",
-      materials: ""
+      materials: "",
+      type: ""
     },
   },
 ];
@@ -403,7 +404,8 @@ const PageBuilder = () => {
                     origin: "",
                     currentLocation: "",
                     dimensions: "",
-                    materials: ""
+                    materials: "",
+                    type: ""
                   } : ""
         };
         setActiveComponent(simplifiedComponent);
@@ -519,7 +521,8 @@ const PageBuilder = () => {
                 origin: "",
                 currentLocation: "",
                 dimensions: "",
-                materials: ""
+                materials: "",
+                type: ""
               };            
             case "heading":
             case "subheading":

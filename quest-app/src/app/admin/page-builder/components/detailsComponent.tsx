@@ -1,6 +1,6 @@
 // app/admin/page-builder/components/detailsComponent.tsx
 import React, { useState } from 'react';
-import { Calendar, MapPin, Ruler, Package, Info, Eye, EyeOff } from 'lucide-react';
+import { Calendar, MapPin, Ruler, Package, Info, Eye, EyeOff, Diamond } from 'lucide-react';
 import { ArtifactDetails } from '@/lib/types';
 
 interface DetailsComponentProps {
@@ -52,6 +52,13 @@ export const DetailsComponent = ({ content, onUpdate }: DetailsComponentProps) =
       label: 'Materials',
       icon: Package,
       placeholder: 'e.g., Clay, Bronze, Stone',
+      color: 'red'
+    },
+    {
+      key: 'type' as keyof ArtifactDetails,
+      label: 'Type',
+      icon: Diamond,
+      placeholder: 'e.g., Sculpture, Painting, Weapon',
       color: 'red'
     }
   ];

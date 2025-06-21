@@ -16,7 +16,8 @@ const basicComponents: ComponentData[] = [
       origin: "",
       currentLocation: "",
       dimensions: "",
-      materials: ""
+      materials: "",
+      type: ""
     },
   },
 ];

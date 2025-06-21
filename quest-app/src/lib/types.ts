@@ -22,6 +22,7 @@ export interface ArtifactDetails {
   currentLocation: string;
   dimensions: string;
   materials: string;
+  type: string;
 }
 
 export type ComponentData = {
