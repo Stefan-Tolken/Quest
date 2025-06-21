@@ -67,14 +67,15 @@ const withPWACfg = withPWA({
       },
     },
     {
-      // Cache AWS S3 images
+      // Cache AWS S3 images - but with shorter cache for pre-signed URLs
       urlPattern: /^https:\/\/.*\.amazonaws\.com\/.*/i,
-      handler: "CacheFirst",
+      handler: "NetworkFirst", // Changed to NetworkFirst for pre-signed URLs
       options: {
         cacheName: "aws-images",
+        networkTimeoutSeconds: 10,
         expiration: {
           maxEntries: 200,
-          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
+          maxAgeSeconds: 2 * 60 * 60, // 2 hours (shorter for pre-signed URLs)
         },
       },
     },
@@ -130,7 +131,24 @@ const nextConfig = {
         pathname: '/**',
       }
     ],
-  }
+    // Add these configurations for better handling of pre-signed URLs
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Reduce cache time for external images (helps with pre-signed URLs)
+    minimumCacheTTL: 60,
+    // Configure sizes for better performance
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    // Set reasonable limits
+    formats: ['image/webp'],
+    // Add timeout for slow loading images
+    domains: [], // Keep empty, use remotePatterns instead
+  },
+  // Add experimental features that help with external images
+  experimental: {
+    optimizeCss: true,
+  },
 };
 
 export default withPWACfg(nextConfig);
