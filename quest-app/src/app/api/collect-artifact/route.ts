@@ -161,6 +161,8 @@ export async function POST(req: NextRequest) {
       ...existingProgress.Item
     } as UserQuestProgress;
 
+    console.log("Current progress: ", currentProgress)
+
     const existingCollectedArtefacts = currentProgress.collectedArtefactIds;
 
     // If artefact doesn't exist in quest, increment attempts and return incorrect answer
