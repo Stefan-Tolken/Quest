@@ -26,6 +26,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { User, Trophy, Settings } from "lucide-react";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ProfilePage = () => {
   const { user } = useAuthState();
@@ -53,11 +54,11 @@ const ProfilePage = () => {
   }
   
   return (
-    <div className="relative min-h-screen w-full">
+    <>
       <CameraBackground />
       {user ? (
-        <div className="absolute inset-0 p-4 overflow-y-auto">
-          <div className="max-w-2xl mx-auto">
+        <div className="p-4 h-full min-h-0 ">
+          <div className="max-w-2xl mx-auto h-full min-h-0 flex flex-col">
             {/* User Profile Card */}
             <div className="glass rounded-xl shadow-lg p-6 mb-6">
               <div className="flex items-center gap-6">
@@ -90,7 +91,7 @@ const ProfilePage = () => {
             </div>
 
             {/* Main Content Tabs */}
-            <Tabs defaultValue="achievements" className="w-full">
+            <Tabs defaultValue="achievements" className="w-full h-full min-h-0 flex flex-col">
               <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="achievements" className="flex items-center gap-2">
                   <Trophy className="h-4 w-4" />
@@ -102,16 +103,21 @@ const ProfilePage = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="achievements" className="space-y-4">
+              <TabsContent value="achievements" className="flex flex-col h-full min-h-0">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <h2 className="text-2xl font-bold">Your Completed Quests</h2>
+                </div>
                 {userData && (
-                  <CompletedQuestsDisplay
-                    userId={userData.userId}
-                    userEmail={userData.email}
-                    completedQuests={userData.completed_quests || []}
-                    onQuestClick={() => {
-                      window.dispatchEvent(new CustomEvent('showCompletedQuests'));
-                    }}
-                  />
+                  <ScrollArea className="flex-1 min-h-0 max-w-full mb-9 rounded-xl">
+                    <CompletedQuestsDisplay
+                      userId={userData.userId}
+                      userEmail={userData.email}
+                      completedQuests={userData.completed_quests || []}
+                      onQuestClick={() => {
+                        window.dispatchEvent(new CustomEvent('showCompletedQuests'));
+                      }}
+                    />
+                  </ScrollArea>
                 )}
               </TabsContent>
 
@@ -178,7 +184,7 @@ const ProfilePage = () => {
           </footer>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

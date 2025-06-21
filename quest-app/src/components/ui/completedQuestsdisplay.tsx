@@ -185,17 +185,13 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-center gap-2 mb-4">
-        <h2 className="text-2xl font-bold">Your Completed Quests</h2>
-      </div>
-
+    <>
       {questsWithData.map((quest) => {
         const isExpanded = expandedQuests.has(quest.quest_id);
         const completedQuest = completedQuests.find(cq => cq.questId === quest.quest_id);
         
         return (
-          <Card key={quest.quest_id} className={`overflow-hidden ${quest.userRank === 1 ? "!bg-yellow-300/20" : ""}`}>
+          <Card key={quest.quest_id} className={`overflow-hidden mb-4 ${quest.userRank === 1 ? "!bg-yellow-300/20" : ""}`}>
             <CardHeader className="">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -336,7 +332,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
           </Card>
         );
       })}
-    </div>
+    </>
   );
 };
 
