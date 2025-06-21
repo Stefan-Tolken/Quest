@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   }
   try {
     const data = await dynamoDB.send(
-      new ScanCommand({ TableName: "quests" })
+      new ScanCommand({ TableName: process.env.QUESTS_TABLE || "quests" })
     );
     const usedIn: { id: string | undefined; title: string | undefined }[] = [];
     for (const item of data.Items || []) {

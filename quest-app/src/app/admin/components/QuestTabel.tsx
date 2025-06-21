@@ -49,6 +49,7 @@ export default function QuestsTable({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [globalFilter, setGlobalFilter] = useState("");
 
   // Memoize date formatting function to prevent re-computation
   const formatDate = useMemo(() => 
@@ -138,6 +139,31 @@ export default function QuestsTable({
           </div>
         );
       },
+      accessorFn: (row) => {
+        const quest = row;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const startDate = quest.dateRange?.from ? new Date(quest.dateRange.from) : null;
+        const endDate = quest.dateRange?.to ? new Date(quest.dateRange.to) : null;
+        
+        let status = "Unknown";
+        
+        if (startDate && endDate) {
+          startDate.setHours(0, 0, 0, 0);
+          endDate.setHours(23, 59, 59, 999);
+          
+          if (today >= startDate && today <= endDate) {
+            status = "Active";
+          } else if (today > endDate) {
+            status = "Past";
+          } else if (today < startDate) {
+            status = "Coming Up";
+          }
+        }
+
+        return status;
+      }
     },
     {
       id: "start_date",
@@ -169,9 +195,10 @@ export default function QuestsTable({
       },
       accessorFn: (row) => {
         if (row.dateRange?.from) {
-          return new Date(row.dateRange.from).getTime();
+          const date = new Date(row.dateRange.from);
+          return `${date.getTime()} ${formatDate(row.dateRange.from)}`;
         }
-        return -1;
+        return "No start dates set";
       },
       enableSorting: true,
     },
@@ -205,9 +232,10 @@ export default function QuestsTable({
       },
       accessorFn: (row) => {
         if (row.dateRange?.to) {
-          return new Date(row.dateRange.to).getTime();
+          const date = new Date(row.dateRange.to);
+          return `${date.getTime()} ${formatDate(row.dateRange.to)}`;
         }
-        return -1;
+        return "No end dates set";
       },
       enableSorting: true,
     },
@@ -260,7 +288,7 @@ export default function QuestsTable({
         );
       },
     },
-  ], [isAdmin, userId, formatDate, getQuestStatus, router, onDeleteQuest]);
+  ], [isAdmin, userId, userEmail, formatDate, getQuestStatus, router, onDeleteQuest]);
 
   // Initialize table with memoized data
   const table = useReactTable({
@@ -269,6 +297,7 @@ export default function QuestsTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -277,6 +306,7 @@ export default function QuestsTable({
       sorting,
       columnFilters,
       columnVisibility,
+      globalFilter,
     },
     initialState: {
       pagination: {
@@ -301,11 +331,9 @@ export default function QuestsTable({
       <div className="w-full">
         <div className="flex items-center py-4">
           <Input
-            placeholder="Search for quests..."
-            value={(table.getColumn("title")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("title")?.setFilterValue(event.target.value)
-            }
+            placeholder="Search any quest table details..."
+            value={table.getState().globalFilter ?? ""}
+            onChange={(event) => table.setGlobalFilter(event.target.value)}
             className="w-80 placeholder:text-gray-400 p-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-10 resize-none text-base"
           />
           <div className="ml-auto flex gap-2">
@@ -340,14 +368,6 @@ export default function QuestsTable({
               className={`hover:cursor-pointer ${table.getColumn("end_date")?.getIsVisible() ? "" : "opacity-50"}`}
             >
               End
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.getColumn("completions")?.toggleVisibility()}
-              className={`hover:cursor-pointer ${table.getColumn("completions")?.getIsVisible() ? "" : "opacity-50"}`}
-            >
-              Completions
             </Button>
           </div>
         </div>

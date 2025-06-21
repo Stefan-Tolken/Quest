@@ -49,6 +49,7 @@ export default function ArtefactsTable({
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [rowSelection, setRowSelection] = useState({});
+  const [globalFilter, setGlobalFilter] = useState("");
 
   // Column definitions
   const columns: ColumnDef<Artefact>[] = [
@@ -168,6 +169,7 @@ export default function ArtefactsTable({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
+    onGlobalFilterChange: setGlobalFilter,
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -178,6 +180,7 @@ export default function ArtefactsTable({
         columnFilters,
         columnVisibility,
         rowSelection,
+        globalFilter,
     },
     initialState: {
         pagination: {
@@ -247,32 +250,31 @@ export default function ArtefactsTable({
       
       <div className="w-full">
         <div className="flex items-center py-4">
-          <Input
-            placeholder="Filter artefacts..."
-            value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
-              table.getColumn("name")?.setFilterValue(event.target.value)
-            }
-            className="max-w-sm"
-          />
-          <div className="ml-auto flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.getColumn("name")?.toggleVisibility()}
-              className={`hover:cursor-pointer ${table.getColumn("name")?.getIsVisible() ? "" : "opacity-50"}`}
-            >
-              Name
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.getColumn("artist")?.toggleVisibility()}
-              className={`hover:cursor-pointer ${table.getColumn("artist")?.getIsVisible() ? "" : "opacity-50"}`}
-            >
-              Artist
-            </Button>
-          </div>
+            <Input
+                placeholder="Search any artefact table details..."
+
+                value={table.getState().globalFilter ?? ""}
+                onChange={(event) => table.setGlobalFilter(event.target.value)}
+                className="w-80 placeholder:text-gray-400 p-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent h-10 resize-none text-base"
+            />
+            <div className="ml-auto flex gap-2">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.getColumn("name")?.toggleVisibility()}
+                    className={`hover:cursor-pointer ${table.getColumn("name")?.getIsVisible() ? "" : "opacity-50"}`}
+                >
+                Name
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => table.getColumn("artist")?.toggleVisibility()}
+                    className={`hover:cursor-pointer ${table.getColumn("artist")?.getIsVisible() ? "" : "opacity-50"}`}
+                >
+                Artist
+                </Button>
+            </div>
         </div>
         
         <div className="rounded-md border">

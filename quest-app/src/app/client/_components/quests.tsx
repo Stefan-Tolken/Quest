@@ -7,7 +7,7 @@ import { useQuest } from '@/context/questContext';
 import { useUserData } from '@/hooks/useUserData'; // Import the user data hook
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
-import { CalendarDays, Trophy, MapPin, Gift } from 'lucide-react';
+import { CalendarDays, Trophy, MapPin, Gift, Info } from 'lucide-react';
 import type { Hint, QuestProgress, MainQuest } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -415,10 +415,38 @@ export default function Quests() {
                     {questToShow.prize?.title ? (
                       <div className="flex items-start gap-3">
                         <Trophy className="h-4 w-4 mt-0.5 text-foreground" />
-                        <div>
-                          <p className="font-medium">Prize</p>
-                          <p className="text-foreground">{questToShow.prize.title}</p>
-                        </div>  
+                        <div className="flex items-center gap-2">
+                          <div>
+                            <p className="font-medium">Prize</p>
+                            <p className="text-foreground">{questToShow.prize.title}</p>
+                          </div>
+                          {questToShow.prize.description && (
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="subtle" size="sm" className="p-1 h-6 w-6">
+                                  <Info className="h-4 w-4" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Prize Details</DialogTitle>
+                                </DialogHeader>
+                                <div className="py-4">
+                                  <p className="text-sm text-black">
+                                    {questToShow.prize.description}
+                                  </p>
+                                </div>
+                                <DialogFooter>
+                                  <DialogClose asChild>
+                                    <Button type="button" variant="glass">
+                                      Close
+                                    </Button>
+                                  </DialogClose>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          )}
+                        </div>
                       </div>
                     ): (
                       <div className="flex items-start gap-3">
