@@ -118,20 +118,6 @@ const ProfilePage = () => {
                   <h1 className="text-lg font-bold text-foreground truncate">{name}</h1>
                   <p className="text-foreground text-sm truncate">{email}</p>
                 </div>
-                {/* Quick Stats */}
-                {userData && (
-                  <div className="flex flex-col items-end ml-4">
-                    <button
-                      onClick={() => {
-                        window.dispatchEvent(new CustomEvent('showCompletedQuests'));
-                      }}
-                      className="text-center"
-                    >
-                      <p className="text-lg font-bold text-foreground">{userData.completed_quests?.length || 0}</p>
-                      <p className="text-xs text-foreground/70">Quests Completed</p>
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -149,20 +135,29 @@ const ProfilePage = () => {
               </TabsList>
 
               <TabsContent value="achievements" className="flex flex-col h-full min-h-0">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <h2 className="text-2xl font-bold">Your Completed Quests</h2>
-                </div>
                 {userData && (
-                  <ScrollArea className="flex-1 min-h-0 max-w-full mb-9 rounded-xl">
-                    <CompletedQuestsDisplay
-                      userId={userData.userId}
-                      userEmail={userData.email}
-                      completedQuests={userData.completed_quests || []}
-                      onQuestClick={() => {
-                        window.dispatchEvent(new CustomEvent('showCompletedQuests'));
-                      }}
-                    />
-                  </ScrollArea>
+                  <>
+                    <div className="flex justify-center mb-4">
+                      <button
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent('showCompletedQuests'));
+                        }}
+                        className="text-center flex items-center"
+                      >
+                        <p className="text-2xl font-bold text-foreground">{userData.completed_quests?.length || 0} Quests Completed</p>
+                      </button>
+                    </div>
+                    <ScrollArea className="flex-1 min-h-0 max-w-full mb-9 rounded-xl">
+                      <CompletedQuestsDisplay
+                        userId={userData.userId}
+                        userEmail={userData.email}
+                        completedQuests={userData.completed_quests || []}
+                        onQuestClick={() => {
+                          window.dispatchEvent(new CustomEvent('showCompletedQuests'));
+                        }}
+                      />
+                    </ScrollArea>
+                  </>
                 )}
               </TabsContent>
 
