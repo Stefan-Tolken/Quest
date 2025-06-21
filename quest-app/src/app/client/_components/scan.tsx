@@ -18,6 +18,7 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
   const [viewArtefact, setViewArtefact] = useState(false);
   const [finalSubmission, setFinalSubmission] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle'|'success'|'error'|'already'|null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false); // New state to track submission in progress
   const { showToast } = useToast();
   const { 
     activeQuest,
@@ -29,7 +30,7 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
   const handleScanSuccess = (decodedText: string) => {
     try {
       // Check if the scanned text is a URL
-      if (decodedText.startsWith('https')) {
+      if (decodedText.startsWith('http')) {
         // Extract artifact ID from URL query parameter
         const url = new URL(decodedText);
         const artifactId = url.searchParams.get('id');
@@ -97,20 +98,29 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
     setScanResult(null);
     setFinalSubmission(false);
     setSubmitStatus(null);
+    setIsSubmitting(false); // Reset submission status when closing
   }
 
   const handleSubmit = async () => {
     if (!activeQuest || !scanResult) return;
+    
+    // Prevent double submissions
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
     setSubmitStatus(null);
 
-    const artefactLength = activeQuest.artefacts.length;
-    const currentArtefactLength = progress?.collectedArtefactIds.length;    
+    // Calculate how many artifacts are left to collect after this submission
+    const totalArtefacts = activeQuest.artefacts.length;
+    const currentlyCollected = progress?.collectedArtefactIds?.length || 0;
+    const remainingAfterThis = totalArtefacts - (currentlyCollected + 1);
     
     try {
       const result = await questSubmitArtefact(scanResult);
       
       if (result.success) {
-        if (currentArtefactLength && (currentArtefactLength + 1 >= artefactLength)) {
+        // Set finalSubmission if this was the last artifact or only one remains
+        if (remainingAfterThis <= 0) {
           setFinalSubmission(true);
         }
         setSubmitStatus(result.status);
@@ -120,11 +130,13 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
         if (result.message) {
           setMessage(result.message);
         }
+        setIsSubmitting(false); // Re-enable submit button on error
       }
     } catch (error) {
       console.error('Submit error:', error);
       setSubmitStatus('error');
       showToast('Error submitting. Try again.', 'error', 5000);
+      setIsSubmitting(false); // Re-enable submit button on error
     }
   };
 
@@ -156,6 +168,7 @@ export default function Scan({ setSwipeEnabled }: { setSwipeEnabled: (enabled: b
             handleSubmit={handleSubmit}
             handleViewArtefact={handleViewArtefact}
             finalSubmission={finalSubmission}
+            isSubmitting={isSubmitting} // Pass the submission state to the dialog
           />
         </>
       ) : (

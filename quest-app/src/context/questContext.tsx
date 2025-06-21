@@ -261,7 +261,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (data.alreadyCollected) {
           return { 
-            success: true, 
+            success: false, 
             status: 'already' as const, 
             message: 'Already submitted.',
             progress: newProgress 

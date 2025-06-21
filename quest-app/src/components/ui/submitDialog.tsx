@@ -25,6 +25,7 @@ interface SubmitDialogProps {
   handleViewArtefact: () => void;
   children?: React.ReactNode;
   finalSubmission: boolean;
+  isSubmitting: boolean;
 }
 
 export default function SubmitDialog({
@@ -36,7 +37,8 @@ export default function SubmitDialog({
   handleSubmit,
   handleViewArtefact,
   children,
-  finalSubmission
+  finalSubmission,
+  isSubmitting
 }: SubmitDialogProps) {
     const isControlled = typeof open !== 'undefined';
     const { 
@@ -111,7 +113,8 @@ export default function SubmitDialog({
             disabled={
               submitStatus === 'success' ||
               submitStatus === 'already' ||
-              submitStatus === 'error'
+              submitStatus === 'error' ||
+              isSubmitting
             }
           >
             Submit Artefact
