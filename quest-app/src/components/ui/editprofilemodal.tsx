@@ -39,12 +39,30 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
     general?: string;
   }>({});
   const [badWords, setBadWords] = useState<string[]>([]);
+  const [profaneWords, setProfaneWords] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const MAX_USERNAME_LENGTH = 20;
   const MIN_USERNAME_LENGTH = 2;
 
-  // Load bad words list
+  // Load profane words from npm package
+  useEffect(() => {
+    const loadProfaneWords = async () => {
+      try {
+        // Import the profane-words package
+        const profaneWordsModule = await import('profane-words');
+        const words = profaneWordsModule.default || profaneWordsModule;
+        setProfaneWords(Array.isArray(words) ? words : []);
+      } catch (error) {
+        console.error('Failed to load profane words package:', error);
+        setProfaneWords([]);
+      }
+    };
+
+    loadProfaneWords();
+  }, []);
+
+  // Load custom bad words list
   useEffect(() => {
     const loadBadWords = async () => {
       try {
@@ -89,13 +107,20 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
       return `Username must be no more than ${MAX_USERNAME_LENGTH} characters`;
     }
 
-    // Check for profanity
+    // Check for profanity using both lists
     const lowerUsername = username.toLowerCase();
+    
+    // Check custom bad words list
     const containsBadWord = badWords.some(badWord => 
       lowerUsername.includes(badWord.toLowerCase())
     );
 
-    if (containsBadWord) {
+    // Check profane words package
+    const containsProfaneWord = profaneWords.some(profaneWord => 
+      lowerUsername.includes(profaneWord.toLowerCase())
+    );
+
+    if (containsBadWord || containsProfaneWord) {
       return "Username contains inappropriate language";
     }
 

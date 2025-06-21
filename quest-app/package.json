@@ -62,6 +62,7 @@
     "nodemon": "^3.1.9",
     "oidc-client-ts": "^3.2.0",
     "postcss": "^8.5.3",
+    "profane-words": "^1.6.0",
     "qr-scanner": "^1.4.2",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
