@@ -39,7 +39,7 @@ export default function Scan({
 }) {
   const hasMounted = useHasMounted();
   const [scanResult, setScanResult] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | undefined>(undefined);
   const [isScannerActive, setIsScannerActive] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
   const [viewArtefact, setViewArtefact] = useState(false);
@@ -137,6 +137,22 @@ export default function Scan({
     setFinalSubmission(false);
     setSubmitStatus(null);
     setIsSubmitting(false);
+  }
+
+  const getHint = () => {
+
+    const index = progress?.collectedArtefactIds.length || 0;
+    const attempts = progress?.attempts;
+    const hints = activeQuest?.artefacts[index].hints || [];
+    const safeAttempts = Math.max(0, Math.min((hints.length - 1), attempts ?? 0));
+    const hint = hints[safeAttempts];
+
+    console.log(`artefact at index: ${index} is ${activeQuest?.artefacts[index].artefactId}`);
+    console.log('attempts:', attempts);
+    console.log('safeAttempts:', safeAttempts);
+    console.log('hint:', hint.description);
+
+    return hint.description;
   }
 
   const handleSubmit = async () => {

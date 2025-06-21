@@ -238,6 +238,8 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       const data = await res.json();
+
+      console.log(data)
       
       if (data.success) {
         const newProgress: QuestProgress = {
