@@ -160,15 +160,19 @@ export default function Scan({
         }
         setSubmitStatus(result.status);
       } else {
-        setSubmitStatus(result.status || 'error');
-        if (result.message) {
-          setMessage(result.message);
-        } else if (result.status === 'already') {
+        // Set the correct status - use 'already' if that's what the result says
+        if (result.status === 'already') {
+          setSubmitStatus('already'); // Set to 'already' instead of 'error'
           setMessage('Already submitted.');
         } else {
-          // Get next hint only for genuine errors, not for "already" status
-          const nextHint = getNextHint();
-          setMessage(nextHint?.description ? `Hint: ${nextHint.description}` : 'Try another artifact.');
+          setSubmitStatus('error');
+          if (result.message) {
+            setMessage(result.message);
+          } else {
+            // Get next hint only for genuine errors, not for "already" status
+            const nextHint = getNextHint();
+            setMessage(nextHint?.description ? `Hint: ${nextHint.description}` : 'Try another artifact.');
+          }
         }
         setIsSubmitting(false);
       }

@@ -226,17 +226,17 @@ export async function POST(req: NextRequest) {
           success: false, 
           status: 'already',
           alreadyCollected: true,
-          message: 'Artefact already collected',
+          message: 'Already submitted',
           progress: result.Attributes,
           attempts: result.Attributes?.attempts || currentProgress.attempts
         });
       } else {
         // For non-sequential quests, just return as before
         return NextResponse.json({ 
-          success: true, 
+          success: false,  // Change to false to be consistent
           status: 'already',
           alreadyCollected: true,
-          message: 'Artefact already collected',
+          message: 'Already submitted',
           progress: currentProgress
         });
       }
