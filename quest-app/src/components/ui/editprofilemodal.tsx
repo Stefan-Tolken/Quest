@@ -304,13 +304,13 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 maxLength={MAX_USERNAME_LENGTH}
               />
             </div>
-            <div className="flex justify-between items-center text-sm">
+            <div className="flex justify-between items-center text-sm gap-3">
               <span className="text-foreground">
                 {editedName.length}/{MAX_USERNAME_LENGTH}
               </span>
               {errors.name && (
-                <div className="flex items-center justify-center gap-1 text-red-600">
-                  <AlertTriangle className="w-3 h-3" />
+                <div className="flex items-center justify-center gap-3 text-foreground">
+                  <AlertTriangle className="w-5 h-5" />
                   {errors.name}
                 </div>
               )}
