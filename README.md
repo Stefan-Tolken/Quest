@@ -26,6 +26,7 @@ The core idea behind Quest is to motivate users—especially students and young 
 - [React Context](https://reactjs.org/docs/context.html) (state management)
 - [PWA APIs](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps) (offline support, install prompts)
 - [Jest](https://jestjs.io/) (testing)
+- [Typescript](https://www.typescriptlang.org/) (Quality Assurance)
 - [Lucide React](https://lucide.dev/) (icon library)
 - Custom Hooks & Components (for QR scanning, authentication, etc.)
 
