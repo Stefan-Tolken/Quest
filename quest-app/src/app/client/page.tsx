@@ -13,7 +13,7 @@ function CameraRequiredPopup({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="glass rounded-lg shadow-lg p-8 flex flex-col items-center animate-fade-in max-w-xs">
-        <svg className="w-16 h-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-16 h-16 text-yellow-600 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
         </svg>
         <div className="text-md text-foreground mb-6 text-center">
@@ -23,6 +23,7 @@ function CameraRequiredPopup({ onClose }: { onClose: () => void }) {
         <Button
           onClick={onClose}
           variant={"glassDestructive"}
+          className='!bg-yellow-600'
         >
           Continue Anyway
         </Button>

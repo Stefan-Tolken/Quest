@@ -14,11 +14,11 @@ function NoCameraFallback() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="glass rounded-lg shadow-lg p-8 flex flex-col items-center animate-fade-in max-w-xs">
-        <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-16 h-16 text-red-800 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
         </svg>
-        <h3 className="text-lg font-semibold text-red-500 mb-2">Camera Not Available</h3>
+        <h3 className="text-lg font-semibold text-red-800 mb-2">Camera Not Available</h3>
         <p className="text-foregroundmb-4 text-center">
           QR scanning requires camera access. Please enable camera permissions or try on a device with a camera.
         </p>
@@ -136,22 +136,6 @@ export default function Scan({
     setIsSubmitting(false);
   }
 
-  const getHint = () => {
-
-    const index = progress?.collectedArtefactIds.length || 0;
-    const attempts = progress?.attempts;
-    const hints = activeQuest?.artefacts[index].hints || [];
-    const safeAttempts = Math.max(0, Math.min((hints.length - 1), attempts ?? 0));
-    const hint = hints[safeAttempts];
-
-    console.log(`artefact at index: ${index} is ${activeQuest?.artefacts[index].artefactId}`);
-    console.log('attempts:', attempts);
-    console.log('safeAttempts:', safeAttempts);
-    console.log('hint:', hint.description);
-
-    return hint.description;
-  }
-
   const handleSubmit = async () => {
     if (!activeQuest || !scanResult) return;
     
@@ -207,7 +191,7 @@ export default function Scan({
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500 mx-auto mb-2"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-800 mx-auto mb-2"></div>
           <p className="text-white/80">Checking camera...</p>
         </div>
       </div>
