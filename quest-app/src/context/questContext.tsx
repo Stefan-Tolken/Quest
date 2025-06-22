@@ -314,7 +314,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
         return { 
           success: false, 
           status: 'error' as const, 
-          message: 'Error submitting. Try again.' 
+          message: 'Error submitting. Try again. 1' 
         };
       } else {
         return { 
@@ -328,7 +328,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
       return { 
         success: false, 
         status: 'error' as const, 
-        message: 'Error submitting. Try again.' 
+        message: 'Error submitting. Try again. 2' 
       };
     }
   };
