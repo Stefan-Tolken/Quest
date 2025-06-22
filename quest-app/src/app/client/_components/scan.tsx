@@ -8,6 +8,7 @@ import { useQuest } from '@/context/questContext';
 import ArtefactDetail from '@/components/ui/artefactDetails';
 import { useToast } from '@/components/ui/toast';
 import SubmitDialog from '@/components/ui/submitDialog';
+import { useUserData } from '@/hooks/useUserData';
 
 // No Camera Fallback Component
 function NoCameraFallback() {
@@ -34,6 +35,7 @@ export default function Scan({
   setSwipeEnabled: (enabled: boolean) => void;
   cameraAvailable: boolean | null;
 }) {
+  const { userData } = useUserData();
   const hasMounted = useHasMounted();
   const [scanResult, setScanResult] = useState<string | null>(null);
   const [message, setMessage] = useState<string | undefined>(undefined);
