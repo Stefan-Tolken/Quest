@@ -382,49 +382,51 @@ export default function Quests({ initialTab = 'ongoing' }: QuestsProps) {
 
   return (
     <>
-      <div className="fixed z-50 top-0 max-w-2xl mx-auto flex flex-col justify-evenly gap-3 items-center p-6 w-full">
-        <div className='flex justify-evenly gap-6 items-center w-full'>
-          <Button
-            variant={`${ongoing && !questToShow ? 'glassDark' : 'glass'}`}
-            className={`flex-1 font-bold`}
-            onClick={handleOngoing}
-            disabled={questToShow ? true : false}
-          >Ongoing</Button>
-          <Button
-            variant={`${upcoming && !questToShow ? 'glassDark' : 'glass'}`}
-            className={`flex-1 font-bold`} 
-            onClick={handleUpcoming}
-            disabled={questToShow ? true : false}
-          >Upcoming</Button>
-          <Button
-            variant={`${completed && !questToShow ? 'glassDark' : 'glass'}`}
-            className={`flex-1 font-bold`}
-            onClick={handleCompleted}
-            disabled={questToShow ? true : false}
-          >Completed</Button>
+      <div className='fixed z-50 top-0 flex w-full'>
+        <div className="max-w-2xl mx-auto flex flex-col justify-between gap-3 items-center p-6 sm:py-6 sm:px-0 w-full">
+          <div className='flex justify-evenly gap-6 items-center w-full'>
+            <Button
+              variant={`${ongoing && !questToShow ? 'glassDark' : 'glass'}`}
+              className={`flex-1 font-bold`}
+              onClick={handleOngoing}
+              disabled={questToShow ? true : false}
+            >Ongoing</Button>
+            <Button
+              variant={`${upcoming && !questToShow ? 'glassDark' : 'glass'}`}
+              className={`flex-1 font-bold`} 
+              onClick={handleUpcoming}
+              disabled={questToShow ? true : false}
+            >Upcoming</Button>
+            <Button
+              variant={`${completed && !questToShow ? 'glassDark' : 'glass'}`}
+              className={`flex-1 font-bold`}
+              onClick={handleCompleted}
+              disabled={questToShow ? true : false}
+            >Completed</Button>
+          </div>
+          {ongoing && (
+            <div className="text-xl font-bold text-foreground truncate flex gap-2 items-center justify-center">
+              {ongoingQuests.length > 0
+                ? `${ongoingQuests.length} Ongoing Quest${ongoingQuests.length > 1 ? 's' : ''}`
+                : "No Ongoing Quests"}
+            </div>
+          )}
+          {upcoming && (
+            <div className="text-xl font-bold text-foreground truncate flex gap-2 items-center justify-center">
+              {upcomingQuests.length > 0
+                ? `${upcomingQuests.length} Upcoming Quest${upcomingQuests.length > 1 ? 's' : ''}`
+                : "No Upcoming Quests"}
+            </div>
+          )}
+          {completed && (
+            <div className="text-xl font-bold text-foreground truncate flex gap-2 items-center justify-center">
+              {userData?.completed_quests?.length
+                ? `${userData.completed_quests.length} Quest${userData.completed_quests.length > 1 ? 's' : ''} completed`
+                : "No Quests completed"}
+            </div>
+          )}
         </div>
-        {ongoing && (
-          <div className="text-xl font-bold text-foreground truncate flex gap-2 items-center justify-center">
-            {ongoingQuests.length > 0
-              ? `${ongoingQuests.length} Ongoing Quest${ongoingQuests.length > 1 ? 's' : ''}`
-              : "No Ongoing Quests"}
-          </div>
-        )}
-        {upcoming && (
-          <div className="text-xl font-bold text-foreground truncate flex gap-2 items-center justify-center">
-            {upcomingQuests.length > 0
-              ? `${upcomingQuests.length} Upcoming Quest${upcomingQuests.length > 1 ? 's' : ''}`
-              : "No Upcoming Quests"}
-          </div>
-        )}
-        {completed && (
-          <div className="text-xl font-bold text-foreground truncate flex gap-2 items-center justify-center">
-            {userData?.completed_quests?.length
-              ? `${userData.completed_quests.length} Quest${userData.completed_quests.length > 1 ? 's' : ''} completed`
-              : "No Quests completed"}
-          </div>
-        )}
-      </div>  
+      </div>
 
 
       <ScrollArea className="h-full max-w-2xl sm:mx-auto mx-6 pt-28 pb-13 rounded-xl">
