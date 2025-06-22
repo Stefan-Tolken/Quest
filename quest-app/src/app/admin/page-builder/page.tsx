@@ -10,7 +10,7 @@ import { arrayMove } from "@dnd-kit/sortable";
 import AuthGuard from "@/components/authGuard";
 import { ImageContent } from "@/lib/types";
 import { ImageEditor } from "./components/imageEditor";
-import { ArtifactDetails } from "@/lib/types";
+import { ArtefactDetails } from "@/lib/types";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -568,7 +568,7 @@ const PageBuilder = () => {
     });
   };
 
-  const handleUpdate = useCallback((id: string, content: string | ImageContent | RestorationContent | ArtifactDetails | Model3DContent) => {
+  const handleUpdate = useCallback((id: string, content: string | ImageContent | RestorationContent | ArtefactDetails | Model3DContent) => {
     console.log('Updating component:', id, content);
     setComponents((prev) =>
       prev.map((c) => {

@@ -4,12 +4,12 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSSProperties } from "react";
 import { ComponentData, ImageContent, RestorationContent, Model3DContent } from "@/lib/types";
 import { PageComponent } from "./pageComponent";
-import { ArtifactDetails } from "@/lib/types";
+import { ArtefactDetails } from "@/lib/types";
 
 interface SortableProps {
   component: ComponentData;
   onDelete: (id: string) => void;
-  onUpdate: (id: string, content: string | ImageContent | RestorationContent | ArtifactDetails | Model3DContent) => void;
+  onUpdate: (id: string, content: string | ImageContent | RestorationContent | ArtefactDetails | Model3DContent) => void;
   onEditPoints: (component: ComponentData) => void;
 }
 

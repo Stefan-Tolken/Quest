@@ -16,7 +16,7 @@ export type Hint = {
 
 export type HintDisplayMode = "sequential" | "random";
 
-export interface ArtifactDetails {
+export interface ArtefactDetails {
   created: string;
   origin: string;
   currentLocation: string;
@@ -28,7 +28,7 @@ export interface ArtifactDetails {
 export type ComponentData = {
   id: string;
   type: "heading" | "paragraph" | "image" | "restoration" | "details" | "3DModel" | "subheading";
-  content: string | ImageContent | RestorationContent | ArtifactDetails | Model3DContent;
+  content: string | ImageContent | RestorationContent | ArtefactDetails | Model3DContent;
   image?: string;
   order?: number;
 };

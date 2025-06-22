@@ -1,17 +1,17 @@
 // app/admin/page-builder/components/detailsComponent.tsx
 import React, { useState } from 'react';
 import { Calendar, MapPin, Ruler, Package, Info, Eye, EyeOff, Diamond } from 'lucide-react';
-import { ArtifactDetails } from '@/lib/types';
+import { ArtefactDetails } from '@/lib/types';
 
 interface DetailsComponentProps {
-  content: ArtifactDetails;
-  onUpdate: (content: ArtifactDetails) => void;
+  content: ArtefactDetails;
+  onUpdate: (content: ArtefactDetails) => void;
 }
 
 export const DetailsComponent = ({ content, onUpdate }: DetailsComponentProps) => {
   const [showPreview, setShowPreview] = useState(true);
 
-  const handleInputChange = (field: keyof ArtifactDetails, value: string) => {
+  const handleInputChange = (field: keyof ArtefactDetails, value: string) => {
     onUpdate({
       ...content,
       [field]: value
@@ -20,42 +20,42 @@ export const DetailsComponent = ({ content, onUpdate }: DetailsComponentProps) =
 
   const fieldConfig = [
     {
-      key: 'created' as keyof ArtifactDetails,
+      key: 'created' as keyof ArtefactDetails,
       label: 'Created',
       icon: Calendar,
       placeholder: 'e.g., May 24, 2025 or 15th century',
       color: 'blue'
     },
     {
-      key: 'origin' as keyof ArtifactDetails,
+      key: 'origin' as keyof ArtefactDetails,
       label: 'Origin',
       icon: MapPin,
       placeholder: 'e.g., Ancient Rome, Egypt',
       color: 'green'
     },
     {
-      key: 'currentLocation' as keyof ArtifactDetails,
+      key: 'currentLocation' as keyof ArtefactDetails,
       label: 'Current Location',
       icon: MapPin,
       placeholder: 'e.g., British Museum, London',
       color: 'purple'
     },
     {
-      key: 'dimensions' as keyof ArtifactDetails,
+      key: 'dimensions' as keyof ArtefactDetails,
       label: 'Dimensions',
       icon: Ruler,
       placeholder: 'e.g., 15 x 10 x 5 cm',
       color: 'orange'
     },
     {
-      key: 'materials' as keyof ArtifactDetails,
+      key: 'materials' as keyof ArtefactDetails,
       label: 'Materials',
       icon: Package,
       placeholder: 'e.g., Clay, Bronze, Stone',
       color: 'red'
     },
     {
-      key: 'type' as keyof ArtifactDetails,
+      key: 'type' as keyof ArtefactDetails,
       label: 'Type',
       icon: Diamond,
       placeholder: 'e.g., Sculpture, Painting, Weapon',

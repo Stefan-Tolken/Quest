@@ -5,16 +5,14 @@ import { useEffect, useState, useRef } from 'react';
 import Image from 'next/image';
 import { ArrowLeft, Calendar, MapPin, Ruler, Box } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ComponentData } from '@/lib/types';
 import { useQuest } from '@/context/questContext';
 import Model3DViewer from '@/components/3dModel/3dModel';
-import { ArtefactDetailProps } from '@/lib/types';
-import { Artefact } from '@/lib/types';
+import { ComponentData, Artefact, ArtefactDetails, ArtefactDetailProps } from '@/lib/types';
 import { useToast } from '@/components/ui/toast';
 import ImageWithPoints from './imageWithPoints';
 import RestorationTimeline from './restorationTimeline';
 import { ScrollArea } from './scroll-area';
-import SubmitDialog from '@/components/ui/submitDialog';
+
 
 export default function ArtefactDetail({ 
   artefactId,
@@ -106,7 +104,7 @@ export default function ArtefactDetail({
 
   const handleClose = () => {
     setViewArtefact(false);
-    console.log(viewArtefact);
+
     onClose();
   };
 
@@ -122,7 +120,7 @@ export default function ArtefactDetail({
 
   const handleViewArtefact = () => {
     setViewArtefact(true);
-    console.log('Viewing artefact:', artefact?.name);
+
   };
 
   return artefact ? (
@@ -182,12 +180,47 @@ export default function ArtefactDetail({
                         return (
                           <div key={component.id} className="">
                             <h3 className="text-2xl text-center font-semibold mb-4">Details</h3>
-                            <div className="space-y-4">
+                            <div className="flex flex-col gap-4">
                               <div className="flex items-start gap-3">
                                 <Calendar className="mt-0.5 h-5 w-5 text-foreground" />
-                                <div>
-                                  <h3 className="text-sm font-medium text-foreground">Created</h3>
+                                <div className='max-w-4/5'>
+                                  <h3 className="text-sm font-semibold text-foreground">Created</h3>
                                   <p className="text-sm">{details.created || 'Not specified'}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <MapPin className="mt-0.5 h-5 w-5 text-foreground" />
+                                <div className='max-w-4/5'>
+                                  <h3 className="text-sm font-semibold text-foreground">Origin</h3>
+                                  <p className="text-sm">{details.origin || 'Not specified'}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <MapPin className="mt-0.5 h-5 w-5 text-foreground" />
+                                <div className='max-w-4/5'>
+                                  <h3 className="text-sm font-semibold text-foreground">Current Location</h3>
+                                  <p className="text-sm">{details.currentLocation || 'Not specified'}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <Ruler className="mt-0.5 h-5 w-5 text-foreground" />
+                                <div className='max-w-4/5'>
+                                  <h3 className="text-sm font-semibold text-foreground">Dimensions</h3>
+                                  <p className="text-sm">{details.dimensions || 'Not specified'}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <Box className="mt-0.5 h-5 w-5 text-foreground" />
+                                <div className='max-w-4/5'>
+                                  <h3 className="text-sm font-semibold text-foreground">Materials</h3>
+                                  <p className="text-sm">{details.materials || 'Not specified'}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-start gap-3">
+                                <Box className="mt-0.5 h-5 w-5 text-foreground" />
+                                <div className='max-w-4/5'>
+                                  <h3 className="text-sm font-medium text-foreground">Type</h3>
+                                  <p className="text-sm">{details.type || 'Not specified'}</p>
                                 </div>
                               </div>
                             </div>
