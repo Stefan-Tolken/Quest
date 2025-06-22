@@ -59,10 +59,10 @@ The core idea behind Quest is to motivate users—especially students and young 
 
 | Name | GitHub | Role | Contributions |
 |------|--------|------|---------------|
-| [Name 1] | [@username1](https://github.com/username1) | Frontend Developer | UI components, PWA implementation, responsive design |
-| [Name 2] | [@username2](https://github.com/username2) | Backend Developer | API development, database design, authentication |
-| [Name 3] | [@username3](https://github.com/username3) | Full Stack Developer | QR code integration, admin dashboard, testing |
-| [Name 4] | [@username4](https://github.com/username4) | UI/UX Designer | User interface design, user experience, prototyping |
+| [Name 1] | [@Stefan Tolken](https://github.com/Stefan-Tolken) | Frontend Developer | UI components, user experience, quest hints, responsive design, authentication, full styling |
+| [Name 2] | [@James Cooks](https://github.com/JamesCooks589) | Backend Developer/Co-Leader | API development, database design, page builder design  |
+| [Name 3] | [@Marcel le Roux](https://github.com/MarcelAndreleRoux) | Full Stack Developer/Co-Leader | QR code integration, admin dashboard, quest builder, PWA implementation, leaderboards |
+| [Name 4] | [@Jerome Lou](https://github.com/MNJLou) |  Full Stack Developer | Landing page, 3D model integration, 3d model builder, GSAP integration |
 
 ## License
 
