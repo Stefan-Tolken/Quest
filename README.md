@@ -14,52 +14,45 @@ The core idea behind Quest is to motivate users—especially students and young 
 - **QR Code Scanning**: Users scan artefact QR codes to collect items and progress through quests
 - **Admin Dashboard**: Museum staff can manage artefacts, quests, and user progress through a secure admin interface
 - **Hints & Sequential Quests**: Quests can be sequential, with hints provided to guide users to the next artefact
-- **User Profiles**: Track quest progress, completed quests, and collected artefacts
+- **User Profiles**: Track quest progress, completed quests leaderboards, personal user data
 - **Bulk QR Generation**: Admins can generate and download QR codes for artefacts in bulk
 
 ## Technologies Used
 
+### Frontend & Development
 - [Next.js](https://nextjs.org/) (React framework for SSR and SSG)
 - [TypeScript](https://www.typescriptlang.org/) (type safety and maintainability)
 - [Tailwind CSS](https://tailwindcss.com/) (utility-first styling)
 - [React Context](https://reactjs.org/docs/context.html) (state management)
 - [PWA APIs](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps) (offline support, install prompts)
-- [Vercel](https://vercel.com/) (deployment and serverless functions)
 - [Jest](https://jestjs.io/) (testing)
 - [Lucide React](https://lucide.dev/) (icon library)
 - Custom Hooks & Components (for QR scanning, authentication, etc.)
+
+### AWS Services
+- [DynamoDB](https://aws.amazon.com/dynamodb/) (NoSQL database for storing artefacts, users, quests, and 3D models data)
+- [S3](https://aws.amazon.com/s3/) (Object storage for QR codes, 3D models, profile images, and artefact images)
+- [Cognito](https://aws.amazon.com/cognito/) (User authentication and authorization)
+- [Lambda](https://aws.amazon.com/lambda/) (Serverless functions for bulk QR code generation)
+- [IAM](https://aws.amazon.com/iam/) (Identity and access management for secure environment variables and user monitoring)
+
+### Deployment
+- [Vercel](https://vercel.com/) (frontend deployment and serverless functions)
 
 ## How It Works
 
 1. Visitors use the Quest app on their device, scan QR codes placed near artefacts, and complete quests by collecting all required artefacts
 2. Admins create and manage quests, artefacts, and hints through a dedicated dashboard
 3. Progress is tracked per user, with hints and feedback provided to encourage learning and exploration
+4. After a Quest is finished the Admins can then decide who gets the prize from the leaderboard provided to them
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 16+ 
+- Node.js 18+ 
+- Next.js v19
 - npm or yarn
-
-### Installation
-
-1. Clone the repository
-```bash
-git clone https://github.com/username/quest.git
-```
-
-2. Install dependencies
-```bash
-npm install
-```
-
-3. Run the development server
-```bash
-npm run dev
-```
-
-4. Access the app at http://localhost:3000
 
 ## Contributors
 
@@ -72,8 +65,8 @@ npm run dev
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under The Univercity of Pretoria
 
 ## Support
 
-For questions or issues, please [open an issue](https://github.com/username/quest/issues) or contact us.
+For questions or issues, please contact us.
