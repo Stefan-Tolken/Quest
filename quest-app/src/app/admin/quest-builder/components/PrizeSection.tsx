@@ -36,7 +36,7 @@ export const PrizeSection = ({
   onDrop,
 }: PrizeSectionProps) => {
   // Use imagePreview if available (for new uploads), otherwise use the prize.image from database
-  const displayImage = imagePreview || prize.image || "/placeholder-image.png";
+  const displayImage = imagePreview || prize.image;
 
   return (
     <div>
