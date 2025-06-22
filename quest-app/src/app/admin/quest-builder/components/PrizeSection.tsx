@@ -36,7 +36,7 @@ export const PrizeSection = ({
   onDrop,
 }: PrizeSectionProps) => {
   // Use imagePreview if available (for new uploads), otherwise use the prize.image from database
-  const displayImage = imagePreview || prize.image;
+  const displayImage = imagePreview || prize.image || "/placeholder-image.png";
 
   return (
     <div>
@@ -98,7 +98,6 @@ export const PrizeSection = ({
                     className="object-contain"
                     onError={(e) => {
                       console.error('Error loading prize image:', e);
-                      // You could set a fallback image here or handle the error
                     }}
                   />
                   <button

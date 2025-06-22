@@ -6,6 +6,7 @@ import { useData } from '@/context/dataContext';
 import { useQuest } from '@/context/questContext';
 import { useUserData } from '@/hooks/useUserData'; // Import the user data hook
 import { Button } from '@/components/ui/button';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { CalendarDays, Trophy, MapPin, Gift, Info } from 'lucide-react';
 import type { Hint, QuestProgress, MainQuest } from '@/lib/types';
@@ -35,17 +36,41 @@ function isMainQuest(q: unknown): q is MainQuest {
          Array.isArray(quest.artefacts);
 }
 
-export default function Quests() {
+interface QuestsProps {
+  initialTab?: 'ongoing' | 'upcoming' | 'completed';
+}
+
+export default function Quests({ initialTab = 'ongoing' }: QuestsProps) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { quests, loading, error } = useData();
   const { activeQuest, acceptQuest, cancelQuest, checkQuestCompletion } = useQuest();
   const { userData } = useUserData(); // Get user data to check completed quests
   const [progress, setProgress] = useState<QuestProgress | null>(null);
   const [progressLoading, setProgressLoading] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
-  // Filter state
-  const [ongoing, setOngoing] = useState(true);
-  const [upcoming, setUpcoming] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  
+  // Filter state - initialize based on initialTab prop
+  const [ongoing, setOngoing] = useState(initialTab === 'ongoing');
+  const [upcoming, setUpcoming] = useState(initialTab === 'upcoming');
+  const [completed, setCompleted] = useState(initialTab === 'completed');
+
+  // Update state when initialTab prop changes
+  useEffect(() => {
+    if (initialTab === 'completed') {
+      setOngoing(false);
+      setUpcoming(false);
+      setCompleted(true);
+    } else if (initialTab === 'upcoming') {
+      setOngoing(false);
+      setUpcoming(true);
+      setCompleted(false);
+    } else {
+      setOngoing(true);
+      setUpcoming(false);
+      setCompleted(false);
+    }
+  }, [initialTab]);
   
   // Get the single attempts number
   const getAttempts = useCallback((): number => {
@@ -201,7 +226,7 @@ export default function Quests() {
       completedQuests: completed,
       questToShow: toShow,
     };
-  }, [quests, userData, activeQuest, isQuestCompleted, isDataLoading]);
+  }, [quests, activeQuest, isQuestCompleted, isDataLoading]);
 
   if (loading) {
     return (
@@ -251,7 +276,7 @@ export default function Quests() {
         </div>
 
         {/* Scrollable area with placeholder cards */}
-        <ScrollArea className="h-full max-w-full mx-6 pt-20 pb-13 rounded-xl">
+        <ScrollArea className="h-full max-w-2xl sm:mx-auto mx-6 pt-20 pb-13 rounded-xl">
           <div className="space-y-6">
             {[...Array(3)].map((_, idx) => (
               <div key={idx} className="animate-pulse space-y-4 glass p-4 rounded-xl">
@@ -357,28 +382,52 @@ export default function Quests() {
 
   return (
     <>
-      <div className="fixed z-50 top-0 left-0 flex justify-evenly gap-6 items-center p-6 w-full">
-        <Button
-          variant={`${ongoing && !questToShow ? 'glassDark' : 'glass'}`}
-          className={`flex-1 font-bold`}
-          onClick={handleOngoing}
-          disabled={questToShow ? true : false}
-        >Ongoing</Button>
-        <Button
-          variant={`${upcoming && !questToShow ? 'glassDark' : 'glass'}`}
-          className={`flex-1 font-bold`} 
-          onClick={handleUpcoming}
-          disabled={questToShow ? true : false}
-        >Upcoming</Button>
-        <Button
-          variant={`${completed && !questToShow ? 'glassDark' : 'glass'}`}
-          className={`flex-1 font-bold`}
-          onClick={handleCompleted}
-          disabled={questToShow ? true : false}
-        >Completed</Button>
+      <div className="fixed z-50 top-0 max-w-2xl mx-auto flex flex-col justify-evenly gap-3 items-center p-6 w-full">
+        <div className='flex justify-evenly gap-6 items-center w-full'>
+          <Button
+            variant={`${ongoing && !questToShow ? 'glassDark' : 'glass'}`}
+            className={`flex-1 font-bold`}
+            onClick={handleOngoing}
+            disabled={questToShow ? true : false}
+          >Ongoing</Button>
+          <Button
+            variant={`${upcoming && !questToShow ? 'glassDark' : 'glass'}`}
+            className={`flex-1 font-bold`} 
+            onClick={handleUpcoming}
+            disabled={questToShow ? true : false}
+          >Upcoming</Button>
+          <Button
+            variant={`${completed && !questToShow ? 'glassDark' : 'glass'}`}
+            className={`flex-1 font-bold`}
+            onClick={handleCompleted}
+            disabled={questToShow ? true : false}
+          >Completed</Button>
+        </div>
+        {ongoing && (
+          <div className="text-xl font-bold text-foreground truncate flex gap-2 items-center justify-center">
+            {ongoingQuests.length > 0
+              ? `${ongoingQuests.length} Ongoing Quest${ongoingQuests.length > 1 ? 's' : ''}`
+              : "No Ongoing Quests"}
+          </div>
+        )}
+        {upcoming && (
+          <div className="text-xl font-bold text-foreground truncate flex gap-2 items-center justify-center">
+            {upcomingQuests.length > 0
+              ? `${upcomingQuests.length} Upcoming Quest${upcomingQuests.length > 1 ? 's' : ''}`
+              : "No Upcoming Quests"}
+          </div>
+        )}
+        {completed && (
+          <div className="text-xl font-bold text-foreground truncate flex gap-2 items-center justify-center">
+            {userData?.completed_quests?.length
+              ? `${userData.completed_quests.length} Quest${userData.completed_quests.length > 1 ? 's' : ''} completed`
+              : "No Quests completed"}
+          </div>
+        )}
       </div>  
 
-      <ScrollArea className="h-full max-w-full mx-6 pt-20 pb-13 rounded-xl">
+
+      <ScrollArea className="h-full max-w-2xl sm:mx-auto mx-6 pt-28 pb-13 rounded-xl">
         <div className="space-y-10">
           {/* Accepted Quest Section */}
           {questToShow && (
@@ -415,16 +464,18 @@ export default function Quests() {
                     {questToShow.prize?.title ? (
                       <div className="flex items-start gap-3">
                         <Trophy className="h-4 w-4 mt-0.5 text-foreground" />
-                        <div className="flex items-center gap-2">
+                        <div className="font-medium flex justify-between">
                           <div>
-                            <p className="font-medium">Prize</p>
+                            <div className="font-medium flex justify-between">
+                              <p>Prize</p>
+                            </div>
                             <p className="text-foreground">{questToShow.prize.title}</p>
                           </div>
                           {questToShow.prize.description && (
                             <Dialog>
                               <DialogTrigger asChild>
-                                <Button variant="subtle" size="sm" className="p-1 h-6 w-6">
-                                  <Info className="h-4 w-4" />
+                                <Button variant="subtle" size="sm" className="h-6 w-6">
+                                  <Info className="h-6 w-6" />
                                 </Button>
                               </DialogTrigger>
                               <DialogContent className="sm:max-w-md">
@@ -432,13 +483,13 @@ export default function Quests() {
                                   <DialogTitle>Prize Details</DialogTitle>
                                 </DialogHeader>
                                 <div className="py-4">
-                                  <p className="text-sm text-black">
+                                  <p className="text-sm text-foreground text-center">
                                     {questToShow.prize.description}
                                   </p>
                                 </div>
                                 <DialogFooter>
                                   <DialogClose asChild>
-                                    <Button type="button" variant="glass">
+                                    <Button type="button" variant="glassDark">
                                       Close
                                     </Button>
                                   </DialogClose>
@@ -494,9 +545,9 @@ export default function Quests() {
                               }`}
                             >
                               <div className="flex justify-between items-start">
-                                <div className='flex justify-between items-center gap-2'>
+                                <div className='flex flex-col justify-between items-left gap-1'>
                                   {isNextInSequence && !progress.completed && (
-                                    <span className="ml-2 text-blue-600 text-sm">Current Target: </span>
+                                    <span className="text-foreground text-sm">Current Target: </span>
                                   )}
                                   <span className="font-medium">{artefact.name}</span>
                                 </div>
@@ -543,7 +594,7 @@ export default function Quests() {
                     <DialogContent className="sm:max-w-md">
                       <DialogHeader>
                         <DialogTitle>Are you sure?</DialogTitle>
-                        <DialogDescription>
+                        <DialogDescription className='py-2'>
                           All the progress you made in this quest will be lost.
                         </DialogDescription>
                       </DialogHeader>
@@ -680,7 +731,7 @@ export default function Quests() {
                     <CardFooter>
                       <Button 
                         disabled 
-                        variant="destructive" 
+                        variant="glassDestructive" 
                         className="w-full cursor-not-allowed"
                       >
                         Not Yet Available
@@ -703,82 +754,136 @@ export default function Quests() {
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                           <span>{quest.title}</span>
-                          <span className="text-green-600 text-sm">✓ Completed</span>
                         </CardTitle>
+                        <span className="text-green-600 text-sm">✓ Completed</span>
                         <CardDescription>{quest.description}</CardDescription>
                       </CardHeader>
-                      <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        {completedQuestData && (
+                      <CardContent className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                        <div className='flex gap-7'>
+                          {completedQuestData && (
+                            <div className="flex items-start gap-3">
+                              <CalendarDays className="h-4 w-4 mt-0.5 text-green-600" />
+                              <div>
+                                <p className="font-medium">Completed On</p>
+                                <p className="text-green-700">
+                                  {new Date(completedQuestData.completedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                          )}
                           <div className="flex items-start gap-3">
                             <CalendarDays className="h-4 w-4 mt-0.5 text-green-600" />
                             <div>
-                              <p className="font-medium">Completed On</p>
+                              <p className="font-medium">Quest End Date</p>
                               <p className="text-green-700">
-                                {new Date(completedQuestData.completedAt).toLocaleDateString()}
+                                {quest.dateRange?.to ? new Date(quest.dateRange.to).toLocaleDateString() : 'N/A'}
                               </p>
                             </div>
                           </div>
-                        )}
+                        </div>
                         <div className="flex items-start gap-3">
                           <MapPin className="h-4 w-4 mt-0.5 text-green-600" />
                           <div>
-                            <p className="font-medium">Artefacts Found</p>
-                            <p className="text-green-700">{quest.artefacts.length} / {quest.artefacts.length}</p>
+                            <p className="font-medium">Quest Type</p>
+                            <p className="text-green-700 capitalize">{quest.questType || 'Standard'}</p>
                           </div>
                         </div>
-                        {quest.prize && (
-                          <div className="flex items-start gap-3">
+                        {/* Always show Prize Preview section */}
+                        <div className="flex items-start gap-3">
+                          <div className="font-medium flex justify-between">
                             <Trophy className="h-4 w-4 mt-0.5 text-green-600" />
-                            <div>
-                              <p className="font-medium">Prize Earned</p>
-                              <p className="text-green-700">{quest.prize.title}</p>
+                            <div className='ml-3'>
+                              <p className="font-medium">Prize Preview</p>
+                              <p className="text-green-700">
+                                {quest.prize?.title || "No prize available"}
+                              </p>
                             </div>
+                            {/* Always show info button */}
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="subtle" size="sm" className="h-6 w-6">
+                                  <Info className="h-6 w-6" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="sm:max-w-md">
+                                <DialogHeader>
+                                  <DialogTitle>Prize Information</DialogTitle>
+                                </DialogHeader>
+                                <div className="py-2 text-center">
+                                  <p className="text-sm text-black">
+                                    {quest.prize?.description || 
+                                    "This quest does not have a physical prize. Completing quests helps you build experience and knowledge!"}
+                                  </p>
+                                </div>
+                                <DialogFooter>
+                                  <DialogClose asChild>
+                                    <Button type="button" variant="glassDark">
+                                      Close
+                                    </Button>
+                                  </DialogClose>
+                                  {quest.prize?.title && (
+                                    <p className="text-sm text-foreground/70 text-center">
+                                      Prizes are emailed after the Quest ends.
+                                    </p>
+                                  )}
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
                           </div>
-                        )}
+                        </div>
                       </CardContent>
                       <CardFooter>
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="glass"
-                              className="w-full !bg-green-200/40"
-                              disabled={quest.prize?.title ? false : true }
-                            >
-                              <Gift className="h-4 w-4 mr-2" />
-                              {quest.prize?.title? "View Prize" : "No prize available" }
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-md gap-6">
-                            <DialogHeader className="flex-1">
-                              <DialogTitle>Prize for Completing {quest.title}</DialogTitle>
-                            </DialogHeader>
-                            
-                            <div>
-                              {quest.prize?.image ? (
-                                <div className="w-full relative glass !bg-white rounded-md">
-                                  <Image
-                                    src={quest.prize?.image}
-                                    alt={quest.prize?.title}
-                                    width={1280}
-                                    height={720}
-                                    className="rounded-md object-cover w-full h-auto p-1"
-                                    sizes="(max-width: 640px) 95vw, 100vw"
-                                  />
-                                </div>    
-                              ) : ( 
-                                <div>{quest.prize?.title}</div>
-                              )}
-                            </div>
+                        {quest.prize?.title ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button variant="glass" className="w-full !bg-green-200/40">
+                                <Gift className="h-4 w-4 mr-2" />
+                                View Prize
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md gap-6">
+                              <DialogHeader className="flex-1">
+                                <DialogTitle>Prize for Completing {quest.title}</DialogTitle>
+                              </DialogHeader>
+                              
+                              <div>
+                                {quest.prize?.image ? (
+                                  <div className="w-full relative glass !bg-white rounded-md">
+                                    <Image
+                                      src={quest.prize?.image}
+                                      alt={quest.prize?.title}
+                                      width={1280}
+                                      height={720}
+                                      className="rounded-md object-cover w-full h-auto p-1"
+                                      sizes="(max-width: 640px) 95vw, 100vw"
+                                    />
+                                  </div>    
+                                ) : ( 
+                                  <div>
+                                    <p className="text-lg">{quest.prize?.title}</p>
+                                    <p className="text-base">{quest.prize?.description}</p>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              <p className="text-sm text-foreground">
+                                This prize will be emailed to you when the quest period ends.
+                              </p>
 
-                            <DialogFooter>
-                              <DialogClose asChild>
-                                <Button type="button" variant="glass">
-                                  Close
-                                </Button>
-                              </DialogClose>
-                            </DialogFooter> 
-                          </DialogContent>
-                        </Dialog>                        
+                              <DialogFooter>
+                                <DialogClose asChild>
+                                  <Button type="button" variant="glass">
+                                    Close
+                                  </Button>
+                                </DialogClose>
+                              </DialogFooter> 
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <div className="w-full text-center py-2 text-foreground text-sm">
+                            No prize available for this quest
+                          </div>
+                        )}
                       </CardFooter>
                     </Card>
                   );

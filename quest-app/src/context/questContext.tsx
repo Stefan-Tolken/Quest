@@ -140,11 +140,14 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     if (!isSequential) return null;
     
     const foundIds = Array.isArray(progress.collectedArtefactIds) ? progress.collectedArtefactIds : [];
+    
+    // Find the next artifact that hasn't been collected yet
     const nextArtefact = questArtefacts.find((a: any) => {
       const artefactId = typeof a === 'object' && a !== null ? a.artefactId ?? '' : a ?? '';
       return !foundIds.includes(artefactId);
     });
     
+    // If there's no next artifact (all collected) or the next artifact isn't an object, return null
     if (!nextArtefact || typeof nextArtefact !== 'object') return null;
     
     const hints = nextArtefact.hints || [];
@@ -153,9 +156,12 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
     // Get the number of attempts for this quest to determine which hint to show
     const attempts = progress.attempts || 0;
     
+    // Log for debugging
+    console.log(`artefact at index: ${questArtefacts.findIndex((a: any) => a.artefactId === nextArtefact.artefactId)} is ${nextArtefact.artefactId} attempts: safeAttempts: ${attempts}`);
+    
     // Show hints based on attempts: first hint after first attempt (attempts >= 1)
     // Cap at the last available hint
-    const hintIndex = Math.min( attempts, hints.length - 1 );
+    const hintIndex = Math.min(attempts, hints.length - 1);
     
     return hints[hintIndex];
   }, [activeQuest?.artefacts, progress]);
@@ -232,6 +238,8 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
       });
       
       const data = await res.json();
+
+      console.log(data)
       
       if (data.success) {
         const newProgress: QuestProgress = {
@@ -261,7 +269,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (data.alreadyCollected) {
           return { 
-            success: true, 
+            success: false, 
             status: 'already' as const, 
             message: 'Already submitted.',
             progress: newProgress 
@@ -312,7 +320,7 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
         return { 
           success: false, 
           status: 'error' as const, 
-          message: 'Error submitting. Try again.' 
+          message: 'Already submitted.' 
         };
       }
     } catch (error) {
@@ -389,6 +397,12 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
           }
         }
 
+        console.log('Calling complete-quest API with:', {
+          userId,
+          questId: activeQuest.quest_id,
+          tokenExists: !!token
+        });
+
         const completeResponse = await fetch('/api/complete-quest', {
           method: 'POST',
           headers: {
@@ -404,9 +418,26 @@ export const QuestProvider = ({ children }: { children: React.ReactNode }) => {
           })
         });
 
-        if (!completeResponse.ok) {
-          const errorData = await completeResponse.json();
-          throw new Error(errorData.error || 'Failed to complete quest');
+        // Debug the API response
+        const responseText = await completeResponse.text();
+        console.log('API Response Status:', completeResponse.status);
+        console.log('API Response Headers:', Object.fromEntries(completeResponse.headers.entries()));
+        
+        // Try to parse as JSON if possible
+        try {
+          const responseData = JSON.parse(responseText);
+          console.log('API Response Data:', responseData);
+          
+          if (!completeResponse.ok) {
+            throw new Error(responseData.error || responseData.message || 'Failed to complete quest');
+          }
+        } catch (parseError) {
+          console.error('Error parsing response as JSON:', parseError);
+          console.log('Raw response text:', responseText);
+          
+          if (!completeResponse.ok) {
+            throw new Error('Failed to complete quest: ' + responseText);
+          }
         }
 
         console.log('Quest completion saved to userData successfully');

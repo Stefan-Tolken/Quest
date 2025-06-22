@@ -2,10 +2,11 @@ import { useAuth } from "react-oidc-context";
 
 export function useAuthState() {
     const auth = useAuth();
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://quest-sable.vercel.app/";
-    const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
+
     const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL!;
     const logoutUri = baseUrl;
+    const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN;
 
     const signOutRedirect = () => {
         auth.removeUser();
@@ -13,7 +14,7 @@ export function useAuthState() {
     };
 
     const signupRedirect = () => {
-        window.location.href = `${cognitoDomain}/login?client_id=${process.env.COGNITO_CLIENT_ID}&response_type=code&scope=openid+profile+email&redirect_uri=${encodeURIComponent(baseUrl)}&screen_hint=signup`;
+        window.location.href = `${cognitoDomain}/signup?client_id=${clientId}&response_type=code&scope=openid+profile+email&redirect_uri=${encodeURIComponent(baseUrl)}&screen_hint=signup`;
     };
 
     return {

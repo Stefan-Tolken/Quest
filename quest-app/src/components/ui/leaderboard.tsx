@@ -5,34 +5,16 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { LeaderboardEntry } from "@/lib/types";
-import { Trophy, Clock, Loader2, Download, Trash, AlertTriangle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Trophy, Clock, Loader2, Download, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface LeaderboardProps {
   questId: string;
   questTitle: string;
   isAdmin?: boolean;
-  userId?: string; // Current user's ID to highlight their position (for client view)
+  userId?: string;
   userEmail?: string;
 }
 
@@ -54,144 +36,30 @@ export default function LeaderboardComponent({
   const [firstCurrentPage, setFirstCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-//   const fetchLeaderboard = useCallback(async () => {
-//     try {
-//       setLoading(true);
-//       setError(null); // Clear any previous errors
-//       const response = await fetch(`/api/leaderboard?questId=${questId}`);
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch(`/api/leaderboard?questId=${questId}`);
       
-//       if (!response.ok) {
-//         throw new Error("Failed to fetch leaderboard data");
-//       }
+      if (!response.ok) {
+        throw new Error("Failed to fetch leaderboard data");
+      }
       
-//       const data = await response.json();
-//       setLeaderboardData(data.leaderboard || []);
-//     } catch (err) {
-//       setError("Error loading leaderboard data");
-//       setLeaderboardData([]); // Set empty array to trigger "No users found" display
-//       console.error("Leaderboard fetch error:", err);
-//     } finally {
-//       setLoading(false);
-//     }
-//   }, [questId]);
-
-  // DEMO: Inject dummy leaderboard data
-  useEffect(() => {
-    setTimeout(() => {
-      setLeaderboardData([
-        {
-          userId: "b40874b8-b011-7084-c99b-0b6a838ff063",
-          userEmail: "alice@example.com",
-          timeTaken: 95,
-          completedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "bob@example.com",
-          timeTaken: 62,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142884a8-3031-7496-147c-cdefa495fe88",
-          userEmail: "mandie@example.com",
-          timeTaken: 1004,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142884a8-3031-7496-147c-cdefa4232e88",
-          userEmail: "marcellerouxsomethinglong@example.com",
-          timeTaken: 26,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142884a8-3351-7496-147c-cdefa495fe88",
-          userEmail: "james@example.com",
-          timeTaken: 74,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "142834a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "rob@example.com",
-          timeTaken: 6562,
-          completedAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "243884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "charlie@example.com",
-          timeTaken: 156,
-          completedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "343884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "diana@example.com",
-          timeTaken: 89,
-          completedAt: new Date(Date.now() - 1000 * 60 * 50).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "443884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "eve@example.com",
-          timeTaken: 234,
-          completedAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "543884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "frank@example.com",
-          timeTaken: 178,
-          completedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "643884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "grace@example.com",
-          timeTaken: 299,
-          completedAt: new Date(Date.now() - 1000 * 60 * 65).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "743884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "henry@example.com",
-          timeTaken: 134,
-          completedAt: new Date(Date.now() - 1000 * 60 * 70).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "843884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "iris@example.com",
-          timeTaken: 87,
-          completedAt: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "943884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "jack@example.com",
-          timeTaken: 445,
-          completedAt: new Date(Date.now() - 1000 * 60 * 80).toISOString(),
-          questId: questId
-        },
-        {
-          userId: "a43884a8-3031-7096-147c-cdefa495fe88",
-          userEmail: "kate@example.com",
-          timeTaken: 67,
-          completedAt: new Date(Date.now() - 1000 * 60 * 85).toISOString(),
-          questId: questId
-        }
-      ]);
+      const data = await response.json();
+      setLeaderboardData(data.leaderboard || []);
+    } catch (err) {
+      setError("Error loading leaderboard data");
+      setLeaderboardData([]);
+      console.error("Leaderboard fetch error:", err);
+    } finally {
       setLoading(false);
-    }, 500);
+    }
   }, [questId]);
 
-//   useEffect(() => {
-//     fetchLeaderboard();
-//   }, [questId, fetchLeaderboard]);
+  useEffect(() => {
+    fetchLeaderboard();
+  }, [questId, fetchLeaderboard]);
 
   // Reset pagination when tab changes
   useEffect(() => {
@@ -212,7 +80,6 @@ export default function LeaderboardComponent({
       return entry.userEmail;
     }
     
-    // Fallback to truncated user ID
     return `${entry.userId.substring(0, 8)}...`;
   };
 
@@ -247,16 +114,11 @@ export default function LeaderboardComponent({
     try {
       setIsExporting(true);
       
-      // Format data for CSV export
       const csvRows: string[][] = [];
-      
-      // Headers
       csvRows.push(["Rank", "User ID", "User Email", "Completed At", "Time Taken (seconds)", "Time Taken (formatted)"]);
       
-      // Sort by time taken
       const sortedData = [...leaderboardData].sort((a, b) => a.timeTaken - b.timeTaken);
       
-      // Add rows
       sortedData.forEach((entry, index) => {
         csvRows.push([
           (index + 1).toString(),
@@ -268,10 +130,7 @@ export default function LeaderboardComponent({
         ]);
       });
       
-      // Convert to CSV string
       const csvContent = csvRows.map(row => row.join(",")).join("\n");
-      
-      // Create a blob and download
       const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -322,7 +181,7 @@ export default function LeaderboardComponent({
     ? leaderboardData.find(entry => entry.userId === userId) 
     : null;
 
-  // Compact pagination component for modal
+  // Compact pagination component
   const PaginationControls = ({ 
     currentPage, 
     totalPages, 
@@ -341,24 +200,20 @@ export default function LeaderboardComponent({
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
-    // Smart page number display for limited space
     const getVisiblePages = () => {
       const pages: (number | string)[] = [];
-      const maxVisible = 5; // Maximum number of page buttons to show
+      const maxVisible = 5;
       
       if (totalPages <= maxVisible) {
-        // Show all pages if total is small
         for (let i = 1; i <= totalPages; i++) {
           pages.push(i);
         }
       } else {
-        // Always show first page
         pages.push(1);
         
         let start = Math.max(2, currentPage - 1);
         let end = Math.min(totalPages - 1, currentPage + 1);
         
-        // Adjust window if too close to boundaries
         if (currentPage <= 3) {
           end = Math.min(totalPages - 1, 4);
         }
@@ -366,22 +221,18 @@ export default function LeaderboardComponent({
           start = Math.max(2, totalPages - 3);
         }
         
-        // Add ellipsis if gap
         if (start > 2) {
           pages.push('...');
         }
         
-        // Add middle pages
         for (let i = start; i <= end; i++) {
           pages.push(i);
         }
         
-        // Add ellipsis if gap
         if (end < totalPages - 1) {
           pages.push('...');
         }
         
-        // Always show last page
         if (totalPages > 1) {
           pages.push(totalPages);
         }
@@ -391,7 +242,7 @@ export default function LeaderboardComponent({
     };
 
     return (
-      <div className="flex items-center justify-between py-3 px-4 border-t bg-gray-50/50">
+      <div className="flex items-center justify-between py-3 px-4 border-t bg-gray-50">
         <div className="text-xs text-gray-500">
           {startItem}-{endItem} of {totalItems}
         </div>
@@ -451,9 +302,11 @@ export default function LeaderboardComponent({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 bg-gray-50 rounded-md space-y-3">
-        <p className="text-gray-500 text-lg">No users found</p>
-        <p className="text-sm text-gray-400">{error}</p>
+      <div className="flex flex-col items-center justify-center py-12 bg-gray-50 rounded-lg border space-y-3">
+        <div className="text-center">
+          <p className="text-gray-500 text-lg font-medium">No users found</p>
+          <p className="text-sm text-gray-400 mt-1">{error}</p>
+        </div>
         <Button 
           variant="outline" 
           size="sm" 
@@ -468,24 +321,33 @@ export default function LeaderboardComponent({
 
   if (leaderboardData.length === 0) {
     return (
-      <div className="text-center py-10 bg-gray-50 rounded-md">
-        <p className="text-gray-500">No users found</p>
-        <p className="text-sm text-gray-400 mt-1">Be the first to complete this quest!</p>
+      <div className="text-center py-12 bg-gray-50 rounded-lg border">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+            <Trophy className="h-6 w-6 text-gray-400" />
+          </div>
+          <div>
+            <p className="text-gray-500 font-medium">No users found</p>
+            <p className="text-sm text-gray-400 mt-1">Be the first to complete this quest!</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="mb-4">
-        <h2 className="text-lg font-bold">{questTitle} Leaderboard</h2>
+    <div className="w-full">
+      {/* Header */}
+      <div className="mb-6">
+        <h3 className="text-xl font-semibold text-gray-900">{questTitle}</h3>
         <p className="text-sm text-gray-500 mt-1">
           See the top performers for this quest
         </p>
       </div>
       
+      {/* Admin Controls */}
       {isAdmin && (
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg border">
           <Button
             variant="outline"
             size="sm"
@@ -501,84 +363,81 @@ export default function LeaderboardComponent({
             Export CSV
           </Button>
           
-          <div className="text-xs text-gray-500">
+          <div className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">
             {leaderboardData.length} {leaderboardData.length === 1 ? 'entry' : 'entries'} total
           </div>
         </div>
       )}
       
+      {/* Toggle Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "fastest" | "first")}>
-        <TabsList className="grid w-full grid-cols-2 mb-3">
-          <TabsTrigger value="fastest" className="flex items-center gap-2 text-sm">
-            <Clock className="h-3 w-3" />
-            Fastest Times
-          </TabsTrigger>
-          <TabsTrigger value="first" className="flex items-center gap-2 text-sm">
-            <Trophy className="h-3 w-3" />
-            First Completions
-          </TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-center mb-6">
+          <div className="inline-flex bg-gray-100 rounded-lg p-1 w-full">
+            <TabsList className="!bg-transparent !border-none !shadow-none grid w-full grid-cols-2 h-auto gap-1 p-0">
+              <TabsTrigger 
+                value="fastest" 
+                className="flex items-center gap-2 text-sm px-4 py-2 rounded-md font-medium transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-800 data-[state=inactive]:bg-transparent !border-0 !border-transparent"
+              >
+                <Clock className="h-3 w-3" />
+                Fastest Times
+              </TabsTrigger>
+              <TabsTrigger 
+                value="first" 
+                className="flex items-center gap-2 text-sm px-4 py-2 rounded-md font-medium transition-all duration-200 data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:shadow-sm data-[state=inactive]:text-gray-600 data-[state=inactive]:hover:text-gray-800 data-[state=inactive]:bg-transparent !border-0 !border-transparent"
+              >
+                <Trophy className="h-3 w-3" />
+                First Completions
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </div>
         
         <TabsContent value="fastest" className="mt-0">
-          <div className="bg-white rounded-md border overflow-hidden">
+          <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs w-8">#</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">User</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">Time</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs hidden md:table-cell">Completed</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs w-16">#</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">User</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Time</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs hidden md:table-cell">Completed</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-gray-100">
                   {fastestPaginatedData.map((entry, index) => {
                     const globalRank = fastestStartIndex + index + 1;
                     return (
                       <tr 
                         key={`${entry.userId}-${entry.completedAt}`} 
-                        className={`${entry.userId === userId ? "bg-blue-50" : globalRank === 1 ? "bg-yellow-50" : ""} hover:bg-gray-50`}
+                        className={`${
+                          entry.userId === userId 
+                            ? "bg-blue-50 border-l-4 border-l-blue-400" 
+                            : globalRank === 1 
+                            ? "bg-yellow-50" 
+                            : "hover:bg-gray-50"
+                        } transition-colors`}
                       >
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-3">
                           {globalRank === 1 ? (
-                            <Badge className="bg-yellow-500 text-xs">1st</Badge>
+                            <Badge className="bg-yellow-500 text-white text-xs font-medium">1st</Badge>
                           ) : globalRank === 2 ? (
-                            <Badge className="bg-gray-400 text-xs">2nd</Badge>
+                            <Badge className="bg-gray-400 text-white text-xs font-medium">2nd</Badge>
                           ) : globalRank === 3 ? (
-                            <Badge className="bg-amber-700 text-xs">3rd</Badge>
+                            <Badge className="bg-amber-700 text-white text-xs font-medium">3rd</Badge>
                           ) : (
-                            <span className="text-gray-700 text-xs">{globalRank}</span>
+                            <span className="text-gray-700 text-sm font-medium">{globalRank}</span>
                           )}
                         </td>
-                        <td className="px-3 py-2 font-medium text-xs">
-                          <div className="max-w-[150px] overflow-x-auto" style={{
-                            scrollbarWidth: 'thin',
-                            scrollbarColor: 'rgba(156, 163, 175, 0.3) transparent'
-                          }}>
-                            <style jsx>{`
-                              div::-webkit-scrollbar {
-                                height: 4px;
-                              }
-                              div::-webkit-scrollbar-track {
-                                background: transparent;
-                              }
-                              div::-webkit-scrollbar-thumb {
-                                background: rgba(156, 163, 175, 0.2);
-                                border-radius: 2px;
-                              }
-                              div::-webkit-scrollbar-thumb:hover {
-                                background: rgba(156, 163, 175, 0.4);
-                              }
-                            `}</style>
-                            <div className="whitespace-nowrap">
-                              {formatUserName(entry)}
-                            </div>
+                        <td className="px-4 py-3 font-medium text-sm">
+                          <div className="max-w-[200px] truncate">
+                            {formatUserName(entry)}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-gray-700 font-medium text-xs">
+                        <td className="px-4 py-3 text-gray-700 font-medium text-sm">
                           {formatTimeTaken(entry.timeTaken)}
                         </td>
-                        <td className="px-3 py-2 text-gray-500 text-xs hidden md:table-cell">
+                        <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">
                           {formatDate(entry.completedAt)}
                         </td>
                       </tr>
@@ -598,47 +457,51 @@ export default function LeaderboardComponent({
         </TabsContent>
         
         <TabsContent value="first" className="mt-0">
-          <div className="bg-white rounded-md border overflow-hidden">
+          <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-gray-50 border-b">
                   <tr>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs w-8">#</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">User</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs">Completed</th>
-                    <th className="px-3 py-2 text-left font-medium text-gray-500 text-xs hidden md:table-cell">Time</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs w-16">#</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">User</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs">Completed</th>
+                    <th className="px-4 py-3 text-left font-medium text-gray-500 text-xs hidden md:table-cell">Time</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y">
+                <tbody className="divide-y divide-gray-100">
                   {firstPaginatedData.map((entry, index) => {
                     const globalRank = firstStartIndex + index + 1;
                     return (
                       <tr 
                         key={`${entry.userId}-${entry.completedAt}`} 
-                        className={`${entry.userId === userId ? "bg-blue-50" : globalRank === 1 ? "bg-blue-50" : ""} hover:bg-gray-50`}
+                        className={`${
+                          entry.userId === userId 
+                            ? "bg-blue-50 border-l-4 border-l-blue-400" 
+                            : globalRank === 1 
+                            ? "bg-blue-50" 
+                            : "hover:bg-gray-50"
+                        } transition-colors`}
                       >
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-3">
                           {globalRank === 1 ? (
-                            <Badge className="bg-blue-500 text-xs">1st</Badge>
+                            <Badge className="bg-blue-500 text-white text-xs font-medium">1st</Badge>
                           ) : globalRank === 2 ? (
-                            <Badge className="bg-gray-400 text-xs">2nd</Badge>
+                            <Badge className="bg-gray-400 text-white text-xs font-medium">2nd</Badge>
                           ) : globalRank === 3 ? (
-                            <Badge className="bg-amber-700 text-xs">3rd</Badge>
+                            <Badge className="bg-amber-700 text-white text-xs font-medium">3rd</Badge>
                           ) : (
-                            <span className="text-gray-700 text-xs">{globalRank}</span>
+                            <span className="text-gray-700 text-sm font-medium">{globalRank}</span>
                           )}
                         </td>
-                        <td className="px-3 py-2 font-medium text-xs">
-                          <div className="max-w-[150px] overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400">
-                            <div className="whitespace-nowrap">
-                              {formatUserName(entry)}
-                            </div>
+                        <td className="px-4 py-3 font-medium text-sm">
+                          <div className="max-w-[200px] truncate">
+                            {formatUserName(entry)}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-gray-700 font-medium text-xs">
+                        <td className="px-4 py-3 text-gray-700 font-medium text-sm">
                           {formatDate(entry.completedAt)}
                         </td>
-                        <td className="px-3 py-2 text-gray-500 text-xs hidden md:table-cell">
+                        <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">
                           {formatTimeTaken(entry.timeTaken)}
                         </td>
                       </tr>
@@ -658,37 +521,41 @@ export default function LeaderboardComponent({
         </TabsContent>
       </Tabs>
       
+      {/* User Ranking Summary */}
       {userId && userData && (
-        <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-          <h3 className="text-xs font-semibold mb-2 text-blue-800">Your Ranking</h3>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs text-gray-500">Fastest Time</p>
+        <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+          <h4 className="text-sm font-semibold mb-3 text-blue-800 flex items-center gap-2">
+            <Trophy className="h-4 w-4" />
+            Your Ranking
+          </h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-white p-3 rounded border">
+              <p className="text-xs text-gray-500 mb-1">Fastest Time</p>
               <p className="font-medium text-sm">
                 {userFastestRank ? (
                   <>
-                    <span className="font-bold">#{userFastestRank}</span>
+                    <span className="font-bold text-blue-600">#{userFastestRank}</span>
                     <span className="text-xs text-gray-600 ml-2">
                       ({formatTimeTaken(userData.timeTaken)})
                     </span>
                   </>
                 ) : (
-                  "Not ranked"
+                  <span className="text-gray-400">Not ranked</span>
                 )}
               </p>
             </div>
-            <div>
-              <p className="text-xs text-gray-500">Completion Order</p>
+            <div className="bg-white p-3 rounded border">
+              <p className="text-xs text-gray-500 mb-1">Completion Order</p>
               <p className="font-medium text-sm">
                 {userFirstRank ? (
                   <>
-                    <span className="font-bold">#{userFirstRank}</span>
+                    <span className="font-bold text-blue-600">#{userFirstRank}</span>
                     <span className="text-xs text-gray-600 ml-2">
                       ({formatDate(userData.completedAt).split(',')[0]})
                     </span>
                   </>
                 ) : (
-                  "Not ranked"
+                  <span className="text-gray-400">Not ranked</span>
                 )}
               </p>
             </div>
@@ -696,9 +563,13 @@ export default function LeaderboardComponent({
         </div>
       )}
       
+      {/* Footer Stats */}
       {!isAdmin && (
-        <div className="mt-3 text-xs text-gray-500 italic text-center">
-          {leaderboardData.length} total {leaderboardData.length === 1 ? 'completion' : 'completions'}
+        <div className="mt-4 text-center">
+          <div className="inline-flex items-center gap-2 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-full border">
+            <Trophy className="h-3 w-3" />
+            {leaderboardData.length} total {leaderboardData.length === 1 ? 'completion' : 'completions'}
+          </div>
         </div>
       )}
     </div>
