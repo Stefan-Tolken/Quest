@@ -214,10 +214,10 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg bg-white/90 backdrop-blur-md border border-white/20 shadow-xl">
+      <DialogContent className="glass-border bg-white/20 backdrop-blur-md shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-xl text-gray-900">Edit Profile</DialogTitle>
-          <DialogDescription className="text-gray-600">
+          <DialogTitle className="text-xl text-foreground">Edit Profile</DialogTitle>
+          <DialogDescription className="text-foreground">
             Update your display name and profile picture
           </DialogDescription>
         </DialogHeader>
@@ -257,16 +257,16 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
               </div>
 
               {/* Camera Button */}
-              <button
+              <Button
                 disabled={isSaving}
-                className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-colors shadow-lg"
+                className="absolute -bottom-2 -right-2 w-10 h-10 bg-foreground rounded-full flex items-center justify-center transition-colors shadow-lg"
               >
                 <Camera className="w-5 h-5 text-white" />
-              </button>
+              </Button>
             </div>
             
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-2">
+              <p className="text-sm text-foreground mb-2">
                 Click To Edit Your Profile Image
               </p>
             </div>
@@ -289,27 +289,27 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
           </div>
 
           {/* Username Section */}
-          <div className="space-y-3">
-            <label htmlFor="username" className="text-sm font-medium text-gray-700">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="username" className="text-sm font-medium text-foreground">
               Display Name
             </label>
-            <Input
-              id="username"
-              value={editedName}
-              onChange={(e) => handleNameChange(e.target.value)}
-              placeholder="Enter your display name"
-              disabled={isSaving}
-              className={`bg-white/80 border-gray-200 text-gray-900 placeholder:text-gray-500 ${
-                errors.name ? "border-red-500 bg-red-50" : ""
-              }`}
-              maxLength={MAX_USERNAME_LENGTH}
-            />
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-gray-500">
-                {editedName.length}/{MAX_USERNAME_LENGTH} characters
+            <div className='glass rounded-md'>
+              <Input
+                id="username"
+                value={editedName}
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder="Enter your display name"
+                disabled={isSaving}
+                className={`${errors.name ? "!bg-destructive/30 !text-foreground" : ""}`}
+                maxLength={MAX_USERNAME_LENGTH}
+              />
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-foreground">
+                {editedName.length}/{MAX_USERNAME_LENGTH}
               </span>
               {errors.name && (
-                <div className="flex items-center gap-1 text-red-600">
+                <div className="flex items-center justify-center gap-1 text-red-600">
                   <AlertTriangle className="w-3 h-3" />
                   {errors.name}
                 </div>
@@ -330,18 +330,18 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
         <DialogFooter className="flex flex-row gap-3 pt-2">
           <Button 
-            variant="outline" 
+            variant="glass" 
             onClick={handleClose}
             disabled={isSaving}
             className="flex-1"
           >
-            <X className="h-4 w-4 mr-2" />
             Cancel
           </Button>
           <Button 
             onClick={handleSave}
             disabled={isSaving || !!errors.name || !!errors.image}
             className="flex-1"
+            variant="glassDark" 
           >
             {isSaving ? (
               <>

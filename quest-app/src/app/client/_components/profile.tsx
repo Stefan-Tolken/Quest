@@ -10,6 +10,7 @@ import Link from 'next/link';
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -142,49 +143,11 @@ const ProfilePage = () => {
       <CameraBackground />
       {user ? (
         <div className="p-4 h-full min-h-0 ">
-          <div className="max-w-2xl mx-auto h-full min-h-0 flex flex-col">
-            {/* User Profile Card */}
-            <div className="glass rounded-xl shadow-lg p-6 mb-6">
-              <div className="flex items-center gap-4">
-                {/* Profile Image */}
-                <div className="relative flex-shrink-0">
-                  <div className="w-20 h-20 mb-4 rounded-full overflow-hidden bg-foreground/20 flex items-center justify-center">
-                    {profileImage ? (
-                      <Image
-                        src={profileImage}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                        width={128}
-                        height={128}
-                        unoptimized
-                      />
-                    ) : (
-                      <svg className="w-8 h-8 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.25a7.75 7.75 0 0115 0v.25a.75.75 0 01-.75-.75h-13.5a.75.75 0 01-.75-.75v-.25z" />
-                      </svg>
-                    )}
-                  </div>
-                </div>
-
-                {/* Name and Email */}
-                <div className="flex flex-col justify-center flex-1 min-w-0 mb-5">
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-lg font-bold text-foreground truncate">{displayName}</h1>
-                    <button
-                      onClick={() => setIsEditModalOpen(true)}
-                      className="opacity-60 hover:opacity-100 transition-opacity"
-                    >
-                      <Edit3 className="w-4 h-4 text-foreground" />
-                    </button>
-                  </div>
-                  <p className="text-foreground/70 text-sm truncate">{email}</p>
-                </div>
-              </div>
-            </div>
+          <div className="max-w-2xl mx-auto h-full flex flex-col">
 
             {/* Main Content Tabs */}
             <Tabs defaultValue="achievements" className="w-full h-full min-h-0 flex flex-col">
-              <TabsList className="grid w-full grid-cols-2 mb-5">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
                 <TabsTrigger value="achievements" className="flex items-center gap-2">
                   <Trophy className="h-4 w-4" />
                   <span className="">Achievements</span>
@@ -194,49 +157,25 @@ const ProfilePage = () => {
                   Settings
                 </TabsTrigger>
               </TabsList>
-
-              <TabsContent value="achievements" className="flex flex-col h-full min-h-0">
-                {userData && (
-                  <Button
-                    onClick={handleQuestClick}
-                    variant={"glass"}
-                    className="p-8 mb-5"
-                  >
-                    <div className="flex items-center justify-center gap-3">
-                      <h2 className="text-xl font-bold text-black">
-                        You Completed {userData.completed_quests?.length || 0} Quests
-                      </h2>
-                    </div>
-                  </Button>
-                )}
-                
+              <TabsContent value="achievements" className="flex flex-col h-full min-h-0">            
                 {/* Leaderboard Mode Toggle */}
-                <div className="flex items-center gap-2 mb-4 p-2 glass rounded-lg">
-                  <span className="text-sm font-medium text-foreground">View:</span>
-                  <div className="flex rounded-md overflow-hidden border border-foreground/20">
-                    <button
-                      onClick={() => setLeaderboardMode('fastest')}
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
-                        leaderboardMode === 'fastest'
-                          ? 'bg-foreground text-background'
-                          : 'bg-transparent text-foreground hover:bg-foreground/10'
-                      }`}
-                    >
-                      <Clock className="h-4 w-4" />
-                      Fastest Times
-                    </button>
-                    <button
-                      onClick={() => setLeaderboardMode('first')}
-                      className={`flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors ${
-                        leaderboardMode === 'first'
-                          ? 'bg-foreground text-background'
-                          : 'bg-transparent text-foreground hover:bg-foreground/10'
-                      }`}
-                    >
-                      <Award className="h-4 w-4" />
-                      First to Complete
-                    </button>
-                  </div>
+                <div className="flex h-15 items-center mb-4 p-[3px] glass rounded-lg">
+                  <Button
+                    onClick={() => setLeaderboardMode('fastest')}
+                    variant={leaderboardMode === 'fastest' ? "glassDark" : "ghost"}
+                    className={`flex-1 h-13 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium whitespace-nowrap ${leaderboardMode === 'fastest' ? "" : "!text-foreground"}`}
+                  >
+                    <Clock className="h-4 w-4" />
+                    Speed
+                  </Button>
+                  <Button
+                    onClick={() => setLeaderboardMode('first')}
+                    variant={leaderboardMode === 'first' ? "glassDark" : "ghost"}
+                    className={`flex-1 h-13 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium whitespace-nowrap ${leaderboardMode === 'first' ? "" : "!text-foreground"}`}
+                  >
+                    <Award className="h-4 w-4" />
+                    Rank
+                  </Button>
                 </div>
 
                 {userData && (
@@ -253,6 +192,40 @@ const ProfilePage = () => {
               </TabsContent>
 
               <TabsContent value="settings" className="space-y-4">
+                {/* User Profile Card */}
+                <div className="glass flex flex-col items-center rounded-xl shadow-lg py-8 px-6 mb-4">
+                  {/* Profile Image */}
+                  <div className="w-40 h-40 rounded-full overflow-hidden bg-foreground/20 mb-4 flex items-center justify-center">
+                    {profileImage ? (
+                      <Image
+                        src={profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                        width={128}
+                        height={128}
+                        unoptimized
+                      />
+                    ) : (
+                      <svg className="w-8 h-8 text-foreground" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 7.5a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 19.25a7.75 7.75 0 0115 0v.25a.75.75 0 01-.75-.75h-13.5a.75.75 0 01-.75-.75v-.25z" />
+                      </svg>
+                    )}
+                  </div>
+
+                  {/* Name and Edit Button */}
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-lg font-bold text-foreground text-center truncate">{displayName}</h1>
+                    <Button
+                      onClick={() => setIsEditModalOpen(true)}
+                      variant={'ghost'}
+                    >
+                      <Edit3 className="w-4 h-4 text-foreground" />
+                    </Button>
+                  </div>
+
+                  {/* Email */}
+                  <div className="text-foreground text-md text-center truncate">{email}</div>
+                </div>
                 <div className="glass rounded-xl shadow-lg p-6">
                   <h3 className="text-lg font-semibold text-foreground mb-4">Account Settings</h3>
                   
@@ -270,21 +243,17 @@ const ProfilePage = () => {
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button variant="glassDestructive" className="w-full">
-                          <Trash2 className="h-4 w-4 mr-2" />
                           Delete Account
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
                         <DialogHeader>
-                          <DialogTitle className="flex items-center gap-2">
+                          <DialogTitle className="flex items-center justify-center gap-2">
                             <AlertTriangle className="h-5 w-5 text-red-500" />
                             Delete Account?
                           </DialogTitle>
-                          <DialogDescription className="space-y-2">
+                          <DialogDescription className="py-2">
                             <p>Are you sure you want to delete your account? This action cannot be undone.</p>
-                            <p className="text-sm text-muted-foreground">
-                              This will permanently delete your account and remove you from all quest leaderboards.
-                            </p>
                           </DialogDescription>
                         </DialogHeader>
                         

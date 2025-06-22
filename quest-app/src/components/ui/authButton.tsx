@@ -19,7 +19,7 @@ export default function AuthButton() {
       </Button>
     </div>
   ) : (
-    <div className="flex flex-col w-full gap-4">
+    <div className="flex flex-col w-full max-w-2xl mx-auto gap-4">
       <Button variant={"glassDark"} onClick={() => signin()}>Sign in</Button>
       <Button variant={"glass"} onClick={() => signup()}>Sign up</Button>
     </div>

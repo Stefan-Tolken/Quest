@@ -198,7 +198,7 @@ const CompletedQuestsDisplay: React.FC<CompletedQuestsDisplayProps> = ({
 
   const getRankBadge = (rank: number) => {
     if (rank === 1) return <Badge className="bg-yellow-300 text-foreground">1st</Badge>;
-    if (rank === 2) return <Badge className="bg-gray-400 text-foreground">2nd</Badge>;
+    if (rank === 2) return <Badge className="bg-background/20 backdrop-blur-md text-foreground">2nd</Badge>;
     if (rank === 3) return <Badge className="bg-amber-700 text-foreground">3rd</Badge>;
     if (rank <= 10) return <Badge variant="secondary">Top 10</Badge>;
     if (rank <= 50) return <Badge variant="outline">Top 50</Badge>;

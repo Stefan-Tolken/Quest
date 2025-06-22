@@ -12,19 +12,16 @@ import SubmitDialog from '@/components/ui/submitDialog';
 // No Camera Fallback Component
 function NoCameraFallback() {
   return (
-    <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-      <div className="bg-white/90 backdrop-blur-sm rounded-lg p-8 max-w-md">
-        <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="glass rounded-lg shadow-lg p-8 flex flex-col items-center animate-fade-in max-w-xs">
+        <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
         </svg>
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">Camera Not Available</h3>
-        <p className="text-gray-600 mb-4">
+        <h3 className="text-lg font-semibold text-red-500 mb-2">Camera Not Available</h3>
+        <p className="text-foregroundmb-4 text-center">
           QR scanning requires camera access. Please enable camera permissions or try on a device with a camera.
         </p>
-        <div className="text-sm text-gray-500">
-          <p>Manual entry options may be available in future updates.</p>
-        </div>
       </div>
     </div>
   );

@@ -7,24 +7,25 @@ import Quests from './_components/quests';
 import Scan from './_components/scan';
 import Profile from './_components/profile';
 import CameraBackground from '@/components/ui/cameraBackground';
+import { Button } from '@/components/ui/button'
 
 function CameraRequiredPopup({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-lg p-8 flex flex-col items-center animate-fade-in max-w-xs">
-        <svg className="w-16 h-16 text-yellow-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="glass rounded-lg shadow-lg p-8 flex flex-col items-center animate-fade-in max-w-xs">
+        <svg className="w-16 h-16 text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
         </svg>
-        <div className="text-lg font-semibold text-gray-800 mb-4 text-center">
-          This app requires camera access for scanning.<br />
+        <div className="text-md text-foreground mb-6 text-center">
+          This app requires camera access for scanning.
           Please allow camera access in your browser settings.
         </div>
-        <button
+        <Button
           onClick={onClose}
-          className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-6 rounded mt-2"
+          variant={"glassDestructive"}
         >
           Continue Anyway
-        </button>
+        </Button>
       </div>
     </div>
   );
