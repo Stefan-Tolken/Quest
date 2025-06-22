@@ -178,7 +178,7 @@ export default function Model3DViewer({ modelUrl }: { modelUrl: string }) {
     </div>
     {/* Controls and description */}
       {model.points && model.points.length > 0 && (
-        <div className="w-full max-w-md mx-auto mt-2 flex flex-col items-center">
+        <div className="w-full max-w-md mx-auto mt-4 flex flex-col items-center">
           <div className="flex items-center justify-evenly gap-3">
             <Button
               onClick={handlePrevPoint}

@@ -195,6 +195,38 @@ export async function POST(req: NextRequest) {
         lastAttemptedArtefactId: result.Attributes?.lastAttemptedArtefactId,
         progress: result.Attributes
       }, { status: 200 });
+    } else if (
+      requiredArtefacts.includes(artefactId) &&
+      artefactId !== requiredArtefacts[existingCollectedArtefacts.length]
+    ) {
+      const updatedProgress = {
+        ...currentProgress,
+        attempts: currentProgress.attempts + 1,
+        lastAttemptedArtefactId: artefactId
+      };
+
+      // Update attempts and lastAttemptedArtefactId
+      const incrementAttemptParams: UpdateCommandInput = {
+        TableName: process.env.USER_QUEST_PROGRESS_TABLE,
+        Key: { userId, questId },
+        UpdateExpression: 'SET attempts = :a, lastAttemptedArtefactId = :l, startTime = if_not_exists(startTime, :st)',
+        ExpressionAttributeValues: {
+          ':a': updatedProgress.attempts,
+          ':l': updatedProgress.lastAttemptedArtefactId,
+          ':st': updatedProgress.startTime
+        },
+        ReturnValues: "ALL_NEW"
+      };
+      
+      const result = await docClient.send(new UpdateCommand(incrementAttemptParams));
+      
+      return NextResponse.json({ 
+        success: false,
+        error: 'Incorrect artefact for this quest.',
+        attempts: result.Attributes?.attempts || 0,
+        lastAttemptedArtefactId: result.Attributes?.lastAttemptedArtefactId,
+        progress: result.Attributes
+      }, { status: 200 });
     }
 
     // Check if already collected

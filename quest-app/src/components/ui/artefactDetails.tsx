@@ -32,9 +32,7 @@ export default function ArtefactDetail({
   const { showToast } = useToast();
   const { 
     activeQuest, 
-    progress, 
-    submitArtefact: questSubmitArtefact,
-    isNextSequential
+    progress,
   } = useQuest();
   
   // Track whether we've shown the success message
@@ -112,42 +110,6 @@ export default function ArtefactDetail({
     onClose();
   };
 
-  const handleDialogClose = () => {
-    setDialogOpen(false);
-    setFinalSubmission(false);
-    setSubmitStatus(null);
-  }
-
-  // Submit artefact using centralized quest context
-  const handleSubmit = async () => {
-    if (!activeQuest || !artefact?.id) return;
-    setSubmitStatus(null);
-    
-    try {
-      const result = await questSubmitArtefact(artefact.id);
-
-      const artefactLength = activeQuest.artefacts.length;
-      const currentArtefactLength = progress?.collectedArtefactIds.length; 
-      
-      if (result.success) {
-        if (currentArtefactLength && (currentArtefactLength + 1 >= artefactLength)) {
-          setFinalSubmission(true);
-        }
-        setSubmitStatus(result.status);
-      } else {
-        setSubmitStatus('error');
-        // Show error message from centralized logic
-        if (result.message) {
-          setMessage(result.message);
-        }
-      }
-    } catch (error) {
-      console.error('Submit error:', error);
-      setSubmitStatus('error');
-      showToast('Error submitting. Try again.', 'error', 5000);
-    }
-  };
-
   if (!isOpen) return null;
   
   if (error) {
@@ -173,22 +135,6 @@ export default function ArtefactDetail({
           >
             <ArrowLeft size={24} /> Back
           </Button>
-          {activeQuest || finalSubmission ? (
-            <SubmitDialog
-              open={dialogOpen}
-              onClose={handleDialogClose}
-              scanResult={artefactId}
-              submitStatus={submitStatus}
-              message={message}
-              activeQuest={activeQuest}
-              handleSubmit={handleSubmit}
-              handleViewArtefact={handleViewArtefact}
-              finalSubmission={finalSubmission}
-              isSubmitting={true}
-            >
-              <Button onClick={() => setDialogOpen(true)} variant="glassDark">Submit Artefact</Button>
-            </SubmitDialog>
-          ) : (<></>)}
         </div>
       </div>
       <ScrollArea className="h-full flex max-w-full mx-6 pt-20 pb-6 rounded-xl">
