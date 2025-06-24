@@ -239,7 +239,7 @@ export default function ThreeDModelBuilderPage() {
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [gltfUrl, setGltfUrl] = useState<string | null>(null);
     const [modelName, setModelName] = useState("");
-    const [base64Glb, setBase64Glb] = useState<string | null>(null);
+    const [s3Url, setS3Url] = useState<string | null>(null);
     const [circles, setCircles] = useState<CircleData[]>([]);
     const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
     const [ambientIntensity, setAmbientIntensity] = useState(5);
@@ -363,38 +363,49 @@ export default function ThreeDModelBuilderPage() {
 
     async function uploadToS3Direct(file: File): Promise<string> {
         try {
+            console.log('📡 Getting presigned URL for:', file.name);
+            
             // Get presigned URL
             const response = await fetch('/api/generate-presigned-url', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                fileName: file.name,
-                fileType: file.type || 'model/gltf-binary',
-            }),
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fileName: file.name,
+                    fileType: file.type || 'model/gltf-binary',
+                }),
             });
 
             if (!response.ok) {
-            throw new Error('Failed to get presigned URL');
+                const errorData = await response.json();
+                console.error('❌ Presigned URL error:', errorData);
+                throw new Error('Failed to get presigned URL');
             }
 
             const { signedUrl, key } = await response.json();
+            console.log('✅ Got presigned URL and key:', key);
 
             // Upload directly to S3
+            console.log('⬆️ Uploading to S3...');
             const uploadResponse = await fetch(signedUrl, {
-            method: 'PUT',
-            body: file,
-            headers: {
-                'Content-Type': file.type || 'model/gltf-binary',
-            },
+                method: 'PUT',
+                body: file,
+                headers: {
+                    'Content-Type': file.type || 'model/gltf-binary',
+                },
             });
 
             if (!uploadResponse.ok) {
-            throw new Error('Failed to upload to S3');
+                console.error('❌ S3 upload failed:', uploadResponse.status, uploadResponse.statusText);
+                throw new Error('Failed to upload to S3');
             }
 
-            return `/api/get-3dModel?key=${encodeURIComponent(key)}`;
+            // ✅ Return the API endpoint URL (not direct S3 URL)
+            const finalUrl = `/api/get-3dModel?key=${encodeURIComponent(key)}`;
+            console.log('✅ S3 upload successful, final URL:', finalUrl);
+            
+            return finalUrl;
         } catch (error) {
-            console.error('S3 upload failed:', error);
+            console.error('❌ S3 upload failed:', error);
             throw error;
         }
     }
@@ -409,14 +420,17 @@ export default function ThreeDModelBuilderPage() {
             setGltfUrl(localUrl);
             
             try {
-                // Upload directly to S3
+                console.log('🚀 Starting S3 upload for:', file.name);
+                
+                // Upload to S3 and get API endpoint URL
                 const s3Url = await uploadToS3Direct(file);
                 
-                setBase64Glb(s3Url);
+                // ✅ Store the S3 API URL (NOT base64, despite variable name)
+                setS3Url(s3Url);
                 
-                console.log('File uploaded successfully to S3:', s3Url);
+                console.log('✅ File uploaded successfully, S3 API URL:', s3Url);
             } catch (error) {
-                console.error('Upload failed:', error);
+                console.error('❌ Upload failed:', error);
                 alert('Upload failed. Please try again.');
             }
         } else {
@@ -430,7 +444,7 @@ export default function ThreeDModelBuilderPage() {
             return;
         }
 
-        if (!uploadedFile) {
+        if (!uploadedFile || !s3Url) {
             alert("Please upload a .glb file");
             return;
         }
@@ -438,21 +452,14 @@ export default function ThreeDModelBuilderPage() {
         setIsSaving(true);
 
         try {
-            let base64Data = base64Glb;
-            if (!base64Data) {
-                base64Data = await new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve(e.target?.result as string);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(uploadedFile);
-                });
-            }
-
+            console.log('💾 Saving model metadata to DynamoDB...');
+            
+            // ✅ ONLY send metadata - NO file data!
             const modelObject: ModelObject = {
                 id: uuidv4(),
                 name: modelName,
                 fileName: uploadedFile.name,
-                url: base64Data || "",
+                url: s3Url, // This is the S3 URL (not base64 data!)
                 points: circles.map(c => ({
                     position: { x: c.position.x, y: c.position.y, z: c.position.z },
                     rotation: { x: c.rotation.x, y: c.rotation.y, z: c.rotation.z },
@@ -461,26 +468,51 @@ export default function ThreeDModelBuilderPage() {
                 light: ambientIntensity,
             };
 
+            console.log('📤 Sending model metadata (no file data):', {
+                id: modelObject.id,
+                name: modelObject.name,
+                fileName: modelObject.fileName,
+                url: modelObject.url,
+                pointsCount: modelObject.points.length,
+                light: modelObject.light
+            });
+
             const response = await fetch("/api/save-3dModel", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(modelObject),
             });
             
-            const data = await response.json();
-            if (!response.ok || !data.success) {
-                throw new Error("Error saving 3D Model");
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ API Error Response:', errorText);
+                throw new Error(`API Error: ${response.status} - ${errorText}`);
             }
+            
+            const data = await response.json();
+            console.log('📥 API response:', data);
+            
+            if (!data.success) {
+                throw new Error(data.error || "Error saving 3D Model");
+            }
+            
+            console.log('✅ Model saved successfully!');
             setShowSuccess(true);
+            
             // Reset form
             setModelName("");
             setUploadedFile(null);
             setGltfUrl(null);
+            setS3Url(null);
             setCircles([]);
             setAmbientIntensity(5);
         } catch (error) {
-            console.error("Error saving 3D model:", error);
-            alert("Error saving 3D Model");
+            console.error("❌ Error saving 3D model:", error);
+            if (error instanceof Error) {
+                alert(`Error saving 3D Model: ${error.message}`);
+            } else {
+                alert("Error saving 3D Model: An unknown error occurred.");
+                }
         } finally {
             setIsSaving(false);
         }

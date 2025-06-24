@@ -24,40 +24,30 @@ const s3 = new S3Client({
 export async function POST(request: Request) {
   try {
     const model: ModelObject = await request.json();
+    console.log('📥 Received model metadata:', {
+      id: model.id,
+      name: model.name,
+      fileName: model.fileName,
+      url: model.url?.substring(0, 50) + '...',
+      pointsCount: model.points?.length,
+      light: model.light
+    });
+    
     if (!model.name || !model.url || !model.fileName) {
+      console.log('❌ Missing required fields:', { 
+        name: !!model.name, 
+        url: !!model.url, 
+        fileName: !!model.fileName 
+      });
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    //return NextResponse.json({ success: true, received: model });
-
-    let s3Url = model.url;
-    // If url is a base64 string, upload to S3
-    if (typeof model.url === "string" && model.url.startsWith("data:application/octet-stream;base64")) {
-      try {
-        const matches = model.url.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-          const contentType = matches[1];
-          const base64Data = matches[2];
-          const buffer = Buffer.from(base64Data, "base64");
-          const timestamp = Date.now();
-          const s3Key = `models/${model.id || uuidv4()}-${model.fileName}`;
-          await s3.send(
-            new PutObjectCommand({
-              Bucket: process.env.AWS_BUCKET_NAME!,
-              Key: s3Key,
-              Body: buffer,
-              ContentType: contentType,
-            })
-          );
-          s3Url = `/api/get-3dModel?key=${encodeURIComponent(s3Key)}`;
-        }
-      } catch (err) {
-        console.error("S3 upload failed for 3D model:", err);
-        return NextResponse.json({ error: "S3 upload failed" }, { status: 500 });
-      }
-    }
+    // ✅ The URL should already be the S3 URL - no file processing needed!
+    const s3Url = model.url;
+    console.log('✅ Using S3 URL directly:', s3Url);
 
     // Save metadata to DynamoDB
+    console.log('💾 Saving metadata to DynamoDB...');
     const params = {
       TableName: process.env.MODEL_3D_TABLE || "models3d",
       Item: {
@@ -67,16 +57,31 @@ export async function POST(request: Request) {
         url: { S: s3Url },
         points: { S: JSON.stringify(model.points) },
         createdAt: { S: new Date().toISOString() },
-        light: { N: model.light !== undefined ? String(model.light) : "5" }, // Save light as number, default 5
+        light: { N: model.light !== undefined ? String(model.light) : "5" },
       },
     };
-    await dynamoDB.send(new PutItemCommand(params));
+    
+    console.log('📤 DynamoDB save params:', {
+      TableName: params.TableName,
+      id: params.Item.id.S,
+      name: params.Item.name.S,
+      fileName: params.Item.fileName.S,
+      url: params.Item.url.S?.substring(0, 50) + '...',
+      pointsCount: JSON.parse(params.Item.points.S).length,
+      light: params.Item.light.N
+    });
+    
+    const result = await dynamoDB.send(new PutItemCommand(params));
+    console.log('✅ DynamoDB save successful:', result.$metadata);
 
     return NextResponse.json({ success: true, id: model.id, url: s3Url });
   } catch (error) {
-    console.error("3D Model Save Error:", error);
+    console.error("❌ 3D Model Save Error:", error);
     return NextResponse.json(
-      { error: "Failed to save 3D model", details: error instanceof Error ? error.message : "Unknown error" },
+      { 
+        error: "Failed to save 3D model", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      },
       { status: 500 }
     );
   }
