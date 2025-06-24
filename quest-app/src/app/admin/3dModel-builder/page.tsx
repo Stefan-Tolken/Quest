@@ -274,6 +274,7 @@ export default function ThreeDModelBuilderPage() {
         uploadProgress, 
         cleanupPendingUpload, 
         markAsSaved, 
+        abortUpload,
         cleanupAllPending 
     } = use3DModelUpload({
         onSuccess: (url, key) => {
@@ -288,9 +289,17 @@ export default function ThreeDModelBuilderPage() {
     });
 
     const handleCancel = async () => {
+        // If upload is in progress, abort it first
+        if (uploadProgress.isUploading) {
+            console.log('🛑 Aborting upload in progress...');
+            await abortUpload(); // This will abort the XMLHttpRequest
+        }
+        
+        // Then clean up any uploaded files
         if (s3Key && !isSaving) {
             await cleanupPendingUpload(s3Key);
         }
+        
         resetForm();
     };
 
@@ -918,9 +927,10 @@ export default function ThreeDModelBuilderPage() {
                                                 onClick={handleCancel}
                                                 variant="outline"
                                                 className="flex-1 flex items-center gap-2 hover:cursor-pointer"
+                                                disabled={isSaving}
                                             >
                                                 <X className="h-4 w-4" />
-                                                Cancel Upload
+                                                {uploadProgress.isUploading ? "Cancel Upload" : "Cancel"}
                                             </Button>
                                         )}
                                         
