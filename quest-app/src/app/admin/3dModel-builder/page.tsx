@@ -409,21 +409,20 @@ export default function ThreeDModelBuilderPage() {
             setGltfUrl(localUrl);
             
             try {
-            // Upload directly to S3
-            const s3Url = await uploadToS3Direct(file);
-            
-            // Store S3 URL for saving
-            setBase64Glb(`s3:${s3Url}`);
-            
-            console.log('File uploaded successfully to S3:', s3Url);
+                // Upload directly to S3
+                const s3Url = await uploadToS3Direct(file);
+                
+                setBase64Glb(s3Url);
+                
+                console.log('File uploaded successfully to S3:', s3Url);
             } catch (error) {
-            console.error('Upload failed:', error);
-            alert('Upload failed. Please try again.');
+                console.error('Upload failed:', error);
+                alert('Upload failed. Please try again.');
             }
         } else {
             alert("Please upload a .glb file");
         }
-        };
+    };
 
     const handleSave = async () => {
         if (!modelName) {
