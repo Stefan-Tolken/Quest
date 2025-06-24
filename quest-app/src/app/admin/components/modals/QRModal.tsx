@@ -11,7 +11,13 @@ interface QRModalProps {
   onDownload: () => void;
 }
 
-export default function QRModal({ artefact, contentType, setContentType, onClose, onDownload }: QRModalProps) {
+export default function QRModal({ 
+  artefact, 
+  contentType, 
+  setContentType, 
+  onClose, 
+  onDownload 
+}: QRModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/40">
       <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4 animate-fade-in">
@@ -19,25 +25,39 @@ export default function QRModal({ artefact, contentType, setContentType, onClose
           <h3 className="text-xl font-semibold text-gray-800">
             QR Code for {artefact.name}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 hover:cursor-pointer">
-            <X className="h-6 w-6" />
-          </button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 h-8 w-8"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         <div id="qr-popup" className="flex flex-col items-center gap-6">
-          <QRCodeGenerator data={{ artefactId: artefact.id }} size={200} className="bg-gray-50 p-4 rounded-lg" />
+          <QRCodeGenerator 
+            data={{ artefactId: artefact.id }} 
+            size={200} 
+            className="bg-gray-50 p-4 rounded-lg" 
+          />
 
           <div className="flex gap-3 w-full">
-            <Button onClick={onDownload} variant="default" className="flex-1 flex items-center justify-center gap-2">
+            <Button 
+              onClick={onDownload} 
+              variant="default" 
+              size="default"
+              className="flex-1 flex items-center justify-center gap-2"
+            >
               <Download className="h-4 w-4" />
               Download as {contentType.toUpperCase()}
             </Button>
 
-            <div className="relative w-20">
+            <div className="relative">
               <select
                 value={contentType}
-                onChange={(e) => setContentType(e.target.value as any)}
-                className="w-full h-10 px-3 text-sm bg-white border border-gray-300 rounded-md shadow-sm"
+                onChange={(e) => setContentType(e.target.value as "png" | "jpg" | "jpeg")}
+                className="appearance-none bg-white border border-gray-300 hover:border-gray-400 px-4 py-2 pr-8 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent cursor-pointer min-w-[80px]"
               >
                 <option value="png">PNG</option>
                 <option value="jpg">JPG</option>
@@ -50,7 +70,12 @@ export default function QRModal({ artefact, contentType, setContentType, onClose
               </div>
             </div>
 
-            <Button variant="outline" onClick={onClose} className="flex-1 h-10">
+            <Button 
+              variant="outline" 
+              size="default"
+              onClick={onClose} 
+              className="flex-1"
+            >
               Close
             </Button>
           </div>

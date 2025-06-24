@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 import { Quest } from "@/lib/types"
 
@@ -15,21 +14,10 @@ const dynamoDB = new DynamoDBClient({
 
 const docClient = DynamoDBDocumentClient.from(dynamoDB);
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
-
 export async function POST(request: Request) {
   try {
-    const formData = await request.formData();
-    const questData: Omit<Quest, "quest_id" | "createdAt"> = JSON.parse(
-      formData.get("quest") as string
-    );
-    const prizeImage = formData.get("prizeImage") as File | null;
+    // Parse JSON directly instead of FormData
+    const questData: Omit<Quest, "quest_id" | "createdAt"> = await request.json();
     
     // Check if this is an edit operation by looking for an existing quest with this ID
     const potentialQuestId = (questData as any).quest_id;
@@ -108,41 +96,16 @@ export async function POST(request: Request) {
       console.log(`Creating new quest ${questId}`);
     }
 
-    // Handle prize image upload
-    let updatedPrize = questData.prize;
-    if (prizeImage) {
-      if (!updatedPrize?.title || !updatedPrize?.description) {
-        return NextResponse.json(
-          { error: "Prize image provided but prize details are missing" },
-          { status: 400 }
-        );
-      }
-
-      const buffer = Buffer.from(await prizeImage.arrayBuffer());
-      const fileExtension = prizeImage.name.split(".").pop();
-      const imageKey = `quests/${questId}/prize-image-${uuidv4()}.${fileExtension}`;
-
-      await s3.send(
-        new PutObjectCommand({
-          Bucket: process.env.AWS_BUCKET_NAME!,
-          Key: imageKey,
-          Body: buffer,
-          ContentType: prizeImage.type,
-        })
+    // Prize image handling - now much simpler!
+    // The image is already uploaded to S3 and the URL is in questData.prize.image
+    const updatedPrize = questData.prize;
+    
+    // Validate prize data if image is provided
+    if (updatedPrize?.image && (!updatedPrize?.title || !updatedPrize?.description)) {
+      return NextResponse.json(
+        { error: "Prize image provided but prize details are missing" },
+        { status: 400 }
       );
-
-      updatedPrize = {
-        ...updatedPrize,
-        image: `/api/get-image?key=${encodeURIComponent(imageKey)}`
-      };
-    } else if (isEdit && existingQuest?.prize?.image) {
-      // If editing and no new image provided, keep the existing image
-      updatedPrize = {
-        title: updatedPrize?.title ?? existingQuest.prize.title,
-        description: updatedPrize?.description ?? existingQuest.prize.description,
-        image: existingQuest.prize.image,
-        imagePreview: updatedPrize?.imagePreview ?? existingQuest.prize.imagePreview
-      };
     }
 
     if (isEdit) {

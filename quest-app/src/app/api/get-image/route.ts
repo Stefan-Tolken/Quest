@@ -12,8 +12,9 @@ const s3 = new S3Client({
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const key = searchParams.get("key");
+  
   if (!key) {
-    return new NextResponse("Missing key", { status: 400 });
+    return NextResponse.json({ error: "Missing key" }, { status: 400 });
   }
 
   try {
@@ -23,16 +24,19 @@ export async function GET(request: Request) {
         Key: key,
       })
     );
-    const contentType = s3Res.ContentType || "application/octet-stream";
-    const body = s3Res.Body;
-    return new NextResponse(body as any, {
-      status: 200,
+    
+    const stream = s3Res.Body as ReadableStream;
+    const contentType = s3Res.ContentType || 'image/jpeg';
+    
+    return new Response(stream, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Content-Disposition": `inline; filename="${key.split("/").pop()}"`,
+        "Cache-Control": "public, max-age=31536000, immutable"
       },
     });
   } catch (err) {
-    return new NextResponse("Not found", { status: 404 });
+    console.error("Failed to fetch image from S3:", err);
+    return NextResponse.json({ error: "Failed to fetch image" }, { status: 500 });
   }
 }

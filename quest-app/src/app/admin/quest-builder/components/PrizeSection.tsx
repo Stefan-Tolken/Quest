@@ -10,11 +10,18 @@ type Prize = {
   image?: string;
 };
 
+interface UploadProgress {
+  progress: number;
+  status: string;
+  isUploading: boolean;
+}
+
 type PrizeSectionProps = {
   showPrize: boolean;
   prize: Prize;
   imagePreview: string;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  uploadProgress: UploadProgress; // Add this prop
   onTogglePrize: () => void;
   onSetPrize: (field: "title" | "description", value: string) => void;
   onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -28,6 +35,7 @@ export const PrizeSection = ({
   prize,
   imagePreview,
   fileInputRef,
+  uploadProgress,
   onTogglePrize,
   onSetPrize,
   onImageUpload,
@@ -87,6 +95,7 @@ export const PrizeSection = ({
                 className="hidden"
                 ref={fileInputRef}
                 onChange={onImageUpload}
+                disabled={uploadProgress.isUploading}
               />
 
               {displayImage ? (
@@ -100,32 +109,78 @@ export const PrizeSection = ({
                       console.error('Error loading prize image:', e);
                     }}
                   />
-                  <button
-                    type="button"
-                    className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
-                    onClick={onRemoveImage}
-                  >
-                    <X size={16} />
-                  </button>
+                  {!uploadProgress.isUploading && (
+                    <button
+                      type="button"
+                      className="absolute top-3 right-3 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                      onClick={onRemoveImage}
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+
+                  {/* Upload Progress Overlay */}
+                  {uploadProgress.isUploading && (
+                    <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                      <div className="bg-white rounded-lg p-4 max-w-xs w-full mx-4">
+                        <div className="text-center mb-3">
+                          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                          <p className="text-sm font-medium text-gray-700">Uploading Prize Image</p>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress.progress}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-600 text-center">{uploadProgress.status}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div
-                  className="w-full h-64 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors bg-white"
-                  onClick={() => fileInputRef.current?.click()}
+                  className={`w-full h-64 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors bg-white ${
+                    uploadProgress.isUploading ? 'pointer-events-none' : ''
+                  }`}
+                  onClick={() => {
+                    if (!uploadProgress.isUploading) {
+                      fileInputRef.current?.click();
+                    }
+                  }}
                   onDragOver={onDragOver}
                   onDrop={onDrop}
                 >
-                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <Upload size={24} className="text-gray-400" />
-                  </div>
-                  <div className="text-center">
-                    <p className="font-medium text-gray-700 mb-1">
-                      Drag and drop or click to browse
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      PNG, JPG, GIF up to 10MB
-                    </p>
+                  {uploadProgress.isUploading ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-12 h-12 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="text-center">
+                        <p className="font-medium text-gray-700 mb-1">Uploading Prize Image</p>
+                        <div className="w-48 bg-gray-200 rounded-full h-2 mb-2">
+                          <div 
+                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${uploadProgress.progress}%` }}
+                          />
+                        </div>
+                        <p className="text-sm text-gray-600">{uploadProgress.status}</p>
+                        <p className="text-xs text-gray-500">{uploadProgress.progress}% complete</p>
+                      </div>
                     </div>
+                  ) : (
+                    <>
+                      <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                        <Upload size={24} className="text-gray-400" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-medium text-gray-700 mb-1">
+                          Drag and drop or click to browse
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          PNG, JPG, GIF up to 10MB
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { ImageContent } from "@/lib/types";
 import { Image as ImageIcon, Upload, Edit3 } from "lucide-react";
 import Image from "next/image";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 export const ImageComponent = ({
   content,
@@ -16,19 +17,29 @@ export const ImageComponent = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  
+  const { uploadImage, uploadProgress } = useImageUpload({
+    uploadType: 'general',
+    onSuccess: (url) => {
+      onUpdate({
+        ...content,
+        url,
+      });
+    },
+    onError: (error) => {
+      alert(`Upload failed: ${error}`);
+    },
+  });
 
   const handleFileSelect = useCallback(
-    (file: File) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        onUpdate({
-          ...content,
-          url: e.target?.result as string,
-        });
-      };
-      reader.readAsDataURL(file);
+    async (file: File) => {
+      try {
+        await uploadImage(file);
+      } catch (error) {
+        console.error('Upload failed:', error);
+      }
     },
-    [content, onUpdate]
+    [uploadImage]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -55,7 +66,9 @@ export const ImageComponent = ({
   );
 
   const handleClick = () => {
-    fileInputRef.current?.click();
+    if (!uploadProgress.isUploading) {
+      fileInputRef.current?.click();
+    }
   };
 
   return (
@@ -79,6 +92,7 @@ export const ImageComponent = ({
           const file = e.target.files?.[0];
           if (file) handleFileSelect(file);
         }}
+        disabled={uploadProgress.isUploading}
       />
 
       {/* Image Upload Area */}
@@ -89,7 +103,7 @@ export const ImageComponent = ({
             : content.url
             ? "border-gray-200"
             : "border-dashed border-gray-300 hover:border-purple-400 hover:bg-purple-50"
-        }`}
+        } ${uploadProgress.isUploading ? 'pointer-events-none' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -104,11 +118,13 @@ export const ImageComponent = ({
               className="object-contain rounded-md"
             />
             {/* Overlay on hover */}
-            <div className="absolute opacity-0 inset-0 bg-transparent hover:opacity-100 hover:bg-black/20 transition-all duration-200 rounded-md flex items-center justify-center group">
-              <div className="invisible group-hover:visible bg-white rounded-lg p-2 shadow-lg">
-                {Upload && <Upload size={20} className="text-gray-600" />}
+            {!uploadProgress.isUploading && (
+              <div className="absolute opacity-0 inset-0 bg-transparent hover:opacity-100 hover:bg-black/20 transition-all duration-200 rounded-md flex items-center justify-center group">
+                <div className="invisible group-hover:visible bg-white rounded-lg p-2 shadow-lg">
+                  <Upload size={20} className="text-gray-600" />
+                </div>
               </div>
-            </div>
+            )}
           </div>
         ) : (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-gray-500">
@@ -122,8 +138,27 @@ export const ImageComponent = ({
           </div>
         )}
 
+        {/* Upload Progress Overlay */}
+        {uploadProgress.isUploading && (
+          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+            <div className="bg-white rounded-lg p-4 max-w-xs w-full mx-4">
+              <div className="text-center mb-3">
+                <div className="w-8 h-8 border-3 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                <p className="text-sm font-medium text-gray-700">Uploading Image</p>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${uploadProgress.progress}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-600 text-center">{uploadProgress.status}</p>
+            </div>
+          </div>
+        )}
+
         {/* Drag overlay */}
-        {isDragging && (
+        {isDragging && !uploadProgress.isUploading && (
           <div className="absolute inset-0 bg-purple-50 border-2 border-purple-400 rounded-lg flex items-center justify-center backdrop-blur-sm">
             <div className="flex flex-col items-center gap-2">
               <Upload size={32} className="text-purple-600" />
@@ -134,7 +169,7 @@ export const ImageComponent = ({
       </div>
 
       {/* Edit Points Button */}
-      {content.url && (
+      {content.url && !uploadProgress.isUploading && (
         <div className="mt-4">
           <button
             className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-4 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
@@ -145,9 +180,6 @@ export const ImageComponent = ({
           </button>
         </div>
       )}
-
-      {/* Hover State Enhancement */}
-      <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-50 to-blue-50 opacity-0 group-hover:opacity-100 transition-all duration-200 -z-10" />
     </div>
   );
 };

@@ -15,6 +15,7 @@ import { InlineQuestLoading, QuestFormSkeleton } from "./components/QuestLoading
 import { useNavigationGuardContext } from "@/context/NavigationGuardContext";
 import { usePathname } from "next/navigation";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { useImageUpload } from "@/hooks/useImageUpload"; // Add this import
 
 const QuestBuild = () => {
   const router = useRouter();
@@ -33,7 +34,7 @@ const QuestBuild = () => {
     createdAt: new Date().toISOString(),
   });
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  // Remove the old imageFile state and replace with image upload hook
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,6 +53,21 @@ const QuestBuild = () => {
   const [showExitConfirmation, setShowExitConfirmation] = useState(false);
   const [pendingNavigationPath, setPendingNavigationPath] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Add image upload hook for prize images
+  const { uploadImage: uploadPrizeImage, uploadProgress: prizeUploadProgress } = useImageUpload({
+    uploadType: 'general', // You could create a 'prize' type if you want separate organization
+    onSuccess: (url) => {
+      setImagePreview(url);
+      setQuest((prev) => ({
+        ...prev,
+        prize: { ...prev.prize!, image: url },
+      }));
+    },
+    onError: (error) => {
+      alert(`Upload failed: ${error}`);
+    },
+  });
 
   const { registerGuard, unregisterGuard } = useNavigationGuardContext();
   const pathname = usePathname();
@@ -145,9 +161,9 @@ const QuestBuild = () => {
         createdAt: new Date().toISOString(),
       });
 
-      setImageFile(null);
       setActiveArtefactIndex(null);
       setValidationErrors({});
+      setImagePreview("");
     };
 
     const loadQuestData = async () => {
@@ -156,7 +172,6 @@ const QuestBuild = () => {
         return;
       }
       
-      // Rest of your existing loadQuestData function...
       try {
         resetState();
         setIsLoading(true);
@@ -204,6 +219,7 @@ const QuestBuild = () => {
           artefacts: artefactsWithNames
         });
         
+        // Set image preview if prize image exists
         if (questToEdit.prize?.image) {
           setImagePreview(questToEdit.prize.image);
         }
@@ -237,7 +253,6 @@ const QuestBuild = () => {
       prize: { title: "", description: "", image: "" },
       createdAt: new Date().toISOString(),
     });
-    setImageFile(null);
 
     if (editId) {
       loadQuestData();
@@ -581,18 +596,23 @@ const QuestBuild = () => {
     }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Updated image upload handler to use the hook
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    try {
+      await uploadPrizeImage(file);
+    } catch (error) {
+      console.error('Prize image upload failed:', error);
+    }
   };
 
   const removeImage = () => {
-    setImageFile(null);
     setImagePreview("");
-    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
     setQuest((prev) => ({
       ...prev,
       prize: { ...prev.prize!, image: "" },
@@ -604,13 +624,16 @@ const QuestBuild = () => {
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (!file?.type.match("image.*")) return;
 
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+    try {
+      await uploadPrizeImage(file);
+    } catch (error) {
+      console.error('Prize image upload failed:', error);
+    }
   };
 
   const handleSaveQuest = async () => {
@@ -643,12 +666,9 @@ const QuestBuild = () => {
     
     try {
       setIsSaving(true);
-      const formData = new FormData();
       
-      if (imageFile) {
-        formData.append("prizeImage", imageFile);
-      }
-
+      // With the new upload system, we don't need FormData anymore
+      // The image is already uploaded to S3 and the URL is in quest.prize.image
       const questData = {
         ...quest,
         prize: quest.prize || undefined,
@@ -658,11 +678,12 @@ const QuestBuild = () => {
         questData.quest_id = editId;
       }
 
-      formData.append("quest", JSON.stringify(questData));
-
       const response = await fetch("/api/save-quest", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(questData),
       });
 
       if (!response.ok) {
@@ -800,6 +821,7 @@ const QuestBuild = () => {
                   onRemoveImage={removeImage}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
+                  uploadProgress={prizeUploadProgress} // Pass upload progress
                 />
               </div>
             </div>
@@ -818,13 +840,18 @@ const QuestBuild = () => {
             </Button>
             <Button
               onClick={handleSaveQuest}
-              disabled={isSaving || isLoading}
+              disabled={isSaving || isLoading || prizeUploadProgress.isUploading}
               className="px-6 py-2 hover:cursor-pointer disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isSaving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   Saving...
+                </>
+              ) : prizeUploadProgress.isUploading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Uploading Image...
                 </>
               ) : (
                 <>

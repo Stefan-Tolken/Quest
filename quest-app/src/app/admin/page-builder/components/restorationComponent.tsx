@@ -4,6 +4,7 @@ import Image from "next/image";
 import { Wrench, Calendar, Building, FileText, Image as ImageIcon, Upload, Plus, Trash2, X, Eye, EyeOff } from "lucide-react";
 import { RestorationContent } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 interface RestorationProps {
   content: RestorationContent;
@@ -185,12 +186,22 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
     // Don't call onUpdate here as the useEffect will handle it
   };
 
-  const handleImageUpload = (file: File) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData({ ...formData, imageUrl: reader.result as string });
-    };
-    reader.readAsDataURL(file);
+  const { uploadImage: uploadRestorationImage, uploadProgress: restorationUploadProgress } = useImageUpload({
+    uploadType: 'restoration',
+    onSuccess: (url) => {
+      setFormData({ ...formData, imageUrl: url });
+    },
+    onError: (error) => {
+      alert(`Upload failed: ${error}`);
+    },
+  });
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      await uploadRestorationImage(file);
+    } catch (error) {
+      console.error('Restoration image upload failed:', error);
+    }
   };
 
   const isFormValid = formData.name && formData.organization && formData.description;
@@ -584,8 +595,12 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                       formData.imageUrl
                         ? "border-gray-200 aspect-video"
                         : "border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 p-6"
-                    }`}
-                    onClick={() => document.getElementById('restoration-file-input')?.click()}
+                    } ${restorationUploadProgress.isUploading ? 'pointer-events-none' : ''}`}
+                    onClick={() => {
+                      if (!restorationUploadProgress.isUploading) {
+                        document.getElementById('restoration-file-input')?.click();
+                      }
+                    }}
                   >
                     <input
                       id="restoration-file-input"
@@ -596,6 +611,7 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                         if (file) handleImageUpload(file);
                       }}
                       className="hidden"
+                      disabled={restorationUploadProgress.isUploading}
                     />
                     
                     {formData.imageUrl ? (
@@ -607,11 +623,13 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                           className="object-contain rounded-md"
                         />
                         {/* Overlay on hover */}
-                        <div className="absolute opacity-0 inset-0 bg-transparent hover:opacity-100 hover:bg-black/20 transition-all duration-200 rounded-md flex items-center justify-center group">
-                          <div className="invisible group-hover:visible bg-white rounded-lg p-2 shadow-lg">
-                            {Upload && <Upload size={20} className="text-gray-600" />}
+                        {!restorationUploadProgress.isUploading && (
+                          <div className="absolute opacity-0 inset-0 bg-transparent hover:opacity-100 hover:bg-black/20 transition-all duration-200 rounded-md flex items-center justify-center group">
+                            <div className="invisible group-hover:visible bg-white rounded-lg p-2 shadow-lg">
+                              {Upload && <Upload size={20} className="text-gray-600" />}
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-3 text-gray-500">
@@ -621,6 +639,25 @@ export const RestorationComponent = ({ content, onUpdate }: RestorationProps) =>
                         <div className="text-center">
                           <p className="font-medium text-gray-700">Click to select restoration image</p>
                           <p className="text-sm text-gray-500 mt-1">Before/after photos or process documentation</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Upload Progress Overlay */}
+                    {restorationUploadProgress.isUploading && (
+                      <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                        <div className="bg-white rounded-lg p-4 max-w-xs w-full mx-4">
+                          <div className="text-center mb-3">
+                            <div className="w-8 h-8 border-3 border-red-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                            <p className="text-sm font-medium text-gray-700">Uploading Image</p>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                            <div 
+                              className="bg-red-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${restorationUploadProgress.progress}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-gray-600 text-center">{restorationUploadProgress.status}</p>
                         </div>
                       </div>
                     )}
