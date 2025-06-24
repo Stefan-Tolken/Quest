@@ -245,6 +245,8 @@ export default function ThreeDModelBuilderPage() {
     const [ambientIntensity, setAmbientIntensity] = useState(5);
     const [showEditOverlay, setShowEditOverlay] = useState(false);
     const [models, setModels] = useState<{ id: string, name: string }[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const [showError, setShowError] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isTextModalOpen, setIsTextModalOpen] = useState(false);
@@ -365,7 +367,6 @@ export default function ThreeDModelBuilderPage() {
         try {
             console.log('📡 Getting presigned URL for:', file.name);
             
-            // Get presigned URL
             const response = await fetch('/api/generate-presigned-url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -376,15 +377,14 @@ export default function ThreeDModelBuilderPage() {
             });
 
             if (!response.ok) {
-                const errorData = await response.json();
-                console.error('❌ Presigned URL error:', errorData);
-                throw new Error('Failed to get presigned URL');
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ Presigned URL error:', response.status, errorData);
+                throw new Error(`Failed to get presigned URL: ${response.status}`);
             }
 
             const { signedUrl, key } = await response.json();
             console.log('✅ Got presigned URL and key:', key);
 
-            // Upload directly to S3
             console.log('⬆️ Uploading to S3...');
             const uploadResponse = await fetch(signedUrl, {
                 method: 'PUT',
@@ -396,56 +396,92 @@ export default function ThreeDModelBuilderPage() {
 
             if (!uploadResponse.ok) {
                 console.error('❌ S3 upload failed:', uploadResponse.status, uploadResponse.statusText);
-                throw new Error('Failed to upload to S3');
+                throw new Error(`S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
             }
 
-            // ✅ Return the API endpoint URL (not direct S3 URL)
             const finalUrl = `/api/get-3dModel?key=${encodeURIComponent(key)}`;
             console.log('✅ S3 upload successful, final URL:', finalUrl);
             
             return finalUrl;
         } catch (error) {
             console.error('❌ S3 upload failed:', error);
-            throw error;
+            if (error instanceof Error) {
+                throw new Error(`Upload failed: ${error.message}`);
+            } else {
+                throw new Error(`Upload failed: ${String(error)}`);
+            }
         }
     }
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file && file.name.endsWith(".glb")) {
-            setUploadedFile(file);
-            
-            // Create local URL for immediate preview
-            const localUrl = URL.createObjectURL(file);
-            setGltfUrl(localUrl);
-            
-            try {
-                console.log('🚀 Starting S3 upload for:', file.name);
-                
-                // Upload to S3 and get API endpoint URL
-                const s3Url = await uploadToS3Direct(file);
-                
-                // ✅ Store the S3 API URL (NOT base64, despite variable name)
-                setS3Url(s3Url);
-                
-                console.log('✅ File uploaded successfully, S3 API URL:', s3Url);
-            } catch (error) {
-                console.error('❌ Upload failed:', error);
-                alert('Upload failed. Please try again.');
-            }
-        } else {
+        if (!file) return;
+        
+        if (!file.name.endsWith(".glb")) {
             alert("Please upload a .glb file");
+            return;
+        }
+
+        console.log('📁 File selected:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+        
+        setUploadedFile(file);
+        setUploadError(null);
+        setIsUploading(true);
+        
+        // Create local URL for immediate preview
+        const localUrl = URL.createObjectURL(file);
+        setGltfUrl(localUrl);
+        
+        try {
+            console.log('🚀 Starting S3 upload for:', file.name);
+            
+            // Upload to S3 and get API endpoint URL
+            const s3ApiUrl = await uploadToS3Direct(file);
+            
+            // Store the S3 API URL
+            setS3Url(s3ApiUrl);
+            
+            console.log('✅ File uploaded successfully, S3 API URL:', s3ApiUrl);
+            setUploadError(null);
+        } catch (error) {
+            console.error('❌ Upload failed:', error);
+            setUploadError(error instanceof Error ? error.message : 'Upload failed');
+            
+            // Keep the local preview but clear S3 URL
+            setS3Url(null);
+            
+            // Don't show alert here - we'll show it in the UI
+        } finally {
+            setIsUploading(false);
         }
     };
 
     const handleSave = async () => {
-        if (!modelName) {
+        console.log('🔍 Save validation:', {
+            modelName: modelName,
+            uploadedFile: !!uploadedFile,
+            s3Url: !!s3Url,
+            uploadError: uploadError,
+            isUploading: isUploading
+        });
+
+        if (!modelName.trim()) {
             setShowError(true);
             return;
         }
 
-        if (!uploadedFile || !s3Url) {
+        if (!uploadedFile) {
             alert("Please upload a .glb file");
+            return;
+        }
+
+        if (isUploading) {
+            alert("Please wait for the file upload to complete");
+            return;
+        }
+
+        if (uploadError || !s3Url) {
+            alert("There was an error uploading your file. Please try uploading again.");
             return;
         }
 
@@ -454,12 +490,11 @@ export default function ThreeDModelBuilderPage() {
         try {
             console.log('💾 Saving model metadata to DynamoDB...');
             
-            // ✅ ONLY send metadata - NO file data!
             const modelObject: ModelObject = {
                 id: uuidv4(),
-                name: modelName,
+                name: modelName.trim(),
                 fileName: uploadedFile.name,
-                url: s3Url, // This is the S3 URL (not base64 data!)
+                url: s3Url, // This is the S3 API URL
                 points: circles.map(c => ({
                     position: { x: c.position.x, y: c.position.y, z: c.position.z },
                     rotation: { x: c.rotation.x, y: c.rotation.y, z: c.rotation.z },
@@ -468,7 +503,7 @@ export default function ThreeDModelBuilderPage() {
                 light: ambientIntensity,
             };
 
-            console.log('📤 Sending model metadata (no file data):', {
+            console.log('📤 Sending model metadata:', {
                 id: modelObject.id,
                 name: modelObject.name,
                 fileName: modelObject.fileName,
@@ -485,7 +520,7 @@ export default function ThreeDModelBuilderPage() {
             
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error('❌ API Error Response:', errorText);
+                console.error('❌ API Error Response:', response.status, errorText);
                 throw new Error(`API Error: ${response.status} - ${errorText}`);
             }
             
@@ -506,13 +541,10 @@ export default function ThreeDModelBuilderPage() {
             setS3Url(null);
             setCircles([]);
             setAmbientIntensity(5);
+            setUploadError(null);
         } catch (error) {
             console.error("❌ Error saving 3D model:", error);
-            if (error instanceof Error) {
-                alert(`Error saving 3D Model: ${error.message}`);
-            } else {
-                alert("Error saving 3D Model: An unknown error occurred.");
-                }
+            alert(`Error saving 3D Model: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setIsSaving(false);
         }
@@ -619,6 +651,15 @@ export default function ThreeDModelBuilderPage() {
                                         </div>
                                         <h2 className="text-xl font-semibold text-gray-700 mb-2">Upload 3D Model</h2>
                                         <p className="text-gray-500 mb-6">Upload a .glb file to get started</p>
+                                        
+                                        {/* Upload Error Display */}
+                                        {uploadError && (
+                                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                                                <p className="text-red-600 text-sm">Upload failed: {uploadError}</p>
+                                                <p className="text-red-500 text-xs mt-1">Please try again</p>
+                                            </div>
+                                        )}
+                                        
                                         <div className="relative">
                                             <input
                                                 type="file"
@@ -626,18 +667,29 @@ export default function ThreeDModelBuilderPage() {
                                                 onChange={handleFileUpload}
                                                 className="hidden"
                                                 id="file-upload"
+                                                disabled={isUploading}
                                             />
                                             <Button
                                                 onClick={() => document.getElementById('file-upload')?.click()}
                                                 className="flex items-center gap-2 hover:cursor-pointer"
+                                                disabled={isUploading}
                                             >
-                                                <Upload className="h-4 w-4" />
-                                                Choose .glb File
+                                                {isUploading ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        Uploading...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Upload className="h-4 w-4" />
+                                                        Choose .glb File
+                                                    </>
+                                                )}
                                             </Button>
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
+                                ) : (
                                 <div className="flex-1 bg-white border-r border-gray-200">
                                     <div className="h-full w-full">
                                         <Canvas 
@@ -767,11 +819,15 @@ export default function ThreeDModelBuilderPage() {
                                 <div className="p-6 border-t border-gray-200">
                                     <Button
                                         onClick={handleSave}
-                                        disabled={isSaving || !modelName}
+                                        disabled={isSaving || !modelName.trim() || !uploadedFile || isUploading || !!uploadError || !s3Url}
                                         className="w-full flex items-center gap-2 hover:cursor-pointer disabled:cursor-not-allowed"
                                     >
                                         <Save className="h-4 w-4" />
-                                        {isSaving ? "Saving..." : "Save 3D Model"}
+                                        {isSaving ? "Saving..." : 
+                                        isUploading ? "Uploading..." :
+                                        uploadError ? "Upload Failed" :
+                                        !s3Url ? "Upload Required" :
+                                        "Save 3D Model"}
                                     </Button>
                                 </div>
                             </div>
