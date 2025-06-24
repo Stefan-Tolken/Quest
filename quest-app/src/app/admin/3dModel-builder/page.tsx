@@ -920,7 +920,7 @@ export default function ThreeDModelBuilderPage() {
                                                 className="flex-1 flex items-center gap-2 hover:cursor-pointer"
                                             >
                                                 <X className="h-4 w-4" />
-                                                Reset
+                                                Cancel Upload
                                             </Button>
                                         )}
                                         
