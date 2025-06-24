@@ -838,22 +838,22 @@ const PageBuilder = () => {
                         />
                         
                         {!imagePreview ? (
-                          <div className="flex flex-col items-center justify-center h-full space-y-3">
-                            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                              </svg>
+                            <div className="flex flex-col items-center justify-center h-full space-y-3">
+                              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-700">
+                                  Drag and drop or click to browse
+                                </p>
+                                <p className="text-sm text-gray-500 mt-1">
+                                  PNG, JPG, GIF supported up to any size
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-medium text-gray-700">
-                                Drag and drop or click to browse
-                              </p>
-                              <p className="text-sm text-gray-500 mt-1">
-                                PNG, JPG, GIF up to 10MB
-                              </p>
-                            </div>
-                          </div>
-                        ) : (
+                          ) : (
                           <div className="h-full flex flex-col items-center justify-center space-y-3">
                             <div className="relative w-full h-96 border border-gray-300 rounded-md overflow-hidden">
                               <Image

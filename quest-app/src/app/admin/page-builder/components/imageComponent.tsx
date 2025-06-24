@@ -133,7 +133,7 @@ export const ImageComponent = ({
             </div>
             <div className="text-center">
               <p className="font-medium">Click to select or drag & drop image</p>
-              <p className="text-sm text-gray-400 mt-1">Supports JPG, PNG, GIF up to 10MB</p>
+              <p className="text-sm text-gray-400 mt-1">Supports JPG, PNG, GIF up to any size</p>
             </div>
           </div>
         )}

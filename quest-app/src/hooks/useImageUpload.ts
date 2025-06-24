@@ -29,10 +29,13 @@ export const useImageUpload = (options: UseImageUploadOptions = {}) => {
     });
 
     try {
-      // Check file size (limit to 10MB for images)
       const fileSizeMB = file.size / (1024 * 1024);
-      if (fileSizeMB > 10) {
-        throw new Error('File too large. Maximum size is 10MB.');
+      if (fileSizeMB > 50) { // 50MB soft warning
+        console.log(`Large file detected: ${fileSizeMB.toFixed(1)}MB - upload may take longer`);
+        setUploadProgress(prev => ({
+          ...prev,
+          status: `Preparing large file (${fileSizeMB.toFixed(1)}MB)...`,
+        }));
       }
 
       // Validate file type
@@ -67,7 +70,7 @@ export const useImageUpload = (options: UseImageUploadOptions = {}) => {
       setUploadProgress(prev => ({
         ...prev,
         progress: 25,
-        status: 'Uploading to cloud...',
+        status: fileSizeMB > 50 ? `Uploading large file (${fileSizeMB.toFixed(1)}MB)...` : 'Uploading to cloud...',
       }));
 
       // Upload with progress tracking
@@ -97,6 +100,8 @@ export const useImageUpload = (options: UseImageUploadOptions = {}) => {
             reject(new Error(`Upload failed with status ${xhr.status}`));
           }
         });
+
+        xhr.timeout = fileSizeMB > 50 ? 10 * 60 * 1000 : 5 * 60 * 1000; 
 
         xhr.addEventListener('error', () => {
           reject(new Error('Upload failed due to network error'));
