@@ -361,23 +361,69 @@ export default function ThreeDModelBuilderPage() {
         }
     }, [showEditOverlay]);
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    async function uploadToS3Direct(file: File): Promise<string> {
+        try {
+            // Get presigned URL
+            const response = await fetch('/api/generate-presigned-url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                fileName: file.name,
+                fileType: file.type || 'model/gltf-binary',
+            }),
+            });
+
+            if (!response.ok) {
+            throw new Error('Failed to get presigned URL');
+            }
+
+            const { signedUrl, key } = await response.json();
+
+            // Upload directly to S3
+            const uploadResponse = await fetch(signedUrl, {
+            method: 'PUT',
+            body: file,
+            headers: {
+                'Content-Type': file.type || 'model/gltf-binary',
+            },
+            });
+
+            if (!uploadResponse.ok) {
+            throw new Error('Failed to upload to S3');
+            }
+
+            return `/api/get-3dModel?key=${encodeURIComponent(key)}`;
+        } catch (error) {
+            console.error('S3 upload failed:', error);
+            throw error;
+        }
+    }
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file && file.name.endsWith(".glb")) {
             setUploadedFile(file);
-            setGltfUrl(URL.createObjectURL(file));
-
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const base64 = e.target?.result as string;
-                setBase64Glb(base64);
-            };
-            reader.readAsDataURL(file);
-
+            
+            // Create local URL for immediate preview
+            const localUrl = URL.createObjectURL(file);
+            setGltfUrl(localUrl);
+            
+            try {
+            // Upload directly to S3
+            const s3Url = await uploadToS3Direct(file);
+            
+            // Store S3 URL for saving
+            setBase64Glb(`s3:${s3Url}`);
+            
+            console.log('File uploaded successfully to S3:', s3Url);
+            } catch (error) {
+            console.error('Upload failed:', error);
+            alert('Upload failed. Please try again.');
+            }
         } else {
             alert("Please upload a .glb file");
         }
-    };
+        };
 
     const handleSave = async () => {
         if (!modelName) {

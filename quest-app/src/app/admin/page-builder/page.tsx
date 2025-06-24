@@ -23,6 +23,7 @@ import { SaveSuccessPopup } from "./components/SaveSuccessPopup";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { useNavigationGuardContext } from "@/context/NavigationGuardContext";
 import { usePathname } from "next/navigation";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 // Component templates for drag overlay
 const basicComponents: ComponentData[] = [
@@ -155,6 +156,26 @@ const PageBuilder = () => {
           window.removeEventListener('navigationAttempt', handleNavigationAttempt as EventListener);
       };
   }, [shouldBlock, router]);
+
+  const { uploadImage: uploadArtifactImage, uploadProgress: artifactUploadProgress } = useImageUpload({
+    uploadType: 'artifact',
+    onSuccess: (url) => {
+      setImage(url);
+      setImagePreview(url);
+      setShowErrorImage(false);
+    },
+    onError: (error) => {
+      alert(`Upload failed: ${error}`);
+    },
+  });
+
+  const handleArtifactImageUpload = async (file: File) => {
+    try {
+      await uploadArtifactImage(file);
+    } catch (error) {
+      console.error('Artifact image upload failed:', error);
+    }
+  };
 
   // Handle confirmation dialog responses
   const handleConfirmExit = useCallback(() => {
@@ -295,9 +316,10 @@ const PageBuilder = () => {
         order: index
       }));
 
-      // If the image is a File, convert to base64 string for backend upload
+      // For images, check if they're already S3 URLs or need conversion
       let imageToSend = image;
       if (image && typeof image !== "string") {
+        // This should not happen with our new upload system, but keep as fallback
         imageToSend = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
           reader.onload = () => resolve(reader.result as string);
@@ -305,6 +327,7 @@ const PageBuilder = () => {
           reader.readAsDataURL(image as File);
         });
       }
+      // If image is already a string (S3 URL), use it directly
 
       const artefactData = {
         id: editId || crypto.randomUUID(),
@@ -313,7 +336,7 @@ const PageBuilder = () => {
         type,
         date,
         description,
-        image: imageToSend,
+        image: imageToSend, // This will be the S3 URL
         components: componentsWithOrder,
         createdAt: editId ? createdAt : new Date().toISOString(),
       };
@@ -776,84 +799,97 @@ const PageBuilder = () => {
                       </div>
 
                       {/* Image Upload */}
-                      <div>
-                        <h2 className="text-2xl font-semibold mb-4">Artefact Image <span className="text-red-500">*</span></h2>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          This image will appear at the top of the artefacts page and can provide users with additional context about the artefact.
-                        </label>
-                        <div
-                          className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
-                          }}
-                          onDragLeave={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
-                            const files = e.dataTransfer.files;
-                            if (files.length > 0 && files[0].type.startsWith('image/')) {
-                              const file = files[0];
-                              setImage(file);
-                              setImagePreview(URL.createObjectURL(file));
-                              setShowErrorImage(false);
+                      <div
+                        className="relative border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+                          const files = e.dataTransfer.files;
+                          if (files.length > 0 && files[0].type.startsWith('image/')) {
+                            handleArtifactImageUpload(files[0]);
+                          }
+                        }}
+                        onClick={() => {
+                          if (!artifactUploadProgress.isUploading) {
+                            document.getElementById('file-input')?.click();
+                          }
+                        }}
+                      >
+                        <input
+                          id="file-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              handleArtifactImageUpload(file);
                             }
                           }}
-                          onClick={() => document.getElementById('file-input')?.click()}
-                        >
-                          <input
-                            id="file-input"
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setImage(file);
-                                setImagePreview(URL.createObjectURL(file));
-                                setShowErrorImage(false);
-                              } else {
-                                setImage("");
-                                setImagePreview("");
-                              }
-                            }}
-                            className="hidden"
-                          />
-                          
-                          {!imagePreview ? (
-                            <div className="flex flex-col items-center justify-center h-full space-y-3">
-                              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                                <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                </svg>
-                              </div>
-                              <div>
-                                <p className="font-medium text-gray-700">
-                                  Drag and drop or click to browse
-                                </p>
-                                <p className="text-sm text-gray-500 mt-1">
-                                  PNG, JPG, GIF up to 10MB
-                                </p>
-                              </div>
+                          className="hidden"
+                          disabled={artifactUploadProgress.isUploading}
+                        />
+                        
+                        {!imagePreview ? (
+                          <div className="flex flex-col items-center justify-center h-full space-y-3">
+                            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                              </svg>
                             </div>
-                          ) : (
-                            <div className="h-full flex flex-col items-center justify-center space-y-3">
-                              <div className="relative w-full h-96 border border-gray-300 rounded-md overflow-hidden">
-                                <Image
-                                  src={imagePreview}
-                                  alt="Preview"
-                                  fill
-                                  className="object-contain"
-                                />
-                              </div>
+                            <div>
+                              <p className="font-medium text-gray-700">
+                                Drag and drop or click to browse
+                              </p>
+                              <p className="text-sm text-gray-500 mt-1">
+                                PNG, JPG, GIF up to 10MB
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center space-y-3">
+                            <div className="relative w-full h-96 border border-gray-300 rounded-md overflow-hidden">
+                              <Image
+                                src={imagePreview}
+                                alt="Preview"
+                                fill
+                                className="object-contain"
+                              />
+                            </div>
+                            {!artifactUploadProgress.isUploading && (
                               <p className="text-sm font-medium text-gray-700">
                                 Click to change image
                               </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Upload Progress Overlay */}
+                        {artifactUploadProgress.isUploading && (
+                          <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                              <div className="text-center mb-4">
+                                <div className="w-10 h-10 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                                <p className="text-lg font-medium text-gray-700">Uploading Artifact Image</p>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+                                <div 
+                                  className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                                  style={{ width: `${artifactUploadProgress.progress}%` }}
+                                />
+                              </div>
+                              <p className="text-sm text-gray-600 text-center">{artifactUploadProgress.status}</p>
+                              <p className="text-xs text-gray-500 text-center mt-1">{artifactUploadProgress.progress}% complete</p>
                             </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

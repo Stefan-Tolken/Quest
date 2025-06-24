@@ -5,20 +5,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import * as THREE from "three";
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Loader2 , Info} from 'lucide-react';
-
-// Use the same type as in page.tsx for consistency
-export type ModelObject = {
-  id: string;
-  name: string;
-  fileName: string;
-  url: string;
-  points: Array<{
-    position: { x: number; y: number; z: number };
-    rotation: { x: number; y: number; z: number };
-    text: string;
-  }>;
-  light?: number; // Add light property
-};
+import { ModelObject } from "@/lib/types";
 
 function Loader() {
   const { progress } = useProgress();
@@ -123,8 +110,14 @@ export function Model3DSelector({ selectedModelId, onSelectModel }: { selectedMo
 
   // Keep internal state in sync with prop
   useEffect(() => {
-    setInternalSelectedId(selectedModelId);
-  }, [selectedModelId]);
+    if (selectedModelId.startsWith('/api/get-3dModel')) {
+      // Find model by URL
+      const foundModel = models.find(m => m.url === selectedModelId);
+      setInternalSelectedId(foundModel?.id || '');
+    } else {
+      setInternalSelectedId(selectedModelId);
+    }
+  }, [selectedModelId, models]);
 
   // Reset point selection when model changes
   useEffect(() => {

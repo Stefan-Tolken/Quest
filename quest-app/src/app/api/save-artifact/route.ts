@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { DynamoDBClient, PutItemCommand, PutItemCommandInput } from "@aws-sdk/client-dynamodb";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { Artefact } from "@/lib/types";
 
 // Configure AWS SDK
@@ -12,16 +11,9 @@ const dynamoDB = new DynamoDBClient({
   },
 });
 
-const s3 = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
-
 export async function POST(request: Request) {
   try {
+    // Parse JSON directly instead of FormData
     const artifactData: Artefact = await request.json();
 
     if (!artifactData.name) {
@@ -31,123 +23,52 @@ export async function POST(request: Request) {
       );
     }
 
-    // Handle main artifact image upload if it's a base64 data URL
-    let imageUrl = artifactData.image;
-    if (typeof imageUrl === "string" && imageUrl.startsWith("data:image/")) {
-      try {
-        const matches = imageUrl.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-          const contentType = matches[1];
-          const base64Data = matches[2];
-          const buffer = Buffer.from(base64Data, "base64");
-          const timestamp = Date.now();
-          const imageKey = `artifacts/${artifactData.id}/main-image-${timestamp}.jpg`;
-          await s3.send(
-            new PutObjectCommand({
-              Bucket: process.env.AWS_BUCKET_NAME!,
-              Key: imageKey,
-              Body: buffer,
-              ContentType: contentType,
-            })
-          );
-          imageUrl = `/api/get-image?key=${encodeURIComponent(imageKey)}`;
-        }
-      } catch (err) {
-        console.error("S3 upload failed for main artifact image:", err);
-        imageUrl = "";
+    // Validate that image URLs are proper S3 URLs if present
+    if (artifactData.image && typeof artifactData.image === "string") {
+      // Check if it's still a base64 string (shouldn't happen with new system)
+      if (artifactData.image.startsWith("data:image/")) {
+        console.warn("Base64 image detected - this should not happen with pre-signed URL system");
+        return NextResponse.json(
+          { error: "Invalid image format. Please upload images using the image upload interface." },
+          { status: 400 }
+        );
       }
     }
 
-    // Find and upload images for image and restoration components in the components array
-    const updatedComponents = await Promise.all(
-      artifactData.components.map(async (component, index) => {
-        // Handle image component
-        if (
-          component.type === "image" &&
-          typeof component.content === "object" &&
-          "url" in component.content &&
-          component.content.url.startsWith("data:image/")
-        ) {
-          try {
-            const matches = component.content.url.match(
-              /^data:([A-Za-z-+/]+);base64,(.+)$/
-            );
-            if (matches && matches.length === 3) {
-              const contentType = matches[1];
-              const base64Data = matches[2];
-              const buffer = Buffer.from(base64Data, "base64");
-              const timestamp = Date.now();
-              const imageKey = `artifacts/${artifactData.id}/component-${index}-${timestamp}.jpg`;
-              await s3.send(
-                new PutObjectCommand({
-                  Bucket: process.env.AWS_BUCKET_NAME!,
-                  Key: imageKey,
-                  Body: buffer,
-                  ContentType: contentType,
-                })
-              );
-              return {
-                ...component,
-                content: {
-                  ...component.content,
-                  url: `/api/get-image?key=${encodeURIComponent(imageKey)}`,
-                },
-              };
-            }
-          } catch (err) {
-            console.error("S3 upload failed for image component:", err);
-          }
+    // Validate component images
+    const validatedComponents = artifactData.components.map((component, index) => {
+      // Check image components
+      if (
+        component.type === "image" &&
+        typeof component.content === "object" &&
+        "url" in component.content &&
+        component.content.url
+      ) {
+        if (component.content.url.startsWith("data:image/")) {
+          console.warn(`Base64 image detected in component ${index} - this should not happen with pre-signed URL system`);
+          throw new Error("Invalid image format in component. Please upload images using the image upload interface.");
         }
-        // Handle restoration component
-        if (
-          component.type === "restoration" &&
-          typeof component.content === "object" &&
-          "restorations" in component.content
-        ) {
-          try {
-            const updatedRestorations = await Promise.all(
-              (component.content.restorations as Array<any>).map(async (rest: any, rIndex: number) => {
-                if (rest.imageUrl && rest.imageUrl.startsWith("data:image/")) {
-                  const matches = rest.imageUrl.match(/^data:([A-Za-z-+/]+);base64,(.+)$/);
-                  if (matches && matches.length === 3) {
-                    const contentType = matches[1];
-                    const base64Data = matches[2];
-                    const buffer = Buffer.from(base64Data, "base64");
-                    const timestamp = Date.now();
-                    const imageKey = `artifacts/${artifactData.id}/restoration-${index}-${rIndex}-${timestamp}.jpg`;
-                    await s3.send(
-                      new PutObjectCommand({
-                        Bucket: process.env.AWS_BUCKET_NAME!,
-                        Key: imageKey,
-                        Body: buffer,
-                        ContentType: contentType,
-                      })
-                    );
-                    return {
-                      ...rest,
-                      imageUrl: `/api/get-image?key=${encodeURIComponent(imageKey)}`,
-                    };
-                  }
-                }
-                return rest;
-              })
-            );
-            return {
-              ...component,
-              content: {
-                ...component.content,
-                restorations: updatedRestorations,
-              },
-            };
-          } catch (err) {
-            console.error("Failed to process restoration images:", err);
-          }
-        }
-        return component;
-      })
-    );
+      }
 
-    // Build DynamoDB item with correct image URL
+      // Check restoration components
+      if (
+        component.type === "restoration" &&
+        typeof component.content === "object" &&
+        "restorations" in component.content
+      ) {
+        const restorations = component.content.restorations as Array<any>;
+        restorations.forEach((restoration: any, rIndex: number) => {
+          if (restoration.imageUrl && restoration.imageUrl.startsWith("data:image/")) {
+            console.warn(`Base64 image detected in restoration ${index}-${rIndex} - this should not happen with pre-signed URL system`);
+            throw new Error("Invalid image format in restoration. Please upload images using the image upload interface.");
+          }
+        });
+      }
+
+      return component;
+    });
+
+    // Build DynamoDB item - much simpler now!
     const params: PutItemCommandInput = {
       TableName: process.env.ARTEFACTS_TABLE || "artefacts",
       Item: {
@@ -157,17 +78,20 @@ export async function POST(request: Request) {
         type: artifactData.type ? { S: artifactData.type } : { NULL: true },
         date: artifactData.date ? { S: artifactData.date } : { NULL: true },
         description: { S: artifactData.description },
-        image: { S: typeof imageUrl === "string" ? imageUrl : "" },
-        components: { S: JSON.stringify(updatedComponents) },
+        image: { S: typeof artifactData.image === "string" ? artifactData.image : "" },
+        components: { S: JSON.stringify(validatedComponents) },
         createdAt: { S: artifactData.createdAt },
       },
     };
 
     await dynamoDB.send(new PutItemCommand(params));
 
+    console.log(`Artifact saved successfully: ${artifactData.id}`);
+
     return NextResponse.json({
       success: true,
       id: artifactData.id,
+      message: "Artifact saved successfully"
     });
   } catch (error) {
     console.error("DynamoDB Error:", error);
