@@ -10,13 +10,14 @@ import { v4 as uuidv4 } from "uuid";
 import ModelEditorOverlay from "./3dModel-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Upload, Edit3, Plus, Trash2, Save, Loader2, Edit, X, Settings } from "lucide-react";
+import { ArrowLeft, Upload, Edit3, Plus, Trash2, Save, Loader2, Edit, X, Settings, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ModelObject } from "@/lib/types";
 import SuccessPopup from "@/components/ui/SuccessPopup";
 import { useNavigationGuardContext } from "@/context/NavigationGuardContext";
 import { usePathname } from "next/navigation";
 import { ConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { use3DModelUpload } from "@/hooks/use3DModelUpload";
 
 
 type CircleData = {
@@ -267,6 +268,17 @@ export default function ThreeDModelBuilderPage() {
         uploadedFile !== null || 
         circles.length > 0;
     
+    const { uploadModel, uploadProgress } = use3DModelUpload({
+        onSuccess: (url) => {
+            setS3Url(url);
+            console.log('✅ 3D Model uploaded successfully:', url);
+        },
+        onError: (error) => {
+            console.error('❌ 3D Model upload failed:', error);
+            // Don't show alert here - we'll show it in the UI
+        },
+    });
+    
     // Register/unregister the navigation guard
     useEffect(() => {
         registerGuard(shouldBlock, pathname);
@@ -422,49 +434,22 @@ export default function ThreeDModelBuilderPage() {
             return;
         }
 
-        console.log('📁 File selected:', file.name, 'Size:', (file.size / 1024 / 1024).toFixed(2), 'MB');
-        
         setUploadedFile(file);
-        setUploadError(null);
-        setIsUploading(true);
         
         // Create local URL for immediate preview
         const localUrl = URL.createObjectURL(file);
         setGltfUrl(localUrl);
         
         try {
-            console.log('🚀 Starting S3 upload for:', file.name);
-            
-            // Upload to S3 and get API endpoint URL
-            const s3ApiUrl = await uploadToS3Direct(file);
-            
-            // Store the S3 API URL
-            setS3Url(s3ApiUrl);
-            
-            console.log('✅ File uploaded successfully, S3 API URL:', s3ApiUrl);
-            setUploadError(null);
+            // Upload to S3 with progress tracking
+            await uploadModel(file);
         } catch (error) {
-            console.error('❌ Upload failed:', error);
-            setUploadError(error instanceof Error ? error.message : 'Upload failed');
-            
-            // Keep the local preview but clear S3 URL
-            setS3Url(null);
-            
-            // Don't show alert here - we'll show it in the UI
-        } finally {
-            setIsUploading(false);
+            console.error('Upload failed:', error);
+            // Error is already handled by the hook
         }
     };
 
     const handleSave = async () => {
-        console.log('🔍 Save validation:', {
-            modelName: modelName,
-            uploadedFile: !!uploadedFile,
-            s3Url: !!s3Url,
-            uploadError: uploadError,
-            isUploading: isUploading
-        });
-
         if (!modelName.trim()) {
             setShowError(true);
             return;
@@ -475,12 +460,12 @@ export default function ThreeDModelBuilderPage() {
             return;
         }
 
-        if (isUploading) {
+        if (uploadProgress.isUploading) {
             alert("Please wait for the file upload to complete");
             return;
         }
 
-        if (uploadError || !s3Url) {
+        if (!s3Url) {
             alert("There was an error uploading your file. Please try uploading again.");
             return;
         }
@@ -502,15 +487,6 @@ export default function ThreeDModelBuilderPage() {
                 })),
                 light: ambientIntensity,
             };
-
-            console.log('📤 Sending model metadata:', {
-                id: modelObject.id,
-                name: modelObject.name,
-                fileName: modelObject.fileName,
-                url: modelObject.url,
-                pointsCount: modelObject.points.length,
-                light: modelObject.light
-            });
 
             const response = await fetch("/api/save-3dModel", {
                 method: "POST",
@@ -541,7 +517,6 @@ export default function ThreeDModelBuilderPage() {
             setS3Url(null);
             setCircles([]);
             setAmbientIntensity(5);
-            setUploadError(null);
         } catch (error) {
             console.error("❌ Error saving 3D model:", error);
             alert(`Error saving 3D Model: ${error instanceof Error ? error.message : String(error)}`);
@@ -653,9 +628,9 @@ export default function ThreeDModelBuilderPage() {
                                         <p className="text-gray-500 mb-6">Upload a .glb file to get started</p>
                                         
                                         {/* Upload Error Display */}
-                                        {uploadError && (
+                                        {!uploadProgress.isUploading && uploadProgress.status.includes('failed') && (
                                             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                                                <p className="text-red-600 text-sm">Upload failed: {uploadError}</p>
+                                                <p className="text-red-600 text-sm">{uploadProgress.status}</p>
                                                 <p className="text-red-500 text-xs mt-1">Please try again</p>
                                             </div>
                                         )}
@@ -667,14 +642,14 @@ export default function ThreeDModelBuilderPage() {
                                                 onChange={handleFileUpload}
                                                 className="hidden"
                                                 id="file-upload"
-                                                disabled={isUploading}
+                                                disabled={uploadProgress.isUploading}
                                             />
                                             <Button
                                                 onClick={() => document.getElementById('file-upload')?.click()}
                                                 className="flex items-center gap-2 hover:cursor-pointer"
-                                                disabled={isUploading}
+                                                disabled={uploadProgress.isUploading}
                                             >
-                                                {isUploading ? (
+                                                {uploadProgress.isUploading ? (
                                                     <>
                                                         <Loader2 className="h-4 w-4 animate-spin" />
                                                         Uploading...
@@ -690,7 +665,57 @@ export default function ThreeDModelBuilderPage() {
                                     </div>
                                 </div>
                                 ) : (
-                                <div className="flex-1 bg-white border-r border-gray-200">
+                                <div className="flex-1 bg-white border-r border-gray-200 relative">
+                                    {/* Upload Progress Overlay - Show over the 3D canvas */}
+                                    {uploadProgress.isUploading && (
+                                        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+                                            <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                                                <div className="text-center mb-4">
+                                                    <div className="w-12 h-12 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+                                                    <p className="text-lg font-medium text-gray-700">Uploading 3D Model</p>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-3 mb-3">
+                                                    <div 
+                                                        className="bg-blue-600 h-3 rounded-full transition-all duration-300"
+                                                        style={{ width: `${uploadProgress.progress}%` }}
+                                                    />
+                                                </div>
+                                                <p className="text-sm text-gray-600 text-center">{uploadProgress.status}</p>
+                                                <p className="text-xs text-gray-500 text-center mt-1">{uploadProgress.progress}% complete</p>
+                                                
+                                                {/* File info */}
+                                                {uploadedFile && (
+                                                    <div className="mt-3 pt-3 border-t border-gray-200">
+                                                        <p className="text-xs text-gray-500 text-center">
+                                                            {uploadedFile.name} ({(uploadedFile.size / 1024 / 1024).toFixed(1)} MB)
+                                                        </p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Success/Error Status Overlay */}
+                                    {!uploadProgress.isUploading && uploadProgress.status && (
+                                        <div className="absolute top-4 right-4 z-40">
+                                            {uploadProgress.status.includes('complete') ? (
+                                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center gap-2 shadow-md">
+                                                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                                        <Check className="h-3 w-3 text-white" />
+                                                    </div>
+                                                    <p className="text-green-700 text-sm font-medium">Upload complete!</p>
+                                                </div>
+                                            ) : uploadProgress.status.includes('failed') ? (
+                                                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 shadow-md">
+                                                    <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                                                        <X className="h-3 w-3 text-white" />
+                                                    </div>
+                                                    <p className="text-red-700 text-sm font-medium">Upload failed</p>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    )}
+
                                     <div className="h-full w-full">
                                         <Canvas 
                                             className="h-full w-full" 
@@ -713,7 +738,9 @@ export default function ThreeDModelBuilderPage() {
                                             </Suspense>
                                         </Canvas>
                                     </div>
-                                    {gltfUrl && (
+                                    
+                                    {/* Tip overlay */}
+                                    {gltfUrl && !uploadProgress.isUploading && (
                                         <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md border">
                                             <p className="text-sm text-gray-600">
                                                 <span className="font-medium">Tip:</span> Double-click on the model to add interest points
@@ -819,16 +846,37 @@ export default function ThreeDModelBuilderPage() {
                                 <div className="p-6 border-t border-gray-200">
                                     <Button
                                         onClick={handleSave}
-                                        disabled={isSaving || !modelName.trim() || !uploadedFile || isUploading || !!uploadError || !s3Url}
+                                        disabled={isSaving || !modelName.trim() || !uploadedFile || uploadProgress.isUploading || !s3Url}
                                         className="w-full flex items-center gap-2 hover:cursor-pointer disabled:cursor-not-allowed"
                                     >
                                         <Save className="h-4 w-4" />
-                                        {isSaving ? "Saving..." : 
-                                        isUploading ? "Uploading..." :
-                                        uploadError ? "Upload Failed" :
-                                        !s3Url ? "Upload Required" :
+                                        {isSaving ? "Saving to Database..." : 
+                                        uploadProgress.isUploading ? "Uploading..." :
+                                        !s3Url && uploadedFile ? "Upload Failed - Try Again" :
+                                        !uploadedFile ? "Upload Required" :
+                                        !modelName.trim() ? "Enter Model Name" :
                                         "Save 3D Model"}
                                     </Button>
+                                    
+                                    {/* Status indicator under button */}
+                                    {uploadProgress.isUploading && (
+                                        <div className="mt-2 text-center">
+                                            <p className="text-xs text-gray-500">{uploadProgress.status}</p>
+                                            <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                                                <div 
+                                                    className="bg-blue-600 h-1 rounded-full transition-all duration-300"
+                                                    style={{ width: `${uploadProgress.progress}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                    
+                                    {!uploadProgress.isUploading && s3Url && (
+                                        <p className="text-xs text-green-600 text-center mt-2 flex items-center justify-center gap-1">
+                                            <Check className="h-3 w-3" />
+                                            Ready to save
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         )}
