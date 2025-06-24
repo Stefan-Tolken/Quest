@@ -10,7 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 import ModelEditorOverlay from "./3dModel-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Upload, Edit3, Plus, Trash2, Save, Loader2, Edit, X, Settings, Check } from "lucide-react";
+import { ArrowLeft, Upload, Edit3, Plus, Trash2, Save, Loader2, Edit, X, Settings, Check, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ModelObject } from "@/lib/types";
 import SuccessPopup from "@/components/ui/SuccessPopup";
@@ -241,6 +241,7 @@ export default function ThreeDModelBuilderPage() {
     const [gltfUrl, setGltfUrl] = useState<string | null>(null);
     const [modelName, setModelName] = useState("");
     const [s3Url, setS3Url] = useState<string | null>(null);
+    const [s3Key, setS3Key] = useState<string | null>(null);
     const [circles, setCircles] = useState<CircleData[]>([]);
     const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
     const [ambientIntensity, setAmbientIntensity] = useState(5);
@@ -268,16 +269,61 @@ export default function ThreeDModelBuilderPage() {
         uploadedFile !== null || 
         circles.length > 0;
     
-    const { uploadModel, uploadProgress } = use3DModelUpload({
-        onSuccess: (url) => {
+    const { 
+        uploadModel, 
+        uploadProgress, 
+        cleanupPendingUpload, 
+        markAsSaved, 
+        cleanupAllPending 
+    } = use3DModelUpload({
+        onSuccess: (url, key) => {
             setS3Url(url);
-            console.log('✅ 3D Model uploaded successfully:', url);
+            setS3Key(key);
+            console.log('✅ 3D Model uploaded successfully:', url, 'Key:', key);
         },
         onError: (error) => {
             console.error('❌ 3D Model upload failed:', error);
             // Don't show alert here - we'll show it in the UI
         },
     });
+
+    const handleCancel = async () => {
+        if (s3Key && !isSaving) {
+            await cleanupPendingUpload(s3Key);
+        }
+        resetForm();
+    };
+
+    // Cleanup on component unmount or when user navigates away
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            cleanupAllPending();
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            cleanupAllPending();
+        };
+    }, [cleanupAllPending]);
+
+    // Reset form function with cleanup
+    const resetForm = useCallback(async () => {
+        // Clean up any pending upload if user resets before saving
+        if (s3Key && !isSaving) {
+            await cleanupPendingUpload(s3Key);
+        }
+        
+        setModelName("");
+        setUploadedFile(null);
+        setGltfUrl(null);
+        setS3Url(null);
+        setS3Key(null);
+        setCircles([]);
+        setAmbientIntensity(5);
+        setShowError(false);
+    }, [s3Key, isSaving, cleanupPendingUpload]);
     
     // Register/unregister the navigation guard
     useEffect(() => {
@@ -426,6 +472,11 @@ export default function ThreeDModelBuilderPage() {
     }
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Clean up previous upload if exists
+        if (s3Key) {
+            await cleanupPendingUpload(s3Key);
+        }
+
         const file = e.target.files?.[0];
         if (!file) return;
         
@@ -450,6 +501,14 @@ export default function ThreeDModelBuilderPage() {
     };
 
     const handleSave = async () => {
+        console.log('🔍 Save validation:', {
+            modelName: modelName,
+            uploadedFile: !!uploadedFile,
+            s3Url: !!s3Url,
+            s3Key: s3Key,
+            isUploading: uploadProgress.isUploading
+        });
+
         if (!modelName.trim()) {
             setShowError(true);
             return;
@@ -465,7 +524,7 @@ export default function ThreeDModelBuilderPage() {
             return;
         }
 
-        if (!s3Url) {
+        if (!s3Url || !s3Key) {
             alert("There was an error uploading your file. Please try uploading again.");
             return;
         }
@@ -508,18 +567,26 @@ export default function ThreeDModelBuilderPage() {
             }
             
             console.log('✅ Model saved successfully!');
+            
+            // Mark the upload as permanently saved (prevents cleanup)
+            if (s3Key) {
+                markAsSaved(s3Key);
+            }
+            
             setShowSuccess(true);
             
-            // Reset form
+            // Reset form without cleanup since it's now saved
             setModelName("");
             setUploadedFile(null);
             setGltfUrl(null);
             setS3Url(null);
+            setS3Key(null);
             setCircles([]);
             setAmbientIntensity(5);
         } catch (error) {
             console.error("❌ Error saving 3D model:", error);
             alert(`Error saving 3D Model: ${error instanceof Error ? error.message : String(error)}`);
+            // Don't clean up the upload on save error - user might want to retry
         } finally {
             setIsSaving(false);
         }
@@ -844,19 +911,34 @@ export default function ThreeDModelBuilderPage() {
 
                                 {/* Save Button */}
                                 <div className="p-6 border-t border-gray-200">
-                                    <Button
-                                        onClick={handleSave}
-                                        disabled={isSaving || !modelName.trim() || !uploadedFile || uploadProgress.isUploading || !s3Url}
-                                        className="w-full flex items-center gap-2 hover:cursor-pointer disabled:cursor-not-allowed"
-                                    >
-                                        <Save className="h-4 w-4" />
-                                        {isSaving ? "Saving to Database..." : 
-                                        uploadProgress.isUploading ? "Uploading..." :
-                                        !s3Url && uploadedFile ? "Upload Failed - Try Again" :
-                                        !uploadedFile ? "Upload Required" :
-                                        !modelName.trim() ? "Enter Model Name" :
-                                        "Save 3D Model"}
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        {/* Cancel/Reset Button */}
+                                        {(uploadedFile || modelName.trim()) && !isSaving && (
+                                            <Button
+                                                onClick={handleCancel}
+                                                variant="outline"
+                                                className="flex-1 flex items-center gap-2 hover:cursor-pointer"
+                                            >
+                                                <X className="h-4 w-4" />
+                                                Reset
+                                            </Button>
+                                        )}
+                                        
+                                        {/* Save Button */}
+                                        <Button
+                                            onClick={handleSave}
+                                            disabled={isSaving || !modelName.trim() || !uploadedFile || uploadProgress.isUploading || !s3Url}
+                                            className={`${(uploadedFile || modelName.trim()) && !isSaving ? 'flex-1' : 'w-full'} flex items-center gap-2 hover:cursor-pointer disabled:cursor-not-allowed`}
+                                        >
+                                            <Save className="h-4 w-4" />
+                                            {isSaving ? "Saving to Database..." : 
+                                            uploadProgress.isUploading ? "Uploading..." :
+                                            !s3Url && uploadedFile ? "Upload Failed - Try Again" :
+                                            !uploadedFile ? "Upload Required" :
+                                            !modelName.trim() ? "Enter Model Name" :
+                                            "Save 3D Model"}
+                                        </Button>
+                                    </div>
                                     
                                     {/* Status indicator under button */}
                                     {uploadProgress.isUploading && (
@@ -877,10 +959,18 @@ export default function ThreeDModelBuilderPage() {
                                             Ready to save
                                         </p>
                                     )}
+                                    
+                                    {/* Warning about cleanup */}
+                                    {s3Url && !isSaving && (
+                                        <p className="text-xs text-amber-600 text-center mt-2 flex items-center justify-center gap-1">
+                                            <AlertTriangle className="h-3 w-3" />
+                                            File will be removed if not saved
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         )}
-                    </div>
+                    </div>     
                 </div>
 
                 {/* Overlay for editing existing models */}

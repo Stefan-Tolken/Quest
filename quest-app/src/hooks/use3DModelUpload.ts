@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from "react";
 
 interface UploadProgress {
   progress: number;
@@ -7,7 +7,7 @@ interface UploadProgress {
 }
 
 interface Use3DModelUploadOptions {
-  onSuccess?: (url: string) => void;
+  onSuccess?: (url: string, key: string) => void;
   onError?: (error: string) => void;
 }
 
@@ -19,6 +19,9 @@ export const use3DModelUpload = (options: Use3DModelUploadOptions = {}) => {
     status: '',
     isUploading: false,
   });
+
+  // Keep track of uploaded files that haven't been saved yet
+  const pendingUploadsRef = useRef<Set<string>>(new Set());
 
   const uploadModel = useCallback(async (file: File): Promise<string> => {
     setUploadProgress({
@@ -68,6 +71,9 @@ export const use3DModelUpload = (options: Use3DModelUploadOptions = {}) => {
 
       const { signedUrl, key } = await response.json();
       console.log('✅ Got presigned URL and key:', key);
+      
+      // Add to pending uploads tracking
+      pendingUploadsRef.current.add(key);
 
       setUploadProgress(prev => ({
         ...prev,
@@ -128,7 +134,7 @@ export const use3DModelUpload = (options: Use3DModelUploadOptions = {}) => {
       }));
 
       console.log('✅ 3D model uploaded successfully:', uploadResult);
-      onSuccess?.(uploadResult);
+      onSuccess?.(uploadResult, key);
       return uploadResult;
 
     } catch (error) {
@@ -155,6 +161,43 @@ export const use3DModelUpload = (options: Use3DModelUploadOptions = {}) => {
     }
   }, [onSuccess, onError]);
 
+  // Function to clean up uploaded file if save is cancelled
+  const cleanupPendingUpload = useCallback(async (key: string) => {
+    if (!pendingUploadsRef.current.has(key)) return;
+    
+    try {
+      console.log('🗑️ Cleaning up unused upload:', key);
+      const response = await fetch('/api/delete-temp-upload', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key }),
+      });
+      
+      if (response.ok) {
+        console.log('✅ Temporary upload cleaned up');
+        pendingUploadsRef.current.delete(key);
+      } else {
+        console.warn('⚠️ Failed to clean up temporary upload:', key);
+      }
+    } catch (error) {
+      console.error('❌ Error cleaning up temporary upload:', error);
+    }
+  }, []);
+
+  // Function to mark upload as permanently saved
+  const markAsSaved = useCallback((key: string) => {
+    pendingUploadsRef.current.delete(key);
+    console.log('✅ Upload marked as permanently saved:', key);
+  }, []);
+
+  // Clean up all pending uploads on unmount
+  const cleanupAllPending = useCallback(async () => {
+    const pendingKeys = Array.from(pendingUploadsRef.current);
+    for (const key of pendingKeys) {
+      await cleanupPendingUpload(key);
+    }
+  }, [cleanupPendingUpload]);
+
   const resetUpload = useCallback(() => {
     setUploadProgress({
       progress: 0,
@@ -167,5 +210,8 @@ export const use3DModelUpload = (options: Use3DModelUploadOptions = {}) => {
     uploadModel,
     uploadProgress,
     resetUpload,
+    cleanupPendingUpload,
+    markAsSaved,
+    cleanupAllPending,
   };
 };
